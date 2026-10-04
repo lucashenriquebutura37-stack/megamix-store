@@ -216,7 +216,7 @@ window.vorzeliIcon = function(area, name) {
 };
 
 window.vorzeliIconHTML = function(area, name) {
-  const src = window.vORZELI_ICON_MAP?.[area]?.[name] || "";
+  const src = window.vorzeliIcon(area, name);
 
   if (!src) return "";
 
