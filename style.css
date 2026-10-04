@@ -1,12 +1,4 @@
-.top {
-  background: #111;
-  color: #fff;
-  text-align: center;
-  padding: 8px;
-  font-size: 12px;
-}
-
-/* CABEÇALHO */
+HO */
 
 .nav {
   height: 76px;
@@ -1019,5 +1011,110 @@ footer p {
 
   .subcatIcon {
     font-size: 20px;
+  }
+}
+
+/* =========================================================
+   VORZELI - AJUSTE FINAL DE TAMANHOS NO CELULAR
+========================================================= */
+@media (max-width: 650px) {
+  body {
+    font-size: 14px;
+  }
+
+  .top {
+    padding: 7px 5px;
+    font-size: 10px;
+  }
+
+  .quick a {
+    font-size: 11px;
+  }
+
+  .hero {
+    padding: 25px 7%;
+  }
+
+  .hero h1 {
+    font-size: 25px;
+    line-height: 1.12;
+  }
+
+  .hero p {
+    font-size: 13px;
+    line-height: 1.45;
+  }
+
+  .hero button {
+    padding: 11px 16px;
+    font-size: 13px;
+  }
+
+  .tag,
+  .sectionTitle span,
+  .sectionRow span,
+  .heading span {
+    font-size: 10px;
+  }
+
+  .sectionTitle h2 {
+    font-size: 22px;
+  }
+
+  .sectionTitle p {
+    font-size: 13px;
+    line-height: 1.4;
+  }
+
+  .areaCard h3 {
+    font-size: 13px;
+  }
+
+  .areaCard p {
+    font-size: 10px;
+  }
+
+  .areaIcon {
+    font-size: 31px;
+  }
+
+  .specialCard h3 {
+    font-size: 18px;
+  }
+
+  .specialCard p {
+    font-size: 12px;
+  }
+
+  .sectionRow h2 {
+    font-size: 20px;
+  }
+
+  .sectionRow button {
+    font-size: 12px;
+  }
+
+  .benefits b {
+    font-size: 12px;
+  }
+
+  .benefits small {
+    font-size: 10px;
+  }
+
+  .areaModalHead h2 {
+    font-size: 17px;
+  }
+
+  .heading h2 {
+    font-size: 18px;
+  }
+
+  .noProducts h2 {
+    font-size: 18px;
+  }
+
+  .noProducts p {
+    font-size: 12px;
   }
 }
