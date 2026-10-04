@@ -22,5 +22,45 @@ function updateCart(){document.getElementById("count").textContent=cart.reduce((
 function change(id,d){let x=cart.find(i=>i.id===id);x.q+=d;if(x.q<=0)cart=cart.filter(i=>i.id!==id);save()}
 function toggleCart(){document.getElementById("cart").classList.toggle("open");document.getElementById("overlay").classList.toggle("show")}
 function openCart(){document.getElementById("cart").classList.add("open");document.getElementById("overlay").classList.add("show")}
-function checkout(){if(!cart.length)return alert("Adicione produtos ao carrinho.");let msg="Olá! Quero fazer um pedido na MegaMix Store:%0A%0A"+cart.map(x=>{let p=products.find(p=>p.id===x.id);return `${x.q}x ${p.n} - ${money(p.p*x.q)}`}).join("%0A");msg+="%0A%0ATotal: "+money(cart.reduce((a,x)=>a+products.find(p=>p.id===x.id).p*x.q,0));window.open("https://wa.me/?text="+encodeURIComponent(decodeURIComponent(msg)),"_blank")}
+async function checkout(){
+  if(!cart.length) return alert("Adicione produtos ao carrinho.");
+
+  const total = cart.reduce((a,x)=>{
+    const p = products.find(p=>p.id===x.id);
+    return a + p.p * x.q;
+  },0);
+
+  const quantidade = cart.reduce((a,x)=>a+x.q,0);
+
+  try {
+    const response = await fetch("/api/criar-preferencia",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        titulo:"Pedido MegaMix Store",
+        preco:Number(total.toFixed(2)),
+        quantidade:1
+      })
+    });
+
+    const data = await response.json();
+
+    if(!response.ok){
+      console.error(data);
+      return alert("Não foi possível iniciar o pagamento.");
+    }
+
+    const url = data.sandbox_url || data.checkout_url;
+
+    if(!url){
+      return alert("Link de pagamento não recebido.");
+    }
+
+    window.location.href = url;
+
+  } catch(error) {
+    console.error(error);
+    alert("Erro ao conectar com o Mercado Pago.");
+  }
+}
 document.getElementById("search").addEventListener("input",render);categories();render();updateCart();
