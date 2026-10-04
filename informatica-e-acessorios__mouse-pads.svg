@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Mouse Pads">
+<rect width="64" height="64" rx="14" fill="white"/>
+<rect x="20" y="10" width="24" height="44" rx="12" fill="#F7FAFC" stroke="#17365D" stroke-width="3"/><path stroke="#FF6B00" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M32 11v13"/><path stroke="#17365D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M20 28h24"/>
+</svg>

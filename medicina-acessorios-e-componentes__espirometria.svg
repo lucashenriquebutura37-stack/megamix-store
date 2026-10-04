@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Espirometria">
+<rect width="64" height="64" rx="14" fill="white"/>
+<path d="M28 16v15c-8-11-17-8-19 4-2 13 5 20 19 17V31m8-15v15c8-11 17-8 19 4 2 13-5 20-19 17V31" fill="#FF6B00" stroke="#17365D" stroke-width="3"/><path stroke="#17365D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M32 7v24"/>
+</svg>

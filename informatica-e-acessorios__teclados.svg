@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Teclados">
+<rect width="64" height="64" rx="14" fill="white"/>
+<rect x="8" y="17" width="48" height="30" rx="4" fill="#F7FAFC" stroke="#17365D" stroke-width="3"/><path stroke="#17365D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M14 25h4m5 0h4m5 0h4m5 0h4m5 0h2M14 33h5m5 0h5m5 0h5m5 0h6M17 41h30"/><path stroke="#FF6B00" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M48 25h4"/>
+</svg>

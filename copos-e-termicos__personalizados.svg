@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Personalizados">
+<rect width="64" height="64" rx="14" fill="white"/>
+<path stroke="#17365D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M12 48l31-31 9 9-31 31H12z"/><path stroke="#FF6B00" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M39 21l9 9M12 48l9 9"/>
+</svg>

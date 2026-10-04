@@ -1,0 +1,4 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="LEDs">
+<rect width="64" height="64" rx="14" fill="white"/>
+<path stroke="#17365D" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M25 53V40m14 13V40"/><path d="M20 31a12 12 0 0 1 24 0v9H20z" fill="#FF6B00" stroke="#17365D" stroke-width="3"/><path stroke="#FF6B00" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" fill="none" d="M46 15l7-7m-2 14l8-2"/>
+</svg>
