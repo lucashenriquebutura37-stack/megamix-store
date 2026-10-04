@@ -89,7 +89,9 @@
 
   <div class="specialGrid">
 
-    <button class="specialCard" onclick="openArea('Audiologia')">
+    <button
+      class="specialCard"
+      onclick="openArea('Audiologia — Acessórios e Componentes')">
 
       <div class="specialIcon">
         🦻
@@ -109,7 +111,9 @@
     </button>
 
 
-    <button class="specialCard" onclick="openArea('Medicina')">
+    <button
+      class="specialCard"
+      onclick="openArea('Medicina — Acessórios e Componentes')">
 
       <div class="specialIcon">
         🩺
@@ -292,47 +296,62 @@
 
   <div class="areaModalBody">
 
+    <!-- OPÇÕES DA CATEGORIA -->
+
     <div
       id="subcategories"
       class="subcategories">
     </div>
 
 
-    <div class="heading">
+    <!--
+      PRODUTOS:
+      começa escondido.
+      O JavaScript mostrará somente depois
+      que o cliente escolher uma opção.
+    -->
 
-      <div>
-        <span>PRODUTOS</span>
+    <div
+      id="productArea"
+      style="display:none;">
 
-        <h2 id="productTitle">
-          Produtos
-        </h2>
+      <div class="heading">
+
+        <div>
+          <span>PRODUTOS</span>
+
+          <h2 id="productTitle">
+            Produtos
+          </h2>
+        </div>
+
+
+        <select
+          id="sort"
+          onchange="render()">
+
+          <option value="">
+            Ordenar
+          </option>
+
+          <option value="low">
+            Menor preço
+          </option>
+
+          <option value="high">
+            Maior preço
+          </option>
+
+        </select>
+
       </div>
 
 
-      <select
-        id="sort"
-        onchange="render()">
+      <div
+        id="grid"
+        class="grid">
+      </div>
 
-        <option value="">
-          Ordenar
-        </option>
-
-        <option value="low">
-          Menor preço
-        </option>
-
-        <option value="high">
-          Maior preço
-        </option>
-
-      </select>
-
-    </div>
-
-
-    <div
-      id="grid"
-      class="grid">
     </div>
 
   </div>
