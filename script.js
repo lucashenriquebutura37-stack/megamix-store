@@ -540,7 +540,7 @@ function vorzeliIconHTML(group, name, fallback = "") {
   return fallback;
 }
 
-function vorzeliIcon(area) {
+function vorzeliAreaIconHTML(area) {
   const map = window.VORZELI_ICON_MAP || {};
   const group = map[area.name];
 
