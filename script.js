@@ -12,9 +12,9 @@ const products = [];
 const areas = [
 
   {
-    name: "Celulares",
+    name: "Acessórios para Celular",
     icon: "📱",
-    desc: "Celulares e acessórios",
+    desc: "Capinhas, películas, cabos e mais",
     subs: [
       ["Capinhas", "📱"],
       ["Películas", "🛡️"],
@@ -28,9 +28,9 @@ const areas = [
   },
 
   {
-    name: "Smartwatches",
+    name: "Smartwatches e Acessórios",
     icon: "⌚",
-    desc: "Relógios e acessórios",
+    desc: "Relógios inteligentes e acessórios",
     subs: [
       ["Smartwatches", "⌚"],
       ["Smartbands", "⌚"],
@@ -60,9 +60,9 @@ const areas = [
   },
 
   {
-    name: "Informática",
+    name: "Informática e Acessórios",
     icon: "💻",
-    desc: "Periféricos e acessórios",
+    desc: "Periféricos, cabos e acessórios",
     subs: [
       ["Mouse", "🖱️"],
       ["Teclados", "⌨️"],
@@ -139,9 +139,9 @@ const areas = [
   },
 
   {
-    name: "Automotivo",
+    name: "Acessórios Automotivos",
     icon: "🚗",
-    desc: "Acessórios para carro e moto",
+    desc: "Acessórios para carros e motos",
     subs: [
       ["Suportes", "📱"],
       ["Carregadores veiculares", "⚡"],
@@ -155,9 +155,9 @@ const areas = [
   },
 
   {
-    name: "Games",
+    name: "Games e Acessórios",
     icon: "🎮",
-    desc: "Acessórios gamer",
+    desc: "Acessórios gamer e mobile",
     subs: [
       ["Mouse gamer", "🖱️"],
       ["Mouse Pads", "🖥️"],
@@ -171,7 +171,7 @@ const areas = [
   },
 
   {
-    name: "Áudio",
+    name: "Áudio e Acessórios",
     icon: "🎧",
     desc: "Fones, cabos e microfones",
     subs: [
@@ -202,9 +202,9 @@ const areas = [
   },
 
   {
-    name: "Pet",
+    name: "Pet e Acessórios",
     icon: "🐶",
-    desc: "Acessórios para pets",
+    desc: "Produtos e acessórios para pets",
     subs: [
       ["Brinquedos", "🦴"],
       ["Comedouros", "🥣"],
@@ -218,7 +218,7 @@ const areas = [
   },
 
   {
-    name: "Audiologia",
+    name: "Audiologia — Acessórios e Componentes",
     icon: "🦻",
     desc: "Acessórios e componentes",
     special: true,
@@ -231,7 +231,7 @@ const areas = [
   },
 
   {
-    name: "Medicina",
+    name: "Medicina — Acessórios e Componentes",
     icon: "🩺",
     desc: "Acessórios e componentes",
     special: true,
@@ -347,6 +347,32 @@ const money = value =>
       currency: "BRL"
     }
   );
+
+
+/* =========================
+   MOSTRAR / ESCONDER PRODUTOS
+========================= */
+
+function hideProductArea() {
+
+  const productArea =
+    document.getElementById("productArea");
+
+  if (productArea) {
+    productArea.style.display = "none";
+  }
+}
+
+
+function showProductArea() {
+
+  const productArea =
+    document.getElementById("productArea");
+
+  if (productArea) {
+    productArea.style.display = "block";
+  }
+}
 
 
 /* =========================
@@ -552,6 +578,15 @@ function openArea(name) {
   selectedSub = "";
   selectedDetail = "";
 
+  hideProductArea();
+
+  const sort =
+    document.getElementById("sort");
+
+  if (sort) {
+    sort.value = "";
+  }
+
   const areaTitle =
     document.getElementById("areaTitle");
 
@@ -563,8 +598,7 @@ function openArea(name) {
     document.getElementById("productTitle");
 
   if (productTitle) {
-    productTitle.textContent =
-      "Escolha o que procura";
+    productTitle.textContent = "Produtos";
   }
 
   const subcategories =
@@ -578,6 +612,13 @@ function openArea(name) {
           subButton(name, icon)
         )
         .join("");
+  }
+
+  const grid =
+    document.getElementById("grid");
+
+  if (grid) {
+    grid.innerHTML = "";
   }
 
   document
@@ -597,8 +638,6 @@ function openArea(name) {
     .getElementById("menuOverlay")
     ?.classList
     .remove("show");
-
-  showChooseMessage(area.name);
 }
 
 
@@ -618,6 +657,8 @@ function closeArea() {
   selected = "";
   selectedSub = "";
   selectedDetail = "";
+
+  hideProductArea();
 }
 
 
@@ -648,14 +689,7 @@ function selectSub(
 
   if (specializedSubs[sub]) {
 
-    const productTitle =
-      document.getElementById(
-        "productTitle"
-      );
-
-    if (productTitle) {
-      productTitle.textContent = sub;
-    }
+    hideProductArea();
 
     const subcategories =
       document.getElementById(
@@ -693,8 +727,6 @@ function selectSub(
           .join("");
     }
 
-    showChooseMessage(sub);
-
     return;
   }
 
@@ -707,6 +739,8 @@ function selectSub(
   if (productTitle) {
     productTitle.textContent = sub;
   }
+
+  showProductArea();
 
   render();
 }
@@ -742,42 +776,9 @@ function selectDetail(
     productTitle.textContent = detail;
   }
 
+  showProductArea();
+
   render();
-}
-
-
-/* =========================
-   MENSAGEM DE ESCOLHA
-========================= */
-
-function showChooseMessage(name) {
-
-  const grid =
-    document.getElementById("grid");
-
-  if (!grid) return;
-
-  grid.innerHTML = `
-
-    <div class="noProducts">
-
-      <div class="icon">
-        👆
-      </div>
-
-      <h2>
-        Escolha uma opção acima
-      </h2>
-
-      <p>
-        Selecione o tipo de produto
-        que você procura em
-        <b>${name}</b>.
-      </p>
-
-    </div>
-
-  `;
 }
 
 
@@ -791,6 +792,30 @@ function render() {
     document.getElementById("grid");
 
   if (!grid) return;
+
+  /*
+    Dentro de uma categoria, não mostramos
+    produtos até o cliente escolher uma opção.
+  */
+
+  if (selected && !selectedSub) {
+    hideProductArea();
+    return;
+  }
+
+  /*
+    Audiologia e Medicina possuem
+    um terceiro nível.
+  */
+
+  if (
+    selectedSub &&
+    specializedSubs[selectedSub] &&
+    !selectedDetail
+  ) {
+    hideProductArea();
+    return;
+  }
 
   const q =
     (
@@ -1376,7 +1401,13 @@ if (searchInput) {
     "input",
     () => {
 
-      if (selected) {
+      if (
+        selectedSub &&
+        (
+          !specializedSubs[selectedSub] ||
+          selectedDetail
+        )
+      ) {
         render();
       }
     }
@@ -1395,3 +1426,5 @@ renderMenu();
 fillRails();
 
 updateCart();
+
+hideProductArea();
