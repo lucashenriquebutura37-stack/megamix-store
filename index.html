@@ -6,49 +6,444 @@
 <title>VORZELI</title>
 <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
+
 <header>
-  <div class="top">🔥 Ofertas especiais • Frete para todo o Brasil</div>
-  <div class="nav">
-    <div class="logo"><img src="logo-vorzeli.png" alt="VORZELI"></div>
-    <div class="search"><input id="search" placeholder="O que você está procurando?"><button onclick="render()">🔎</button></div>
-    <button class="cartBtn" onclick="toggleCart()">🛒 <b id="count">0</b></button>
+  <div class="top">
+    🔥 Ofertas especiais • Envio para todo o Brasil
   </div>
+
+  <div class="nav">
+    <button class="menuBtn" onclick="toggleMenu()" aria-label="Abrir categorias">
+      ☰
+    </button>
+
+    <div class="logo">
+      <img src="logo-vorzeli.png" alt="VORZELI">
+    </div>
+
+    <div class="search">
+      <input id="search" placeholder="O que você está procurando?">
+      <button onclick="render()">🔎</button>
+    </div>
+
+    <button class="cartBtn" onclick="toggleCart()">
+      🛒 <b id="count">0</b>
+    </button>
+  </div>
+
+  <nav class="quick">
+    <a href="#ofertas">Ofertas</a>
+    <a href="#mais-vendidos">Mais vendidos</a>
+    <a href="#novidades">Novidades</a>
+  </nav>
 </header>
+
+
+<!-- BANNER PRINCIPAL -->
 
 <section class="hero">
   <div>
-    <p class="tag">OFERTAS DA SEMANA</p>
+    <p class="tag">VORZELI • SUA LOJA ONLINE</p>
+
     <h1>Tudo em um só lugar.</h1>
-    <p>Eletrônicos, informática, casa, ferramentas, games e muito mais.</p>
-    <button onclick="document.getElementById('produtos').scrollIntoView({behavior:'smooth'})">Comprar agora</button>
+
+    <p>
+      Tecnologia, utilidades, acessórios, ferramentas
+      e áreas especializadas.
+    </p>
+
+    <button onclick="document.getElementById('areas').scrollIntoView({behavior:'smooth'})">
+      Explorar a loja
+    </button>
   </div>
+
   <div class="heroIcon">🛍️</div>
 </section>
 
-<section class="cats">
-  <h2>Compre por categoria</h2>
-  <div id="categories"></div>
+
+<!-- ÁREAS DA LOJA -->
+
+<section class="areas" id="areas">
+
+  <div class="sectionTitle">
+    <span>ENCONTRE MAIS RÁPIDO</span>
+    <h2>Escolha uma área</h2>
+    <p>Toque em uma categoria para encontrar o que procura.</p>
+  </div>
+
+  <div id="areaGrid" class="areaGrid"></div>
+
 </section>
 
-<main id="produtos">
-  <div class="heading"><h2>Produtos em destaque</h2><select id="sort" onchange="render()"><option value="">Ordenar</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></div>
-  <div id="grid" class="grid"></div>
-</main>
+
+<!-- ÁREAS ESPECIALIZADAS -->
+
+<section class="specialized">
+
+  <div class="sectionTitle">
+    <span>PRODUTOS ESPECÍFICOS</span>
+    <h2>Áreas especializadas</h2>
+  </div>
+
+  <div class="specialGrid">
+
+    <button class="specialCard" onclick="openArea('Audiologia')">
+
+      <div class="specialIcon">
+        🦻
+      </div>
+
+      <div>
+        <h3>Audiologia</h3>
+
+        <p>
+          Acessórios e componentes para Audiômetro,
+          Imitanciômetro, BERA/PEATE e Vecto/VENG.
+        </p>
+
+        <b>Entrar na área →</b>
+      </div>
+
+    </button>
+
+
+    <button class="specialCard" onclick="openArea('Medicina')">
+
+      <div class="specialIcon">
+        🩺
+      </div>
+
+      <div>
+        <h3>Medicina</h3>
+
+        <p>
+          Acessórios e componentes para ECG,
+          EEG e Espirometria.
+        </p>
+
+        <b>Entrar na área →</b>
+      </div>
+
+    </button>
+
+  </div>
+
+</section>
+
+
+<!-- OFERTAS -->
+
+<section class="productSection" id="ofertas">
+
+  <div class="sectionRow">
+
+    <div>
+      <span>ECONOMIZE</span>
+      <h2>🔥 Ofertas</h2>
+    </div>
+
+    <button onclick="showAll()">
+      Ver mais →
+    </button>
+
+  </div>
+
+  <div id="offerGrid" class="productRail"></div>
+
+</section>
+
+
+<!-- MAIS VENDIDOS -->
+
+<section class="productSection" id="mais-vendidos">
+
+  <div class="sectionRow">
+
+    <div>
+      <span>DESTAQUES</span>
+      <h2>⭐ Mais vendidos</h2>
+    </div>
+
+    <button onclick="showAll()">
+      Ver mais →
+    </button>
+
+  </div>
+
+  <div id="bestGrid" class="productRail"></div>
+
+</section>
+
+
+<!-- NOVIDADES -->
+
+<section class="productSection" id="novidades">
+
+  <div class="sectionRow">
+
+    <div>
+      <span>CHEGANDO NA VORZELI</span>
+      <h2>🆕 Novidades</h2>
+    </div>
+
+    <button onclick="showAll()">
+      Ver mais →
+    </button>
+
+  </div>
+
+  <div id="newGrid" class="productRail"></div>
+
+</section>
+
+
+<!-- BENEFÍCIOS -->
+
+<section class="benefits">
+
+  <div>
+    🔒
+    <b>Compra segura</b>
+    <small>Ambiente protegido</small>
+  </div>
+
+  <div>
+    💳
+    <b>Pagamento seguro</b>
+    <small>Checkout Mercado Pago</small>
+  </div>
+
+  <div>
+    📦
+    <b>Envio para o Brasil</b>
+    <small>Praticidade na entrega</small>
+  </div>
+
+  <div>
+    💬
+    <b>Atendimento</b>
+    <small>Estamos aqui para ajudar</small>
+  </div>
+
+</section>
+
+
+<!-- MENU DE CATEGORIAS -->
+
+<div
+  id="menuOverlay"
+  class="drawerOverlay"
+  onclick="toggleMenu()">
+</div>
+
+
+<aside id="sideMenu" class="sideMenu">
+
+  <div class="drawerHead">
+
+    <h2>Categorias</h2>
+
+    <button onclick="toggleMenu()">
+      ✕
+    </button>
+
+  </div>
+
+
+  <div class="drawerSearch">
+
+    🔎
+
+    <input
+      id="menuSearch"
+      placeholder="Buscar categoria..."
+      oninput="renderMenu()">
+
+  </div>
+
+
+  <div id="menuCategories"></div>
+
+</aside>
+
+
+<!-- PÁGINA/ÁREA DE CATEGORIA -->
+
+<div id="areaModal" class="areaModal">
+
+  <div class="areaModalHead">
+
+    <button onclick="closeArea()">
+      ‹ Voltar
+    </button>
+
+    <h2 id="areaTitle">
+      Categoria
+    </h2>
+
+    <button onclick="toggleCart()">
+      🛒
+    </button>
+
+  </div>
+
+
+  <div class="areaModalBody">
+
+    <div
+      id="subcategories"
+      class="subcategories">
+    </div>
+
+
+    <div class="heading">
+
+      <div>
+        <span>PRODUTOS</span>
+
+        <h2 id="productTitle">
+          Produtos
+        </h2>
+      </div>
+
+
+      <select
+        id="sort"
+        onchange="render()">
+
+        <option value="">
+          Ordenar
+        </option>
+
+        <option value="low">
+          Menor preço
+        </option>
+
+        <option value="high">
+          Maior preço
+        </option>
+
+      </select>
+
+    </div>
+
+
+    <div
+      id="grid"
+      class="grid">
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- CARRINHO -->
 
 <div id="cart" class="cart">
-  <div class="cartHead"><h2>Seu carrinho</h2><button onclick="toggleCart()">✕</button></div>
+
+  <div class="cartHead">
+
+    <h2>Seu carrinho</h2>
+
+    <button onclick="toggleCart()">
+      ✕
+    </button>
+
+  </div>
+
+
   <div id="items"></div>
-  <div class="total"><span>Total</span><strong id="total">R$ 0,00</strong></div>
-  <button class="checkout" onclick="checkout()">Finalizar pedido pelo WhatsApp</button>
+
+
+  <div class="total">
+
+    <span>Total</span>
+
+    <strong id="total">
+      R$ 0,00
+    </strong>
+
+  </div>
+
+
+  <button
+    class="checkout"
+    onclick="checkout()">
+
+    Finalizar pagamento
+
+  </button>
+
 </div>
-<div id="overlay" onclick="toggleCart()"></div>
+
+
+<div
+  id="overlay"
+  onclick="toggleCart()">
+</div>
+
+
+<!-- RODAPÉ -->
 
 <footer>
-  <div><b>VORZELI</b><p>Variedade, preço e praticidade.</p></div>
-  <div><b>Atendimento</b><p>Seg a Sex • 9h às 18h</p></div>
-  <div><b>Pagamento</b><p>Pix • Cartão • Boleto</p></div>
+
+  <div class="footerBrand">
+
+    <img
+      src="logo-vorzeli.png"
+      alt="VORZELI">
+
+    <p>
+      Variedade, preço e praticidade.
+    </p>
+
+  </div>
+
+
+  <div>
+
+    <b>Atendimento</b>
+
+    <p>Quem somos</p>
+    <p>Contato</p>
+    <p>Trocas e devoluções</p>
+
+  </div>
+
+
+  <div>
+
+    <b>Informações</b>
+
+    <p>Privacidade</p>
+    <p>Termos de uso</p>
+    <p>Meus pedidos</p>
+
+  </div>
+
+
+  <div>
+
+    <b>Pagamento</b>
+
+    <p>
+      Pix • Cartão • Boleto
+    </p>
+
+  </div>
+
 </footer>
+
+
+<div class="copyright">
+  © VORZELI
+</div>
+
+
 <script src="script.js"></script>
+
 </body>
 </html>
