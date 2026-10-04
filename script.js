@@ -12,7 +12,7 @@ function render(){
         <div style="font-size:60px;margin-bottom:15px;">🛍️</div>
         <h2 style="margin-bottom:10px;">Produtos em breve</h2>
         <p style="font-size:18px;color:#666;">
-          Estamos preparando novidades para a MegaMix Store.<br>
+          Estamos preparando novidades para a VORZELI.<br>
           Volte em breve!
         </p>
       </div>
@@ -67,7 +67,7 @@ async function checkout(){
       method:"POST",
       headers:{"Content-Type":"application/json"},
       body:JSON.stringify({
-        titulo:"Pedido MegaMix Store",
+        titulo:"Pedido VORZELI",
         preco:Number(total.toFixed(2)),
         quantidade:1
       })
