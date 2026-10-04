@@ -1,934 +1,1545 @@
-* {
-  box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
-}
-
-body {
-  margin: 0;
-  font-family: Arial, Helvetica, sans-serif;
-  color: #171717;
-  background: #f6f7f9;
-}
-
-button,
-input,
-select {
-  font: inherit;
-}
-
-/* BARRA SUPERIOR */
-
-.top {
-  background: #111;
-  color: #fff;
-  text-align: center;
-  padding: 8px;
-  font-size: 12px;
-}
-
-/* CABEÇALHO */
-
-.nav {
-  height: 76px;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  gap: 18px;
-  padding: 0 5%;
-  position: sticky;
-  top: 0;
-  z-index: 8;
-  box-shadow: 0 2px 12px #0000000d;
-}
-
-.menuBtn {
-  border: 0;
-  background: #f3f3f3;
-  border-radius: 10px;
-  width: 44px;
-  height: 44px;
-  font-size: 22px;
-  cursor: pointer;
-}
-
-.logo {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-}
-
-.logo img {
-  display: block;
-  width: 170px;
-  height: auto;
-}
-
-/* PESQUISA */
-
-.search {
-  display: flex;
-  flex: 1;
-  max-width: 760px;
-  margin: auto;
-}
-
-.search input {
-  width: 100%;
-  padding: 13px 16px;
-  border: 1px solid #ddd;
-  border-radius: 12px 0 0 12px;
-  outline: none;
-}
-
-.search input:focus {
-  border-color: #ff5a1f;
-}
-
-.search button {
-  border: 0;
-  background: #ff5a1f;
-  color: #fff;
-  padding: 0 18px;
-  border-radius: 0 12px 12px 0;
-  cursor: pointer;
-}
-
-/* CARRINHO DO CABEÇALHO */
-
-.cartBtn {
-  border: 0;
-  background: #fff;
-  font-size: 22px;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.cartBtn b {
-  background: #ff5a1f;
-  color: #fff;
-  border-radius: 50%;
-  font-size: 11px;
-  padding: 4px 7px;
-}
-
-/* MENU RÁPIDO */
-
-.quick {
-  display: flex;
-  justify-content: center;
-  gap: 34px;
-  background: #fff;
-  border-top: 1px solid #f1f1f1;
-  padding: 10px;
-}
-
-.quick a {
-  color: #333;
-  text-decoration: none;
-  font-size: 14px;
-  font-weight: 700;
-}
-
-.quick a:hover {
-  color: #ff5a1f;
-}
-
-/* BANNER PRINCIPAL */
-
-.hero {
-  margin: 24px 5%;
-  border-radius: 24px;
-  padding: 52px 7%;
-  background: linear-gradient(120deg, #111, #303030);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  overflow: hidden;
-}
-
-.hero h1 {
-  font-size: 46px;
-  margin: 8px 0;
-}
-
-.hero p {
-  max-width: 580px;
-  color: #ddd;
-  line-height: 1.5;
-}
-
-.tag,
-.sectionTitle span,
-.sectionRow span,
-.heading span {
-  color: #ff5a1f !important;
-  font-weight: 800;
-  font-size: 12px;
-  letter-spacing: 1px;
-}
-
-.hero button,
-.checkout {
-  background: #ff5a1f;
-  color: #fff;
-  border: 0;
-  border-radius: 10px;
-  padding: 14px 22px;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.hero button:hover,
-.checkout:hover {
-  opacity: 0.9;
-}
-
-.heroIcon {
-  font-size: 110px;
-}
-
-/* SEÇÕES */
-
-.areas,
-.specialized,
-.productSection {
-  padding: 20px 5%;
-  margin: 12px 0;
-}
-
-.sectionTitle {
-  text-align: center;
-  margin-bottom: 22px;
-}
-
-.sectionTitle h2 {
-  font-size: 30px;
-  margin: 7px 0;
-}
-
-.sectionTitle p {
-  color: #666;
-  margin: 0;
-}
-
-/* CARDS DAS ÁREAS */
-
-.areaGrid {
-  display: grid;
-  grid-template-columns: repeat(5, 1fr);
-  gap: 14px;
-}
-
-.areaCard {
-  border: 1px solid #eee;
-  background: #fff;
-  border-radius: 18px;
-  min-height: 150px;
-  padding: 20px 12px;
-  text-align: center;
-  cursor: pointer;
-  box-shadow: 0 3px 16px #00000008;
-  transition: 0.2s;
-}
-
-.areaCard:hover {
-  transform: translateY(-3px);
-  border-color: #ff5a1f;
-}
-
-.areaIcon {
-  font-size: 42px;
-  margin-bottom: 12px;
-}
-
-.areaCard h3 {
-  margin: 0 0 6px;
-  font-size: 15px;
-}
-
-.areaCard p {
-  margin: 0;
-  color: #777;
-  font-size: 12px;
-  line-height: 1.4;
-}
-
-/* ÁREAS ESPECIALIZADAS */
-
-.specialized {
-  background: #fff;
-  margin: 30px 0;
-  padding-top: 40px;
-  padding-bottom: 40px;
-}
-
-.specialGrid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 18px;
-  max-width: 1100px;
-  margin: auto;
-}
-
-.specialCard {
-  border: 1px solid #eee;
-  background: #f8f8f8;
-  border-radius: 20px;
-  padding: 25px;
-  text-align: left;
-  display: flex;
-  gap: 20px;
-  cursor: pointer;
-}
-
-.specialCard:hover {
-  border-color: #ff5a1f;
-}
-
-.specialIcon {
-  font-size: 48px;
-}
-
-.specialCard h3 {
-  font-size: 23px;
-  margin: 0 0 8px;
-}
-
-.specialCard p {
-  color: #666;
-  line-height: 1.5;
-  margin: 0 0 12px;
-}
-
-.specialCard b {
-  color: #ff5a1f;
-}
-
-/* OFERTAS / MAIS VENDIDOS / NOVIDADES */
-
-.sectionRow {
-  display: flex;
-  align-items: end;
-  justify-content: space-between;
-  margin-bottom: 16px;
-}
-
-.sectionRow h2 {
-  margin: 5px 0;
-}
-
-.sectionRow button {
-  border: 0;
-  background: none;
-  color: #ff5a1f;
-  font-weight: 800;
-  cursor: pointer;
-}
-
-.productRail {
-  display: flex;
-  gap: 14px;
-  overflow-x: auto;
-  padding: 4px 2px 14px;
-  scroll-snap-type: x mandatory;
-}
-
-.emptyCard {
-  background: #fff;
-  border: 1px solid #eee;
-  border-radius: 16px;
-  min-width: 250px;
-  padding: 32px 20px;
-  text-align: center;
-  color: #666;
-  scroll-snap-align: start;
-}
-
-.emptyCard strong {
-  display: block;
-  color: #222;
-  margin: 8px 0;
-}
-
-/* BENEFÍCIOS */
-
-.benefits {
-  margin: 45px 5%;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  background: #fff;
-  border-radius: 18px;
-  overflow: hidden;
-  border: 1px solid #eee;
-}
-
-.benefits div {
-  padding: 24px;
-  text-align: center;
-  border-right: 1px solid #eee;
-  font-size: 22px;
-}
-
-.benefits div:last-child {
-  border: 0;
-}
-
-.benefits b,
-.benefits small {
-  display: block;
-  font-size: 14px;
-  margin-top: 7px;
-}
-
-.benefits small {
-  font-size: 12px;
-  color: #777;
-  font-weight: normal;
-}
-
-/* MENU LATERAL */
-
-.sideMenu {
-  position: fixed;
-  left: -390px;
-  top: 0;
-  width: 360px;
-  max-width: 92%;
-  height: 100vh;
-  background: #fff;
-  z-index: 40;
-  padding: 22px;
-  box-shadow: 6px 0 30px #0003;
-  transition: 0.25s;
-  overflow: auto;
-}
-
-.sideMenu.open {
-  left: 0;
-}
-
-.drawerOverlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: #0007;
-  z-index: 35;
-}
-
-.drawerOverlay.show {
-  display: block;
-}
-
-.drawerHead {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.drawerHead button {
-  border: 0;
-  background: none;
-  font-size: 22px;
-  cursor: pointer;
-}
-
-.drawerSearch {
-  display: flex;
-  gap: 8px;
-  background: #f4f4f4;
-  padding: 12px;
-  border-radius: 10px;
-  margin: 10px 0 18px;
-}
-
-.drawerSearch input {
-  border: 0;
-  background: transparent;
-  outline: none;
-  width: 100%;
-}
-
-.menuItem {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 5px;
-  border: 0;
-  border-bottom: 1px solid #eee;
-  background: #fff;
-  text-align: left;
-  cursor: pointer;
-}
-
-.menuItem span:first-child {
-  font-size: 22px;
-}
-
-.menuItem b {
-  flex: 1;
-}
-
-.menuDivider {
-  font-size: 11px;
-  color: #999;
-  font-weight: 800;
-  letter-spacing: 1px;
-  margin: 20px 0 6px;
-}
-
-/* ÁREA ABERTA */
-
-.areaModal {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: #f6f7f9;
-  z-index: 25;
-  overflow: auto;
-}
-
-.areaModal.open {
-  display: block;
-}
-
-.areaModalHead {
-  height: 70px;
-  position: sticky;
-  top: 0;
-  z-index: 2;
-  background: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 5%;
-  box-shadow: 0 2px 10px #0000000d;
-}
-
-.areaModalHead button {
-  border: 0;
-  background: none;
-  font-size: 18px;
-  cursor: pointer;
-}
-
-.areaModalHead h2 {
-  font-size: 20px;
-  text-align: center;
-}
-
-/* CONTEÚDO DA CATEGORIA */
-
-.areaModalBody {
-  padding: 25px 5%;
-}
-
-.subcategories {
-  display: flex;
-  gap: 10px;
-  overflow: auto;
-  margin-bottom: 28px;
-  padding-bottom: 4px;
-}
-
-.subcat {
-  white-space: nowrap;
-  border: 1px solid #ddd;
-  background: #fff;
-  border-radius: 999px;
-  padding: 10px 15px;
-  cursor: pointer;
-}
-
-.subcat.active {
-  background: #111;
-  color: #fff;
-  border-color: #111;
-}
-
-/* CABEÇALHO DOS PRODUTOS */
-
-.heading {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  margin-bottom: 15px;
-}
-
-.heading h2 {
-  margin: 5px 0;
-}
-
-.heading select {
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 9px;
-  background: #fff;
-}
-
-/* PRODUTOS */
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 18px;
-}
-
-.card {
-  background: #fff;
-  border-radius: 14px;
-  overflow: hidden;
-  box-shadow: 0 2px 12px #00000009;
-}
-
-.pic {
-  height: 190px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f1f2f4;
-  font-size: 76px;
-}
-
-.info {
-  padding: 16px;
-}
-
-.badge {
-  font-size: 11px;
-  color: #ff5a1f;
-  font-weight: bold;
-}
-
-.card h3 {
-  font-size: 15px;
-  min-height: 38px;
-}
-
-.price {
-  font-size: 21px;
-  font-weight: 800;
-}
-
-.install {
-  font-size: 12px;
-  color: #777;
-  margin: 5px 0 12px;
-}
-
-.add {
-  width: 100%;
-  padding: 11px;
-  border: 0;
-  border-radius: 8px;
-  background: #111;
-  color: #fff;
-  cursor: pointer;
-}
-
-.add:hover {
-  background: #ff5a1f;
-}
-
-/* CATEGORIA SEM PRODUTOS */
-
-.noProducts {
-  grid-column: 1 / -1;
-  background: #fff;
-  border-radius: 18px;
-  padding: 55px 20px;
-  text-align: center;
-}
-
-.noProducts .icon {
-  font-size: 55px;
-}
-
-.noProducts p {
-  color: #666;
-  line-height: 1.5;
-}
-
-/* CARRINHO */
-
-.cart {
-  position: fixed;
-  right: -430px;
-  top: 0;
-  width: 400px;
-  max-width: 95%;
-  height: 100vh;
-  background: #fff;
-  z-index: 50;
-  padding: 22px;
-  box-shadow: -5px 0 25px #0003;
-  transition: 0.25s;
-  overflow: auto;
-}
-
-.cart.open {
-  right: 0;
-}
-
-.cartHead {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-
-.cartHead button {
-  border: 0;
-  background: none;
-  font-size: 22px;
-  cursor: pointer;
-}
-
-.cartItem {
-  display: flex;
-  gap: 10px;
-  padding: 14px 0;
-  border-bottom: 1px solid #eee;
-}
-
-.ciIcon {
-  font-size: 38px;
-}
-
-.qty button {
-  border: 1px solid #ddd;
-  background: #fff;
-  border-radius: 5px;
-  padding: 3px 8px;
-}
-
-.total {
-  display: flex;
-  justify-content: space-between;
-  font-size: 20px;
-  padding: 20px 0;
-}
-
-.checkout {
-  width: 100%;
-}
-
-#overlay {
-  display: none;
-  position: fixed;
-  inset: 0;
-  background: #0006;
-  z-index: 45;
-}
-
-#overlay.show {
-  display: block;
-}
-
-/* RODAPÉ */
-
-footer {
-  margin-top: 55px;
-  padding: 42px 5%;
-  background: #171717;
-  color: #fff;
-  display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr;
-  gap: 30px;
-}
-
-footer p {
-  color: #bbb;
-  font-size: 13px;
-}
-
-.footerBrand img {
-  width: 170px;
-}
-
-.copyright {
-  background: #111;
-  color: #999;
-  text-align: center;
-  padding: 15px;
-  font-size: 12px;
-}
-
-/* TABLET */
-
-@media (max-width: 900px) {
-
-  .areaGrid {
-    grid-template-columns: repeat(3, 1fr);
+/* =========================================================
+   VORZELI - SCRIPT PRINCIPAL
+========================================================= */
+
+const products = [];
+
+
+/* =========================
+   ÁREAS DA VORZELI
+========================= */
+
+const areas = [
+
+  {
+    name: "Celulares",
+    icon: "📱",
+    desc: "Celulares e acessórios",
+    subs: [
+      ["Capinhas", "📱"],
+      ["Películas", "🛡️"],
+      ["Cabos", "🔌"],
+      ["Carregadores", "⚡"],
+      ["Fones", "🎧"],
+      ["Power Banks", "🔋"],
+      ["Suportes", "🚗"],
+      ["Adaptadores", "🔄"]
+    ]
+  },
+
+  {
+    name: "Smartwatches",
+    icon: "⌚",
+    desc: "Relógios e acessórios",
+    subs: [
+      ["Smartwatches", "⌚"],
+      ["Smartbands", "🏃"],
+      ["Pulseiras", "🎨"],
+      ["Películas", "🛡️"],
+      ["Protetores", "🛡️"],
+      ["Cabos", "🔌"],
+      ["Carregadores", "⚡"],
+      ["Bases", "🔋"]
+    ]
+  },
+
+  {
+    name: "Copos e Térmicos",
+    icon: "🥤",
+    desc: "Copos, canecas e térmicos",
+    subs: [
+      ["Copo térmico inox", "🥤"],
+      ["Copo térmico com tampa", "🥤"],
+      ["Copo com canudo", "🥤"],
+      ["Personalizados", "✨"],
+      ["Canecas", "☕"],
+      ["Garrafas térmicas", "🧴"],
+      ["Squeezes", "💧"],
+      ["Acessórios", "➕"]
+    ]
+  },
+
+  {
+    name: "Informática",
+    icon: "💻",
+    desc: "Periféricos e acessórios",
+    subs: [
+      ["Mouse", "🖱️"],
+      ["Teclados", "⌨️"],
+      ["Mouse Pads", "🖥️"],
+      ["Hub USB", "🔌"],
+      ["Cabos HDMI", "🔗"],
+      ["Adaptadores", "🔄"],
+      ["Leitores de cartão", "💾"],
+      ["Suportes", "💻"]
+    ]
+  },
+
+  {
+    name: "Componentes Eletrônicos",
+    icon: "⚡",
+    desc: "Peças e componentes",
+    subs: [
+      ["Capacitores", "🔋"],
+      ["Resistores", "〰️"],
+      ["LEDs", "💡"],
+      ["Fusíveis", "⚡"],
+      ["Conectores", "🔌"],
+      ["Fontes", "🔋"],
+      ["Módulos", "🧩"],
+      ["Cabos", "🔗"]
+    ]
+  },
+
+  {
+    name: "Ferramentas",
+    icon: "🔧",
+    desc: "Ferramentas e bancada",
+    subs: [
+      ["Chaves", "🪛"],
+      ["Alicates", "🔧"],
+      ["Bits", "⚙️"],
+      ["Trenas", "📏"],
+      ["Estiletes", "✂️"],
+      ["Pinças", "🛠️"],
+      ["Ferro de solda", "🔥"],
+      ["Sugador", "🧰"],
+      ["Multímetros", "📟"]
+    ]
+  },
+
+  {
+    name: "Casa e Utilidades",
+    icon: "🏠",
+    desc: "Utilidades para o dia a dia",
+    subs: [
+      ["Organizadores", "🗃️"],
+      ["Cozinha", "🍳"],
+      ["Banheiro", "🚿"],
+      ["Ganchos", "🪝"],
+      ["Acessórios para Air Fryer", "🍟"],
+      ["Utilidades domésticas", "🏠"]
+    ]
+  },
+
+  {
+    name: "Brinquedos",
+    icon: "🧸",
+    desc: "Diversão e educativos",
+    subs: [
+      ["Educativos", "🎓"],
+      ["Blocos de montar", "🧱"],
+      ["Carrinhos", "🚗"],
+      ["Quebra-cabeças", "🧩"],
+      ["Jogos de memória", "🎴"],
+      ["Kits de desenho", "🎨"],
+      ["Sensoriais", "🌈"],
+      ["Interativos", "🎮"]
+    ]
+  },
+
+  {
+    name: "Automotivo",
+    icon: "🚗",
+    desc: "Acessórios para carro e moto",
+    subs: [
+      ["Suportes", "📱"],
+      ["Carregadores veiculares", "⚡"],
+      ["Cabos", "🔌"],
+      ["Adaptadores", "🔄"],
+      ["Organizadores", "🗃️"],
+      ["Microfibra", "🧽"],
+      ["Limpeza", "✨"],
+      ["Acessórios", "🚗"]
+    ]
+  },
+
+  {
+    name: "Games",
+    icon: "🎮",
+    desc: "Acessórios gamer",
+    subs: [
+      ["Mouse gamer", "🖱️"],
+      ["Mouse Pads", "🖥️"],
+      ["Suportes para headset", "🎧"],
+      ["Cabos para controles", "🔌"],
+      ["Capas para controles", "🎮"],
+      ["Grips", "🕹️"],
+      ["Suportes para controles", "🎮"],
+      ["Jogos mobile", "📱"]
+    ]
+  },
+
+  {
+    name: "Áudio",
+    icon: "🎧",
+    desc: "Fones, cabos e microfones",
+    subs: [
+      ["Fones Bluetooth", "🎧"],
+      ["Fones com fio", "🎵"],
+      ["Cabos P2", "🔌"],
+      ["Adaptadores de áudio", "🔄"],
+      ["Cabos auxiliares", "🔗"],
+      ["Microfones", "🎙️"],
+      ["Suportes para fones", "🎧"]
+    ]
+  },
+
+  {
+    name: "Iluminação",
+    icon: "💡",
+    desc: "LED e iluminação",
+    subs: [
+      ["Fitas LED", "🌈"],
+      ["Lâmpadas LED", "💡"],
+      ["Luminárias USB", "🔦"],
+      ["Luzes noturnas", "🌙"],
+      ["Luminárias de mesa", "💡"],
+      ["Sensores", "📡"],
+      ["Soquetes", "🔌"],
+      ["Adaptadores", "🔄"]
+    ]
+  },
+
+  {
+    name: "Pet",
+    icon: "🐶",
+    desc: "Acessórios para pets",
+    subs: [
+      ["Brinquedos", "🦴"],
+      ["Comedouros", "🥣"],
+      ["Bebedouros", "💧"],
+      ["Escovas", "🪮"],
+      ["Coleiras", "🐕"],
+      ["Guias", "🦮"],
+      ["Higiene", "🧼"],
+      ["Acessórios", "🐾"]
+    ]
+  },
+
+  {
+    name: "Audiologia",
+    icon: "🦻",
+    desc: "Acessórios e componentes",
+    special: true,
+    subs: [
+      ["Audiômetro", "🎧"],
+      ["Imitanciômetro", "🦻"],
+      ["BERA / PEATE", "📈"],
+      ["Vecto / VENG", "👁️"]
+    ]
+  },
+
+  {
+    name: "Medicina",
+    icon: "🩺",
+    desc: "Acessórios e componentes",
+    special: true,
+    subs: [
+      ["ECG", "❤️"],
+      ["EEG", "🧠"],
+      ["Espirometria", "🫁"]
+    ]
   }
 
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
+];
 
-  .benefits {
-    grid-template-columns: repeat(2, 1fr);
-  }
 
-  footer {
-    grid-template-columns: 1fr 1fr;
-  }
+/* =========================
+   SEGUNDO NÍVEL
+   AUDIOLOGIA / MEDICINA
+========================= */
+
+const specializedSubs = {
+
+  "Audiômetro": [
+    ["Fones", "🎧"],
+    ["Cabos", "🔌"],
+    ["Vibrador ósseo", "🦴"],
+    ["Botão de resposta", "🔘"],
+    ["Conectores", "🔗"]
+  ],
+
+  "Imitanciômetro": [
+    ["Sondas", "🔎"],
+    ["Olivas", "🦻"],
+    ["Tubos", "〰️"],
+    ["Cabos", "🔌"],
+    ["Conectores", "🔗"]
+  ],
+
+  "BERA / PEATE": [
+    ["Eletrodos", "⚪"],
+    ["Cabos", "🔌"],
+    ["Conectores", "🔗"],
+    ["Consumíveis", "📦"]
+  ],
+
+  "Vecto / VENG": [
+    ["Cabos", "🔌"],
+    ["Eletrodos", "⚪"],
+    ["Acessórios", "➕"],
+    ["Componentes", "🧩"]
+  ],
+
+  "ECG": [
+    ["Cabo de paciente", "🔌"],
+    ["Cabos de comunicação/dados", "🔗"],
+    ["Eletrodos", "⚪"],
+    ["Peras", "🩺"],
+    ["Pinças", "🛠️"],
+    ["Conectores/adaptadores", "🔄"]
+  ],
+
+  "EEG": [
+    ["Eletrodos", "⚪"],
+    ["Cabos", "🔌"],
+    ["Toucas compatíveis", "🧢"],
+    ["Conectores", "🔗"],
+    ["Acessórios", "➕"]
+  ],
+
+  "Espirometria": [
+    ["Bocais", "🫁"],
+    ["Filtros", "🔘"],
+    ["Mangueiras", "〰️"],
+    ["Clips nasais", "👃"],
+    ["Adaptadores", "🔄"],
+    ["Acessórios compatíveis", "➕"]
+  ]
+
+};
+
+
+/* =========================
+   VARIÁVEIS
+========================= */
+
+let selected = "";
+let selectedSub = "";
+let selectedDetail = "";
+
+
+/* =========================
+   CARRINHO
+========================= */
+
+let cart = JSON.parse(
+  localStorage.getItem("cart") || "[]"
+).filter(item =>
+  products.some(product => product.id === item.id)
+);
+
+localStorage.setItem(
+  "cart",
+  JSON.stringify(cart)
+);
+
+
+/* =========================
+   DINHEIRO
+========================= */
+
+const money = value =>
+  Number(value).toLocaleString(
+    "pt-BR",
+    {
+      style: "currency",
+      currency: "BRL"
+    }
+  );
+
+
+/* =========================
+   MOSTRAR ÁREAS
+========================= */
+
+function renderAreas() {
+
+  const areaGrid =
+    document.getElementById("areaGrid");
+
+  if (!areaGrid) return;
+
+  areaGrid.innerHTML =
+    areas
+      .filter(area => !area.special)
+      .map(area => `
+
+        <button
+          class="areaCard"
+          onclick='openArea(${JSON.stringify(area.name)})'>
+
+          <div class="areaIcon">
+            ${area.icon}
+          </div>
+
+          <h3>
+            ${area.name}
+          </h3>
+
+          <p>
+            ${area.desc}
+          </p>
+
+        </button>
+
+      `)
+      .join("");
+
 }
 
-/* CELULAR */
 
-@media (max-width: 650px) {
+/* =========================
+   MENU LATERAL
+========================= */
 
-  .nav {
-    height: 70px;
-    padding: 0 4%;
-    gap: 8px;
-    margin-bottom: 58px;
+function renderMenu() {
+
+  const container =
+    document.getElementById("menuCategories");
+
+  if (!container) return;
+
+  const q =
+    (
+      document.getElementById("menuSearch")
+        ?.value || ""
+    ).toLowerCase();
+
+
+  const normal =
+    areas.filter(area =>
+      !area.special &&
+      area.name
+        .toLowerCase()
+        .includes(q)
+    );
+
+
+  const special =
+    areas.filter(area =>
+      area.special &&
+      area.name
+        .toLowerCase()
+        .includes(q)
+    );
+
+
+  container.innerHTML =
+
+    normal
+      .map(menuButton)
+      .join("")
+
+    +
+
+    (
+      special.length
+        ? `
+          <div class="menuDivider">
+            ÁREAS ESPECIALIZADAS
+          </div>
+        `
+        : ""
+    )
+
+    +
+
+    special
+      .map(menuButton)
+      .join("");
+
+}
+
+
+function menuButton(area) {
+
+  return `
+
+    <button
+      class="menuItem"
+      onclick='openArea(${JSON.stringify(area.name)})'>
+
+      <span>
+        ${area.icon}
+      </span>
+
+      <b>
+        ${area.name}
+      </b>
+
+      <span>
+        ›
+      </span>
+
+    </button>
+
+  `;
+
+}
+
+
+/* =========================
+   ABRIR / FECHAR MENU
+========================= */
+
+function toggleMenu() {
+
+  document
+    .getElementById("sideMenu")
+    ?.classList
+    .toggle("open");
+
+
+  document
+    .getElementById("menuOverlay")
+    ?.classList
+    .toggle("show");
+
+}
+
+
+/* =========================
+   CRIAR CARD SUBCATEGORIA
+========================= */
+
+function subButton(
+  name,
+  icon,
+  active = false
+) {
+
+  return `
+
+    <button
+      class="subcat${active ? " active" : ""}"
+      onclick='selectSub(${JSON.stringify(name)},this)'>
+
+      <span class="subcatIcon">
+        ${icon}
+      </span>
+
+      <span>
+        ${name}
+      </span>
+
+    </button>
+
+  `;
+
+}
+
+
+/* =========================
+   CARD SEGUNDO NÍVEL
+========================= */
+
+function detailButton(
+  name,
+  icon
+) {
+
+  return `
+
+    <button
+      class="subcat"
+      onclick='selectDetail(${JSON.stringify(name)},this)'>
+
+      <span class="subcatIcon">
+        ${icon}
+      </span>
+
+      <span>
+        ${name}
+      </span>
+
+    </button>
+
+  `;
+
+}
+
+
+/* =========================
+   ABRIR UMA ÁREA
+========================= */
+
+function openArea(name) {
+
+  const area =
+    areas.find(
+      item => item.name === name
+    );
+
+  if (!area) return;
+
+
+  selected = name;
+
+  selectedSub = "";
+
+  selectedDetail = "";
+
+
+  document.getElementById(
+    "areaTitle"
+  ).textContent =
+    area.name;
+
+
+  document.getElementById(
+    "productTitle"
+  ).textContent =
+    "Escolha o que procura";
+
+
+  document.getElementById(
+    "subcategories"
+  ).innerHTML =
+
+    area.subs
+      .map(
+        ([name, icon]) =>
+          subButton(
+            name,
+            icon
+          )
+      )
+      .join("");
+
+
+  document
+    .getElementById("areaModal")
+    .classList
+    .add("open");
+
+
+  document.body.style.overflow =
+    "hidden";
+
+
+  document
+    .getElementById("sideMenu")
+    ?.classList
+    .remove("open");
+
+
+  document
+    .getElementById("menuOverlay")
+    ?.classList
+    .remove("show");
+
+
+  showChooseMessage(
+    area.name
+  );
+
+}
+
+
+/* =========================
+   FECHAR ÁREA
+========================= */
+
+function closeArea() {
+
+  document
+    .getElementById("areaModal")
+    ?.classList
+    .remove("open");
+
+
+  document.body.style.overflow =
+    "";
+
+
+  selected = "";
+
+  selectedSub = "";
+
+  selectedDetail = "";
+
+}
+
+
+/* =========================
+   ESCOLHER SUBCATEGORIA
+========================= */
+
+function selectSub(
+  sub,
+  button
+) {
+
+  selectedSub = sub;
+
+  selectedDetail = "";
+
+
+  document
+    .querySelectorAll(".subcat")
+    .forEach(item =>
+      item.classList.remove("active")
+    );
+
+
+  button
+    ?.classList
+    .add("active");
+
+
+  /* AUDIOLOGIA E MEDICINA */
+
+  if (
+    specializedSubs[sub]
+  ) {
+
+    document.getElementById(
+      "productTitle"
+    ).textContent =
+      sub;
+
+
+    document.getElementById(
+      "subcategories"
+    ).innerHTML =
+
+      `
+
+        <button
+          class="subcat"
+          onclick='openArea(${JSON.stringify(selected)})'>
+
+          <span class="subcatIcon">
+            ←
+          </span>
+
+          <span>
+            Voltar
+          </span>
+
+        </button>
+
+      `
+
+      +
+
+      specializedSubs[sub]
+        .map(
+          ([name, icon]) =>
+            detailButton(
+              name,
+              icon
+            )
+        )
+        .join("");
+
+
+    showChooseMessage(
+      sub
+    );
+
+
+    return;
+
   }
 
-  .logo img {
-    width: 118px;
+
+  document.getElementById(
+    "productTitle"
+  ).textContent =
+    sub;
+
+
+  render();
+
+}
+
+
+/* =========================
+   SEGUNDO NÍVEL
+========================= */
+
+function selectDetail(
+  detail,
+  button
+) {
+
+  selectedDetail =
+    detail;
+
+
+  document
+    .querySelectorAll(".subcat")
+    .forEach(item =>
+      item.classList.remove("active")
+    );
+
+
+  button
+    ?.classList
+    .add("active");
+
+
+  document.getElementById(
+    "productTitle"
+  ).textContent =
+    detail;
+
+
+  render();
+
+}
+
+
+/* =========================
+   MENSAGEM DE SELEÇÃO
+========================= */
+
+function showChooseMessage(
+  name
+) {
+
+  const grid =
+    document.getElementById("grid");
+
+
+  if (!grid) return;
+
+
+  grid.innerHTML = `
+
+    <div class="noProducts">
+
+      <div class="icon">
+        👆
+      </div>
+
+      <h2>
+        Escolha uma opção acima
+      </h2>
+
+      <p>
+        Selecione o tipo de produto
+        que você procura em
+        <b>${name}</b>.
+      </p>
+
+    </div>
+
+  `;
+
+}
+
+
+/* =========================
+   MOSTRAR PRODUTOS
+========================= */
+
+function render() {
+
+  const grid =
+    document.getElementById("grid");
+
+
+  if (!grid) return;
+
+
+  const q =
+    (
+      document
+        .getElementById("search")
+        ?.value || ""
+    )
+    .toLowerCase();
+
+
+  const sort =
+    document
+      .getElementById("sort")
+      ?.value || "";
+
+
+  let filtered =
+    products.filter(product => {
+
+      const categoryOK =
+        !selected ||
+        product.c === selected;
+
+
+      const subcategoryOK =
+        !selectedSub ||
+        product.sub === selectedSub;
+
+
+      const detailOK =
+        !selectedDetail ||
+        product.detail ===
+          selectedDetail;
+
+
+      const searchOK =
+        !q ||
+        product.n
+          .toLowerCase()
+          .includes(q);
+
+
+      return (
+        categoryOK &&
+        subcategoryOK &&
+        detailOK &&
+        searchOK
+      );
+
+    });
+
+
+  if (sort === "low") {
+
+    filtered.sort(
+      (a, b) =>
+        a.p - b.p
+    );
+
   }
 
-  .menuBtn {
-    width: 38px;
-    height: 38px;
+
+  if (sort === "high") {
+
+    filtered.sort(
+      (a, b) =>
+        b.p - a.p
+    );
+
   }
 
-  .search {
-    position: absolute;
-    top: 76px;
-    left: 4%;
-    right: 4%;
-    max-width: none;
+
+  /* SEM PRODUTOS */
+
+  if (!filtered.length) {
+
+    const label =
+      selectedDetail ||
+      selectedSub ||
+      selected ||
+      "VORZELI";
+
+
+    grid.innerHTML = `
+
+      <div class="noProducts">
+
+        <div class="icon">
+          🛍️
+        </div>
+
+        <h2>
+          Produtos em breve
+        </h2>
+
+        <p>
+          Estamos preparando produtos para
+          <b>${label}</b>.
+          <br>
+          Em breve você encontrará novidades aqui.
+        </p>
+
+      </div>
+
+    `;
+
+
+    return;
+
   }
 
-  .quick {
-    overflow: auto;
-    justify-content: flex-start;
-    padding: 10px 4%;
-    gap: 24px;
-    white-space: nowrap;
-  }
-
-  .hero {
-    margin: 18px 4%;
-    padding: 32px 7%;
-    border-radius: 18px;
-  }
-
-  .hero h1 {
-    font-size: 31px;
-  }
-
-  .heroIcon {
-    display: none;
-  }
-
-  .areas,
-  .specialized,
-  .productSection {
-    padding-left: 4%;
-    padding-right: 4%;
-  }
-
-  .sectionTitle h2 {
-    font-size: 25px;
-  }
-
-  /* 2 ÁREAS POR LINHA */
-
-  .areaGrid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-  }
-
-  .areaCard {
-    min-height: 135px;
-    padding: 17px 8px;
-  }
-
-  .areaIcon {
-    font-size: 36px;
-  }
-
-  /* ÁREAS ESPECIALIZADAS */
-
-  .specialGrid {
-    grid-template-columns: 1fr;
-  }
-
-  .specialCard {
-    padding: 20px;
-  }
-
-  /* BENEFÍCIOS */
-
-  .benefits {
-    margin: 35px 4%;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .benefits div {
-    padding: 18px 8px;
-  }
 
   /* PRODUTOS */
 
-  .grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 11px;
-  }
+  grid.innerHTML =
+    filtered
+      .map(product => `
 
-  .pic {
-    height: 140px;
-    font-size: 52px;
-  }
+        <article class="card">
 
-  .info {
-    padding: 11px;
-  }
+          <div class="pic">
+            ${product.i || "📦"}
+          </div>
 
-  .price {
-    font-size: 18px;
-  }
+          <div class="info">
 
-  /* RODAPÉ */
+            <span class="badge">
+              ${product.c.toUpperCase()}
+            </span>
 
-  footer {
-    grid-template-columns: 1fr 1fr;
-    padding: 35px 5%;
-  }
+            <h3>
+              ${product.n}
+            </h3>
 
-  .footerBrand {
-    grid-column: 1 / -1;
-  }
+            <div class="price">
+              ${money(product.p)}
+            </div>
+
+            <div class="install">
+              em até 10x no cartão
+            </div>
+
+            <button
+              class="add"
+              onclick="add(${product.id})">
+
+              Adicionar ao carrinho
+
+            </button>
+
+          </div>
+
+        </article>
+
+      `)
+      .join("");
+
 }
 
-/* CELULARES PEQUENOS */
 
-@media (max-width: 390px) {
+/* =========================
+   PÁGINA INICIAL
+========================= */
 
-  .logo img {
-    width: 105px;
-  }
+function fillRails() {
 
-  .areaCard h3 {
-    font-size: 13px;
-  }
+  const content = `
 
-  .specialIcon {
-    font-size: 38px;
-  }
+    <div class="emptyCard">
 
-  .specialCard {
-    gap: 12px;
-  }
+      🛍️
 
-  .grid {
-    grid-template-columns: 1fr;
-  }
+      <strong>
+        Produtos em breve
+      </strong>
+
+      Estamos selecionando
+      novidades para a VORZELI.
+
+    </div>
+
+
+    <div class="emptyCard">
+
+      ✨
+
+      <strong>
+        Novidades chegando
+      </strong>
+
+      Novos produtos
+      aparecerão aqui.
+
+    </div>
+
+  `;
+
+
+  [
+    "offerGrid",
+    "bestGrid",
+    "newGrid"
+  ]
+  .forEach(id => {
+
+    const element =
+      document.getElementById(id);
+
+
+    if (element) {
+
+      element.innerHTML =
+        content;
+
+    }
+
+  });
+
 }
+
+
+/* =========================
+   VER TODOS
+========================= */
+
+function showAll() {
+
+  document
+    .getElementById("areas")
+    ?.scrollIntoView({
+      behavior: "smooth"
+    });
+
+}
+
+
+/* =========================
+   ADICIONAR AO CARRINHO
+========================= */
+
+function add(id) {
+
+  if (
+    !products.some(
+      product =>
+        product.id === id
+    )
+  ) {
+
+    return;
+
+  }
+
+
+  let item =
+    cart.find(
+      product =>
+        product.id === id
+    );
+
+
+  if (item) {
+
+    item.q++;
+
+  } else {
+
+    cart.push({
+      id: id,
+      q: 1
+    });
+
+  }
+
+
+  save();
+
+  openCart();
+
+}
+
+
+/* =========================
+   SALVAR CARRINHO
+========================= */
+
+function save() {
+
+  localStorage.setItem(
+    "cart",
+    JSON.stringify(cart)
+  );
+
+
+  updateCart();
+
+}
+
+
+/* =========================
+   ATUALIZAR CARRINHO
+========================= */
+
+function updateCart() {
+
+  cart =
+    cart.filter(item =>
+      products.some(
+        product =>
+          product.id ===
+          item.id
+      )
+    );
+
+
+  localStorage.setItem(
+    "cart",
+    JSON.stringify(cart)
+  );
+
+
+  const count =
+    document.getElementById(
+      "count"
+    );
+
+
+  if (count) {
+
+    count.textContent =
+      cart.reduce(
+        (total, item) =>
+          total + item.q,
+        0
+      );
+
+  }
+
+
+  const items =
+    document.getElementById(
+      "items"
+    );
+
+
+  if (items) {
+
+    items.innerHTML =
+
+      cart
+        .map(item => {
+
+          const product =
+            products.find(
+              product =>
+                product.id ===
+                item.id
+            );
+
+
+          if (!product) {
+
+            return "";
+
+          }
+
+
+          return `
+
+            <div class="cartItem">
+
+              <div class="ciIcon">
+                ${product.i || "📦"}
+              </div>
+
+
+              <div style="flex:1">
+
+                <b>
+                  ${product.n}
+                </b>
+
+                <div>
+                  ${money(product.p)}
+                </div>
+
+
+                <div class="qty">
+
+                  <button
+                    onclick="change(${item.id},-1)">
+                    −
+                  </button>
+
+                  ${item.q}
+
+                  <button
+                    onclick="change(${item.id},1)">
+                    +
+                  </button>
+
+                </div>
+
+              </div>
+
+            </div>
+
+          `;
+
+        })
+        .join("")
+
+      ||
+
+      "<p>Seu carrinho está vazio.</p>";
+
+  }
+
+
+  const total =
+    cart.reduce(
+      (value, item) => {
+
+        const product =
+          products.find(
+            product =>
+              product.id ===
+              item.id
+          );
+
+
+        return (
+          value +
+          (
+            product
+              ? product.p * item.q
+              : 0
+          )
+        );
+
+      },
+      0
+    );
+
+
+  const totalElement =
+    document.getElementById(
+      "total"
+    );
+
+
+  if (totalElement) {
+
+    totalElement.textContent =
+      money(total);
+
+  }
+
+}
+
+
+/* =========================
+   ALTERAR QUANTIDADE
+========================= */
+
+function change(
+  id,
+  amount
+) {
+
+  const item =
+    cart.find(
+      product =>
+        product.id === id
+    );
+
+
+  if (!item) return;
+
+
+  item.q += amount;
+
+
+  if (item.q <= 0) {
+
+    cart =
+      cart.filter(
+        product =>
+          product.id !== id
+      );
+
+  }
+
+
+  save();
+
+}
+
+
+/* =========================
+   CARRINHO LATERAL
+========================= */
+
+function toggleCart() {
+
+  document
+    .getElementById("cart")
+    ?.classList
+    .toggle("open");
+
+
+  document
+    .getElementById("overlay")
+    ?.classList
+    .toggle("show");
+
+}
+
+
+function openCart() {
+
+  document
+    .getElementById("cart")
+    ?.classList
+    .add("open");
+
+
+  document
+    .getElementById("overlay")
+    ?.classList
+    .add("show");
+
+}
+
+
+/* =========================
+   MERCADO PAGO
+========================= */
+
+async function checkout() {
+
+  if (!cart.length) {
+
+    return alert(
+      "Adicione produtos ao carrinho."
+    );
+
+  }
+
+
+  const total =
+    cart.reduce(
+      (value, item) => {
+
+        const product =
+          products.find(
+            product =>
+              product.id ===
+              item.id
+          );
+
+
+        return (
+          value +
+          (
+            product
+              ? product.p * item.q
+              : 0
+          )
+        );
+
+      },
+      0
+    );
+
+
+  try {
+
+    const response =
+      await fetch(
+        "/api/criar-preferencia",
+        {
+
+          method: "POST",
+
+          headers: {
+
+            "Content-Type":
+              "application/json"
+
+          },
+
+          body:
+            JSON.stringify({
+
+              titulo:
+                "Pedido VORZELI",
+
+              preco:
+                Number(
+                  total.toFixed(2)
+                ),
+
+              quantidade: 1
+
+            })
+
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!response.ok) {
+
+      console.error(data);
+
+
+      return alert(
+        "Não foi possível iniciar o pagamento."
+      );
+
+    }
+
+
+    const url =
+      data.sandbox_url ||
+      data.checkout_url;
+
+
+    if (!url) {
+
+      return alert(
+        "Link de pagamento não recebido."
+      );
+
+    }
+
+
+    window.location.href =
+      url;
+
+
+  } catch (error) {
+
+    console.error(error);
+
+
+    alert(
+      "Erro ao conectar com o Mercado Pago."
+    );
+
+  }
+
+}
+
+
+/* =========================
+   PESQUISA
+========================= */
+
+const searchInput =
+  document.getElementById(
+    "search"
+  );
+
+
+if (searchInput) {
+
+  searchInput.addEventListener(
+    "input",
+    () => {
+
+      if (selected) {
+
+        render();
+
+      }
+
+    }
+  );
+
+}
+
+
+/* =========================
+   INICIAR SITE
+========================= */
+
+renderAreas();
+
+renderMenu();
+
+fillRails();
+
+updateCart();
