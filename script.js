@@ -534,13 +534,13 @@ function vorzeliIconHTML(group, name, fallback = "") {
   const src = vorzeliIconPath(group, name);
 
   if (src) {
-    return `<img class="vorzeliGraphicIcon" src="${src}" alt="" loading="lazy">`;
+    return `<img class="vorzeliIcon" src="${src}" alt="" loading="lazy">`;
   }
 
   return fallback;
 }
 
-function vorzeliAreaIconHTML(area) {
+function vorzeliIcon(area) {
   const map = window.VORZELI_ICON_MAP || {};
   const group = map[area.name];
 
