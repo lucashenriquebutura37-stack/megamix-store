@@ -152,6 +152,62 @@ window.VORZELI_ICON_MAP = {
     'EEG': 'medicina-acessorios-e-componentes__eeg.svg',
     'Espirometria': 'medicina-acessorios-e-componentes__espirometria.svg',
   },
+
+  'Audiômetro': {
+    'Fones': 'acessorios-para-celular__fones.svg',
+    'Cabos': 'componentes-eletronicos__cabos.svg',
+    'Vibrador ósseo': 'audiologia-acessorios-e-componentes__audiometro.svg',
+    'Botão de resposta': 'componentes-eletronicos__modulos.svg',
+    'Conectores': 'componentes-eletronicos__conectores.svg',
+  },
+
+  'Imitanciômetro': {
+    'Sondas': 'audiologia-acessorios-e-componentes__imitanciometro.svg',
+    'Olivas': 'audiologia-acessorios-e-componentes__imitanciometro.svg',
+    'Tubos': 'componentes-eletronicos__cabos.svg',
+    'Cabos': 'componentes-eletronicos__cabos.svg',
+    'Conectores': 'componentes-eletronicos__conectores.svg',
+  },
+
+  'BERA / PEATE': {
+    'Eletrodos': 'medicina-acessorios-e-componentes__ecg.svg',
+    'Cabos': 'componentes-eletronicos__cabos.svg',
+    'Conectores': 'componentes-eletronicos__conectores.svg',
+    'Consumíveis': 'componentes-eletronicos__modulos.svg',
+  },
+
+  'Vecto / VENG': {
+    'Cabos': 'componentes-eletronicos__cabos.svg',
+    'Eletrodos': 'medicina-acessorios-e-componentes__ecg.svg',
+    'Acessórios': 'audiologia-acessorios-e-componentes__vecto-veng.svg',
+    'Componentes': 'componentes-eletronicos__modulos.svg',
+  },
+
+  'ECG': {
+    'Cabo de paciente': 'componentes-eletronicos__cabos.svg',
+    'Cabos de comunicação/dados': 'informatica-e-acessorios__cabos-hdmi.svg',
+    'Eletrodos': 'medicina-acessorios-e-componentes__ecg.svg',
+    'Peras': 'medicina-acessorios-e-componentes__ecg.svg',
+    'Pinças': 'ferramentas__pincas.svg',
+    'Conectores/adaptadores': 'componentes-eletronicos__conectores.svg',
+  },
+
+  'EEG': {
+    'Eletrodos': 'medicina-acessorios-e-componentes__eeg.svg',
+    'Cabos': 'componentes-eletronicos__cabos.svg',
+    'Toucas compatíveis': 'medicina-acessorios-e-componentes__eeg.svg',
+    'Conectores': 'componentes-eletronicos__conectores.svg',
+    'Acessórios': 'medicina-acessorios-e-componentes__eeg.svg',
+  },
+
+  'Espirometria': {
+    'Bocais': 'medicina-acessorios-e-componentes__espirometria.svg',
+    'Filtros': 'medicina-acessorios-e-componentes__espirometria.svg',
+    'Mangueiras': 'componentes-eletronicos__cabos.svg',
+    'Clips nasais': 'medicina-acessorios-e-componentes__espirometria.svg',
+    'Adaptadores': 'informatica-e-acessorios__adaptadores.svg',
+    'Acessórios compatíveis': 'medicina-acessorios-e-componentes__espirometria.svg',
+  },
 };
 
 window.vorzeliIcon = function(area, name) {
@@ -160,7 +216,7 @@ window.vorzeliIcon = function(area, name) {
 };
 
 window.vorzeliIconHTML = function(area, name) {
-  const src = window.vorzeliIcon(area, name);
+  const src = window.vORZELI_ICON_MAP?.[area]?.[name] || "";
 
   if (!src) return "";
 
