@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MegaMix Store</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header>
+  <div class="top">🔥 Ofertas especiais • Frete para todo o Brasil</div>
+  <div class="nav">
+    <div class="logo">Mega<span>Mix</span></div>
+    <div class="search"><input id="search" placeholder="O que você está procurando?"><button onclick="render()">🔎</button></div>
+    <button class="cartBtn" onclick="toggleCart()">🛒 <b id="count">0</b></button>
+  </div>
+</header>
+
+<section class="hero">
+  <div>
+    <p class="tag">OFERTAS DA SEMANA</p>
+    <h1>Tudo em um só lugar.</h1>
+    <p>Eletrônicos, informática, casa, ferramentas, games e muito mais.</p>
+    <button onclick="document.getElementById('produtos').scrollIntoView({behavior:'smooth'})">Comprar agora</button>
+  </div>
+  <div class="heroIcon">🛍️</div>
+</section>
+
+<section class="cats">
+  <h2>Compre por categoria</h2>
+  <div id="categories"></div>
+</section>
+
+<main id="produtos">
+  <div class="heading"><h2>Produtos em destaque</h2><select id="sort" onchange="render()"><option value="">Ordenar</option><option value="low">Menor preço</option><option value="high">Maior preço</option></select></div>
+  <div id="grid" class="grid"></div>
+</main>
+
+<div id="cart" class="cart">
+  <div class="cartHead"><h2>Seu carrinho</h2><button onclick="toggleCart()">✕</button></div>
+  <div id="items"></div>
+  <div class="total"><span>Total</span><strong id="total">R$ 0,00</strong></div>
+  <button class="checkout" onclick="checkout()">Finalizar pedido pelo WhatsApp</button>
+</div>
+<div id="overlay" onclick="toggleCart()"></div>
+
+<footer>
+  <div><b>MegaMix Store</b><p>Variedade, preço e praticidade.</p></div>
+  <div><b>Atendimento</b><p>Seg a Sex • 9h às 18h</p></div>
+  <div><b>Pagamento</b><p>Pix • Cartão • Boleto</p></div>
+</footer>
+<script src="script.js"></script>
+</body>
+</html>
