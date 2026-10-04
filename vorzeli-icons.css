@@ -1,0 +1,18 @@
+
+/* Ícones gráficos VORZELI */
+.vorzeliIcon {
+  width: 34px;
+  height: 34px;
+  display: block;
+  object-fit: contain;
+  margin: 0 auto 5px;
+}
+.areaIcon .vorzeliIcon,
+.specialIcon .vorzeliIcon {
+  width: 42px;
+  height: 42px;
+  margin: 0;
+}
+@media (max-width: 650px) {
+  .vorzeliIcon { width: 30px; height: 30px; }
+}
