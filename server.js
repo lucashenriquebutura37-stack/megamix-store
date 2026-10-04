@@ -53,7 +53,7 @@ app.post("/api/criar-preferencia", async (req, res) => {
 });
 
 app.get("/api/status", (req, res) => {
-  res.json({ status: "MegaMix Store online" });
+  res.json({ status: "VORZELI online" });
 });
 
 const PORT = process.env.PORT || 3000;
