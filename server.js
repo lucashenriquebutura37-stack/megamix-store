@@ -1,7 +1,9 @@
 const express = require("express");
 const { Pool } = require("pg");
+const crypto = require("crypto");
 
 const app = express();
+app.set("trust proxy", 1);
 app.use(express.json({ limit: "2mb" }));
 app.use(express.static(__dirname));
 
@@ -11,151 +13,147 @@ const pool = new Pool({
 });
 
 async function initDatabase() {
-  if (!process.env.DATABASE_URL) {
-    console.warn("DATABASE_URL não configurada. Cadastros de produtos ficarão indisponíveis.");
-    return;
-  }
+  if (!process.env.DATABASE_URL) return console.warn("DATABASE_URL não configurada.");
   await pool.query(`
     CREATE TABLE IF NOT EXISTS products (
-      id BIGSERIAL PRIMARY KEY,
-      name TEXT NOT NULL,
-      category TEXT NOT NULL,
-      subcategory TEXT NOT NULL,
-      detail TEXT DEFAULT '',
-      price NUMERIC(12,2) NOT NULL,
-      old_price NUMERIC(12,2) DEFAULT 0,
-      stock INTEGER DEFAULT 0,
-      image TEXT DEFAULT '',
-      rating NUMERIC(2,1) DEFAULT 0,
-      reviews INTEGER DEFAULT 0,
-      shipping TEXT DEFAULT '',
-      installments INTEGER DEFAULT 10,
-      featured BOOLEAN DEFAULT FALSE,
-      created_at TIMESTAMPTZ DEFAULT NOW()
-    )
+      id BIGSERIAL PRIMARY KEY, name TEXT NOT NULL, category TEXT NOT NULL, subcategory TEXT NOT NULL,
+      detail TEXT DEFAULT '', price NUMERIC(12,2) NOT NULL, old_price NUMERIC(12,2) DEFAULT 0,
+      stock INTEGER DEFAULT 0, image TEXT DEFAULT '', rating NUMERIC(2,1) DEFAULT 0,
+      reviews INTEGER DEFAULT 0, shipping TEXT DEFAULT '', installments INTEGER DEFAULT 10,
+      featured BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE TABLE IF NOT EXISTS orders (
+      id BIGSERIAL PRIMARY KEY, public_id TEXT UNIQUE NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
+      total NUMERIC(12,2) NOT NULL DEFAULT 0, payment_id TEXT, payer_email TEXT,
+      created_at TIMESTAMPTZ DEFAULT NOW(), paid_at TIMESTAMPTZ
+    );
+    CREATE TABLE IF NOT EXISTS order_items (
+      id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      product_id BIGINT NOT NULL REFERENCES products(id), product_name TEXT NOT NULL,
+      unit_price NUMERIC(12,2) NOT NULL, quantity INTEGER NOT NULL
+    );
   `);
 }
 
 function toProduct(row) {
-  return {
-    id: Number(row.id), n: row.name, c: row.category, sub: row.subcategory,
-    detail: row.detail || "", p: Number(row.price), oldPrice: Number(row.old_price || 0),
-    stock: Number(row.stock || 0), i: row.image || "", rating: Number(row.rating || 0),
-    reviews: Number(row.reviews || 0), shipping: row.shipping || "",
-    installments: Number(row.installments || 10), featured: Boolean(row.featured),
-    createdAt: row.created_at
-  };
+  return { id:Number(row.id), n:row.name, c:row.category, sub:row.subcategory, detail:row.detail||"",
+    p:Number(row.price), oldPrice:Number(row.old_price||0), stock:Number(row.stock||0), i:row.image||"",
+    rating:Number(row.rating||0), reviews:Number(row.reviews||0), shipping:row.shipping||"",
+    installments:Number(row.installments||10), featured:Boolean(row.featured), createdAt:row.created_at };
 }
-
-function adminOnly(req, res, next) {
-  const configured = process.env.ADMIN_PASSWORD;
-  if (!configured) return res.status(503).json({ error: "Configure ADMIN_PASSWORD no Render." });
-  if (req.headers["x-admin-password"] !== configured) return res.status(401).json({ error: "Senha administrativa inválida." });
+function adminOnly(req,res,next){
+  const configured=process.env.ADMIN_PASSWORD;
+  if(!configured) return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
+  if(req.headers["x-admin-password"]!==configured) return res.status(401).json({error:"Senha administrativa inválida."});
   next();
 }
-
-app.post("/api/admin/auth", adminOnly, (req, res) => res.json({ ok: true }));
-
-function requireDatabase(req, res, next) {
-  if (!process.env.DATABASE_URL) return res.status(503).json({ error: "Configure DATABASE_URL no Render." });
+function requireDatabase(req,res,next){
+  if(!process.env.DATABASE_URL) return res.status(503).json({error:"Banco de dados indisponível."});
   next();
 }
+const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
+const baseUrl=req=>`${req.protocol}://${req.get("host")}`;
 
-app.get("/api/produtos", requireDatabase, async (req, res) => {
-  try {
-    const result = await pool.query("SELECT * FROM products ORDER BY created_at DESC");
-    res.json(result.rows.map(toProduct));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao carregar produtos." });
-  }
+app.post("/api/admin/auth",adminOnly,(req,res)=>res.json({ok:true}));
+
+app.get("/api/produtos",requireDatabase,async(req,res)=>{
+  try{const r=await pool.query("SELECT * FROM products ORDER BY created_at DESC");res.json(r.rows.map(toProduct));}
+  catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar produtos."});}
+});
+app.post("/api/produtos",adminOnly,requireDatabase,async(req,res)=>{
+  try{
+    const b=req.body||{}, price=Number(b.p), rating=Math.min(5,Math.max(0,Number(b.rating||0)));
+    if(!clean(b.n)||!clean(b.c)||!clean(b.sub)||!Number.isFinite(price)||price<=0) return res.status(400).json({error:"Nome, categoria, subcategoria e preço são obrigatórios."});
+    const v=[clean(b.n,180),clean(b.c,120),clean(b.sub,120),clean(b.detail,120),price,Math.max(0,Number(b.oldPrice||0)),Math.max(0,Math.floor(Number(b.stock||0))),clean(b.i,1000),rating,Math.max(0,Math.floor(Number(b.reviews||0))),clean(b.shipping,120),Math.max(1,Math.floor(Number(b.installments||10))),Boolean(b.featured)];
+    const r=await pool.query(`INSERT INTO products(name,category,subcategory,detail,price,old_price,stock,image,rating,reviews,shipping,installments,featured) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,v);
+    res.status(201).json(toProduct(r.rows[0]));
+  }catch(e){console.error(e);res.status(500).json({error:"Erro ao cadastrar produto."});}
+});
+app.put("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
+  try{
+    const cur=await pool.query("SELECT * FROM products WHERE id=$1",[req.params.id]);
+    if(!cur.rows.length)return res.status(404).json({error:"Produto não encontrado."});
+    const p=toProduct(cur.rows[0]),b=req.body||{},price=Number(b.p??p.p);
+    if(!Number.isFinite(price)||price<=0)return res.status(400).json({error:"Preço inválido."});
+    const v=[clean(b.n??p.n,180),clean(b.c??p.c,120),clean(b.sub??p.sub,120),clean(b.detail??p.detail,120),price,Math.max(0,Number(b.oldPrice??p.oldPrice)),Math.max(0,Math.floor(Number(b.stock??p.stock))),clean(b.i??p.i,1000),Math.min(5,Math.max(0,Number(b.rating??p.rating))),Math.max(0,Math.floor(Number(b.reviews??p.reviews))),clean(b.shipping??p.shipping,120),Math.max(1,Math.floor(Number(b.installments??p.installments))),Boolean(b.featured??p.featured),req.params.id];
+    const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13 WHERE id=$14 RETURNING *`,v);
+    res.json(toProduct(r.rows[0]));
+  }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar produto."});}
+});
+app.delete("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
+  try{const r=await pool.query("DELETE FROM products WHERE id=$1 RETURNING id",[req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Produto não encontrado."});res.json({ok:true});}
+  catch(e){if(e.code==="23503")return res.status(409).json({error:"Este produto já faz parte de um pedido e não pode ser excluído. Zere o estoque em vez disso."});console.error(e);res.status(500).json({error:"Erro ao excluir produto."});}
 });
 
-app.post("/api/produtos", adminOnly, requireDatabase, async (req, res) => {
-  try {
-    const b = req.body || {};
-    if (!b.n || !b.c || !b.sub || !Number(b.p)) return res.status(400).json({ error: "Nome, categoria, subcategoria e preço são obrigatórios." });
-    const values = [
-      String(b.n).trim(), String(b.c).trim(), String(b.sub).trim(), String(b.detail || "").trim(),
-      Number(b.p), Number(b.oldPrice || 0), Math.max(0, Number(b.stock || 0)), String(b.i || "").trim(),
-      Number(b.rating || 0), Math.max(0, Number(b.reviews || 0)), String(b.shipping || "").trim(),
-      Math.max(1, Number(b.installments || 10)), Boolean(b.featured)
-    ];
-    const result = await pool.query(
-      `INSERT INTO products (name,category,subcategory,detail,price,old_price,stock,image,rating,reviews,shipping,installments,featured)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`, values
-    );
-    res.status(201).json(toProduct(result.rows[0]));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao cadastrar produto." });
-  }
+app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
+  const client=await pool.connect();
+  try{
+    if(!process.env.MP_ACCESS_TOKEN)return res.status(503).json({error:"Pagamento não configurado."});
+    const incoming=Array.isArray(req.body?.items)?req.body.items:[];
+    if(!incoming.length||incoming.length>50)return res.status(400).json({error:"Carrinho inválido."});
+    const normalized=incoming.map(x=>({id:Number(x.id),q:Math.max(1,Math.min(99,Math.floor(Number(x.q)||1)))}));
+    if(normalized.some(x=>!Number.isInteger(x.id)))return res.status(400).json({error:"Carrinho inválido."});
+    const ids=[...new Set(normalized.map(x=>x.id))];
+    const pr=await client.query("SELECT * FROM products WHERE id = ANY($1::bigint[])",[ids]);
+    if(pr.rows.length!==ids.length)return res.status(400).json({error:"Um produto não está mais disponível."});
+    const byId=new Map(pr.rows.map(r=>[Number(r.id),r]));
+    const items=normalized.map(x=>{const p=byId.get(x.id);if(Number(p.stock)<x.q)throw Object.assign(new Error(`Estoque insuficiente para ${p.name}.`),{status:409});return {id:String(p.id),title:p.name,quantity:x.q,unit_price:Number(p.price),currency_id:"BRL"};});
+    const total=items.reduce((s,x)=>s+x.quantity*x.unit_price,0);
+    const publicId="VZ-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(3).toString("hex").toUpperCase();
+    await client.query("BEGIN");
+    const or=await client.query("INSERT INTO orders(public_id,total) VALUES($1,$2) RETURNING id",[publicId,total]);
+    for(const it of items)await client.query("INSERT INTO order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,$3,$4,$5)",[or.rows[0].id,Number(it.id),it.title,it.unit_price,it.quantity]);
+    const root=baseUrl(req);
+    const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({items,external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
+    const data=await mp.json();if(!mp.ok)throw Object.assign(new Error("Mercado Pago recusou a preferência."),{details:data});
+    await client.query("COMMIT");
+    res.json({order_id:publicId,checkout_url:data.init_point,sandbox_url:data.sandbox_init_point});
+  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(e.details||e);res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
+  finally{client.release();}
 });
 
-app.put("/api/produtos/:id", adminOnly, requireDatabase, async (req, res) => {
-  try {
-    const current = await pool.query("SELECT * FROM products WHERE id=$1", [req.params.id]);
-    if (!current.rows.length) return res.status(404).json({ error: "Produto não encontrado." });
-    const p = toProduct(current.rows[0]), b = req.body || {};
-    const values = [
-      String(b.n ?? p.n).trim(), String(b.c ?? p.c).trim(), String(b.sub ?? p.sub).trim(),
-      String(b.detail ?? p.detail).trim(), Number(b.p ?? p.p), Number(b.oldPrice ?? p.oldPrice),
-      Math.max(0, Number(b.stock ?? p.stock)), String(b.i ?? p.i).trim(), Number(b.rating ?? p.rating),
-      Math.max(0, Number(b.reviews ?? p.reviews)), String(b.shipping ?? p.shipping).trim(),
-      Math.max(1, Number(b.installments ?? p.installments)), Boolean(b.featured ?? p.featured), req.params.id
-    ];
-    const result = await pool.query(
-      `UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13
-       WHERE id=$14 RETURNING *`, values
-    );
-    res.json(toProduct(result.rows[0]));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao atualizar produto." });
-  }
+app.post("/api/mercadopago/webhook",async(req,res)=>{
+  res.sendStatus(200);
+  try{
+    const paymentId=req.query["data.id"]||req.body?.data?.id;
+    if(!paymentId||!process.env.MP_ACCESS_TOKEN)return;
+    const mp=await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,{headers:{Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`}});
+    if(!mp.ok)return;
+    const pay=await mp.json(), publicId=pay.external_reference;
+    if(!publicId)return;
+    const client=await pool.connect();
+    try{
+      await client.query("BEGIN");
+      const or=await client.query("SELECT * FROM orders WHERE public_id=$1 FOR UPDATE",[publicId]);
+      if(!or.rows.length){await client.query("ROLLBACK");return;}
+      const current=or.rows[0];
+      if(pay.status==="approved"&&current.status!=="paid"){
+        const its=await client.query("SELECT * FROM order_items WHERE order_id=$1",[current.id]);
+        for(const it of its.rows){
+          const u=await client.query("UPDATE products SET stock=stock-$1 WHERE id=$2 AND stock >= $1 RETURNING id",[it.quantity,it.product_id]);
+          if(!u.rows.length)throw new Error("Estoque insuficiente ao confirmar pedido "+publicId);
+        }
+        await client.query("UPDATE orders SET status='paid',payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
+      }else if(["rejected","cancelled","refunded","charged_back"].includes(pay.status)){
+        await client.query("UPDATE orders SET status=$1,payment_id=$2,payer_email=$3 WHERE id=$4",[pay.status,String(pay.id),clean(pay.payer?.email,240),current.id]);
+      }
+      await client.query("COMMIT");
+    }catch(e){await client.query("ROLLBACK");console.error(e);}finally{client.release();}
+  }catch(e){console.error("Webhook Mercado Pago:",e);}
 });
 
-app.delete("/api/produtos/:id", adminOnly, requireDatabase, async (req, res) => {
-  try {
-    const result = await pool.query("DELETE FROM products WHERE id=$1 RETURNING id", [req.params.id]);
-    if (!result.rows.length) return res.status(404).json({ error: "Produto não encontrado." });
-    res.json({ ok: true });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao excluir produto." });
-  }
+app.get("/api/pedidos",adminOnly,requireDatabase,async(req,res)=>{
+  try{
+    const r=await pool.query(`SELECT o.*,COALESCE(json_agg(json_build_object('name',oi.product_name,'quantity',oi.quantity,'unit_price',oi.unit_price) ORDER BY oi.id) FILTER (WHERE oi.id IS NOT NULL),'[]') items FROM orders o LEFT JOIN order_items oi ON oi.order_id=o.id GROUP BY o.id ORDER BY o.created_at DESC LIMIT 200`);
+    res.json(r.rows.map(o=>({...o,total:Number(o.total)})));
+  }catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar pedidos."});}
+});
+app.get("/api/pedido/:publicId",requireDatabase,async(req,res)=>{
+  try{const r=await pool.query("SELECT public_id,status,total,created_at,paid_at FROM orders WHERE public_id=$1",[clean(req.params.publicId,80)]);if(!r.rows.length)return res.status(404).json({error:"Pedido não encontrado."});res.json({...r.rows[0],total:Number(r.rows[0].total)});}
+  catch(e){res.status(500).json({error:"Erro ao consultar pedido."});}
 });
 
-app.post("/api/criar-preferencia", async (req, res) => {
-  try {
-    const { titulo, preco, quantidade = 1 } = req.body;
-    if (!titulo || !preco) return res.status(400).json({ error: "Produto ou preço inválido" });
-    const response = await fetch("https://api.mercadopago.com/checkout/preferences", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${process.env.MP_ACCESS_TOKEN}` },
-      body: JSON.stringify({ items: [{ title: titulo, quantity: Number(quantidade), unit_price: Number(preco), currency_id: "BRL" }] })
-    });
-    const data = await response.json();
-    if (!response.ok) return res.status(response.status).json(data);
-    res.json({ id: data.id, checkout_url: data.init_point, sandbox_url: data.sandbox_init_point });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ error: "Erro ao criar pagamento" });
-  }
-});
+app.get("/api/status",async(req,res)=>{let database=false;try{if(process.env.DATABASE_URL){await pool.query("SELECT 1");database=true;}}catch{}res.json({status:"VORZELI online",database,payments:Boolean(process.env.MP_ACCESS_TOKEN)});});
 
-app.get("/api/status", async (req, res) => {
-  let database = false;
-  if (process.env.DATABASE_URL) {
-    try { await pool.query("SELECT 1"); database = true; } catch {}
-  }
-  res.json({ status: "VORZELI online", database });
-});
-
-const PORT = process.env.PORT || 3000;
-initDatabase()
-  .then(() => app.listen(PORT, () => console.log(`Servidor iniciado na porta ${PORT}`)))
-  .catch(error => {
-    console.error("Falha ao inicializar banco:", error);
-    process.exit(1);
-  });
+const PORT=process.env.PORT||3000;
+initDatabase().then(()=>app.listen(PORT,()=>console.log(`Servidor iniciado na porta ${PORT}`))).catch(e=>{console.error("Falha ao inicializar banco:",e);process.exit(1);});
