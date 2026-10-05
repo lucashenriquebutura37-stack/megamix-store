@@ -833,7 +833,7 @@ app.get("/api/admin/dashboard",adminOnly,requireDatabase,async(req,res)=>{
   try{
     const [orders,products,pending,topProducts,coupons]=await Promise.all([
       pool.query(`SELECT COUNT(*)::int total_orders,COUNT(*) FILTER (WHERE status='paid')::int paid_orders,COUNT(*) FILTER (WHERE status='pending')::int pending_orders,COALESCE(SUM(total) FILTER (WHERE status='paid'),0)::numeric revenue FROM orders WHERE is_test=FALSE`),
-      pool.query(`SELECT COUNT(*)::int total_products,COUNT(*) FILTER (WHERE stock<=3)::int low_stock,COALESCE(SUM(stock),0)::int stock_units FROM products`),
+      pool.query(`SELECT COUNT(*)::int total_products,COUNT(*) FILTER (WHERE stock<=3)::int low_stock,COUNT(*) FILTER (WHERE stock=0)::int out_of_stock,COALESCE(SUM(stock),0)::int stock_units FROM products`),
       pool.query(`SELECT (SELECT COUNT(*) FROM product_questions WHERE approved=FALSE)::int pending_questions,(SELECT COUNT(*) FROM product_reviews WHERE approved=FALSE)::int pending_reviews`),
       pool.query(`SELECT oi.product_id,oi.product_name,SUM(oi.quantity)::int units_sold,ROUND(SUM(oi.quantity*oi.unit_price)::numeric,2) gross_sales FROM order_items oi JOIN orders o ON o.id=oi.order_id WHERE o.status='paid' AND o.is_test=FALSE GROUP BY oi.product_id,oi.product_name ORDER BY units_sold DESC,gross_sales DESC LIMIT 5`),
       pool.query(`SELECT code,uses,discount_type,discount_value,active,expires_at FROM coupons ORDER BY uses DESC,created_at DESC LIMIT 5`)
