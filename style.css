@@ -1179,3 +1179,92 @@ footer p {
     width: 110px;
   }
 }
+
+
+/* =========================================================
+   VORZELI 2026 — MODERN UI
+   Camada visual final: preserva estrutura e funcionalidades.
+========================================================= */
+:root{
+  --vz-accent:#ff5a1f;--vz-accent-2:#ff7a45;--vz-ink:#141414;
+  --vz-muted:#6b7280;--vz-bg:#f6f7f9;--vz-card:#fff;--vz-line:#e9eaee;
+  --vz-shadow:0 10px 30px rgba(17,24,39,.07);
+  --vz-shadow-hover:0 18px 42px rgba(17,24,39,.13);
+}
+html{scroll-behavior:smooth}
+body{background:var(--vz-bg);color:var(--vz-ink);-webkit-font-smoothing:antialiased}
+button,input,select{font:inherit}
+button{transition:transform .2s ease,box-shadow .2s ease,background .2s ease,border-color .2s ease}
+button:active{transform:scale(.98)}
+.top{background:#111;color:#fff;letter-spacing:.02em}
+.nav{background:rgba(255,255,255,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid rgba(0,0,0,.05)}
+.menuBtn,.cartBtn{border:1px solid var(--vz-line);background:#fff;border-radius:14px}
+.menuBtn:hover,.cartBtn:hover{border-color:#d8dbe2;box-shadow:0 6px 18px rgba(0,0,0,.07)}
+.search{background:#f3f4f6;border:1px solid transparent;border-radius:16px;transition:.2s ease}
+.search:focus-within{background:#fff;border-color:rgba(255,90,31,.45);box-shadow:0 0 0 4px rgba(255,90,31,.08)}
+.search input{font-size:14px}
+.search button{border-radius:12px}
+.quick{background:#fff;border-bottom:1px solid var(--vz-line)}
+.quick a{position:relative;font-weight:700;color:#3f3f46}
+.quick a:hover{color:var(--vz-accent)}
+.hero{position:relative;overflow:hidden;border-radius:30px;box-shadow:var(--vz-shadow);background:linear-gradient(135deg,#171717 0%,#262626 58%,#3b241c 100%)}
+.hero:after{content:"";position:absolute;width:340px;height:340px;border-radius:50%;right:-90px;top:-130px;background:radial-gradient(circle,rgba(255,122,69,.34),rgba(255,90,31,0) 68%);pointer-events:none}
+.hero h1{letter-spacing:-.04em;line-height:1.02}
+.hero button,.checkout{background:linear-gradient(135deg,var(--vz-accent),var(--vz-accent-2));color:#fff;border:0;border-radius:14px;font-weight:800;box-shadow:0 9px 22px rgba(255,90,31,.22)}
+.hero button:hover,.checkout:hover{transform:translateY(-2px);box-shadow:0 13px 28px rgba(255,90,31,.30)}
+.sectionTitle h2,.sectionRow h2{letter-spacing:-.025em}
+.areaCard,.specialCard,.card,.subcat,.benefits div{border:1px solid var(--vz-line);box-shadow:0 5px 20px rgba(17,24,39,.045)}
+.areaCard{border-radius:20px;background:var(--vz-card)}
+.areaCard:hover{transform:translateY(-5px);border-color:rgba(255,90,31,.32);box-shadow:var(--vz-shadow-hover)}
+.areaIcon{width:58px;height:58px;display:flex;align-items:center;justify-content:center;margin:0 auto 10px;border-radius:17px;background:linear-gradient(145deg,#fff3ee,#fff);box-shadow:inset 0 0 0 1px rgba(255,90,31,.08)}
+.specialCard{border-radius:24px;background:linear-gradient(145deg,#fff,#fafafa)}
+.specialCard:hover{transform:translateY(-4px);box-shadow:var(--vz-shadow-hover);border-color:rgba(255,90,31,.3)}
+.specialIcon{width:68px;height:68px;flex:0 0 68px;display:flex;align-items:center;justify-content:center;border-radius:20px;background:#fff2ec}
+.productRail{scrollbar-width:none;scroll-snap-type:x proximity}
+.productRail::-webkit-scrollbar{display:none}
+.productRail .card{scroll-snap-align:start}
+.card{border-radius:20px;transition:transform .22s ease,box-shadow .22s ease,border-color .22s ease}
+.card:hover{transform:translateY(-5px);box-shadow:var(--vz-shadow-hover);border-color:#dedfe4}
+.pic{background:linear-gradient(145deg,#f8f8f9,#eef0f3);overflow:hidden}
+.badge{display:inline-flex;align-items:center;padding:5px 8px;border-radius:999px;background:#fff1eb}
+.add{border-radius:12px;font-weight:800}
+.add:hover{transform:translateY(-1px)}
+.benefits{background:transparent;gap:12px}
+.benefits div{background:#fff;border-radius:18px}
+.sideMenu,.cart{border-radius:0 24px 24px 0;box-shadow:20px 0 60px rgba(0,0,0,.18)}
+.cart{border-radius:24px 0 0 24px;box-shadow:-20px 0 60px rgba(0,0,0,.18)}
+.drawerSearch{border:1px solid var(--vz-line);border-radius:14px}
+.menuItem{border-radius:12px;border-bottom:0;margin:3px 0;padding:13px 10px}
+.menuItem:hover{background:#f7f7f8}
+.areaModal{background:var(--vz-bg)}
+.areaModalHead{background:rgba(255,255,255,.94);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border-bottom:1px solid var(--vz-line);box-shadow:none}
+.areaModalHead button{padding:9px 12px;border-radius:12px}
+.areaModalHead button:hover{background:#f1f2f4}
+.subcat{border-radius:18px}
+.subcat:hover{box-shadow:0 10px 24px rgba(17,24,39,.08)}
+.subcat.active{background:#fff5f0;box-shadow:0 0 0 3px rgba(255,90,31,.08)}
+.heading select{border-radius:12px;padding:11px 13px}
+.noProducts{border:1px solid var(--vz-line);box-shadow:var(--vz-shadow)}
+.cartItem{border-color:var(--vz-line)}
+.qty button{border-radius:8px;cursor:pointer}
+footer{background:#151515}
+footer p{line-height:1.6}
+@media(max-width:650px){
+ .nav{background:rgba(255,255,255,.97)}
+ .search{box-shadow:0 7px 20px rgba(17,24,39,.06)}
+ .hero{border-radius:22px;margin-top:16px;box-shadow:0 10px 28px rgba(17,24,39,.10)}
+ .hero h1{letter-spacing:-.035em}
+ .areaCard{border-radius:17px}
+ .areaIcon{width:48px;height:48px;border-radius:14px;margin-bottom:7px}
+ .specialCard{border-radius:20px}
+ .specialIcon{width:56px;height:56px;flex-basis:56px;border-radius:16px}
+ .card{border-radius:17px}
+ .subcat{border-radius:14px}
+ .sideMenu{border-radius:0 20px 20px 0}
+ .cart{border-radius:20px 0 0 20px}
+ .benefits{gap:8px}
+ .benefits div{border-radius:15px}
+}
+@media(prefers-reduced-motion:reduce){
+ *,*:before,*:after{scroll-behavior:auto!important;transition:none!important}
+}
