@@ -1108,6 +1108,10 @@ function add(id) {
 ========================= */
 
 function save() {
+  selectedShipping=null;
+  window.shippingQuotes=[];
+  const shippingOptions=document.getElementById("shippingOptions");
+  if(shippingOptions)shippingOptions.innerHTML='<p class="shippingHint">Carrinho alterado. Calcule o frete novamente.</p>';
 
   localStorage.setItem(
     "cart",
@@ -1317,12 +1321,13 @@ async function calculateShipping(){
     const r=await fetch("/api/frete/cotar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({postal_code:cep,items:cart.map(i=>({id:i.id,q:i.q}))})});
     const d=await r.json();if(!r.ok)throw new Error(d.error||"Não foi possível calcular o frete.");
     if(!d.quotes?.length)throw new Error("Nenhuma opção de entrega disponível para este CEP.");
-    if(box)box.innerHTML=d.quotes.map((q,i)=>'<label class="shippingOption" style="display:flex;gap:10px;align-items:flex-start;padding:12px;margin-top:8px;border:1px solid #e1e3e7;border-radius:12px;cursor:pointer"><input type="radio" name="shippingOption" value="'+q.id+'" style="width:auto;height:auto;margin-top:3px" onchange="chooseShipping('+i+')"><span><b>'+(q.company?q.company+" • ":"")+q.name+'</b><br><small>R$ '+Number(q.price).toFixed(2).replace(".",",")+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</small></span></label>').join("");
+    if(box)box.innerHTML='<div class="shippingTitle">Escolha a entrega</div>'+d.quotes.map((q,i)=>'<label class="shippingOption"><input type="radio" name="shippingOption" value="'+q.id+'" onchange="chooseShipping('+i+')"><span><b>'+(q.company?q.company+" • ":"")+q.name+'</b><small>'+money(Number(q.price))+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</small></span></label>').join("");
     window.shippingQuotes=d.quotes;
   }catch(e){if(box)box.innerHTML='<p style="font-size:13px;color:#c0392b">'+e.message+'</p>';}
 }
 function chooseShipping(index){
   selectedShipping=window.shippingQuotes?.[index]||null;
+  document.querySelectorAll(".shippingOption").forEach((el,i)=>el.classList.toggle("selected",i===index));
   updateCart();
 }
 
