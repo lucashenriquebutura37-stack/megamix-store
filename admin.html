@@ -38,7 +38,7 @@
 <div class="grid">
 <div><label>Nome *</label><input id="n" required></div>
 <div><label>URL da foto</label><input id="i" placeholder="https://..."></div><div><label>SKU / Código interno</label><input id="sku" maxlength="100" placeholder="Ex.: VZ-001"></div><div><label>Marca</label><input id="brand" maxlength="120" placeholder="Marca do produto"></div><div class="full"><label>Descrição completa</label><textarea id="description" maxlength="5000" rows="5" placeholder="Descrição, características e informações do produto"></textarea></div><div class="full"><label>Galeria de imagens</label><textarea id="images" rows="4" placeholder="Uma URL por linha — até 8 imagens"></textarea></div>
-<div><label>Categoria *</label><select id="c" required></select></div>
+<div class="full"><label for="variants">Características / variantes</label><textarea id="variants" rows="4" placeholder="Uma por linha: Cor: Preto ou Tamanho: M"></textarea><small>Até 30 características. Estoque e preço são do produto inteiro.</small></div><div class="full"><label for="tags">Etiquetas</label><input id="tags" placeholder="Separe por vírgulas: novidade, promoção"><small>Até 10 etiquetas.</small></div><div><label>Categoria *</label><select id="c" required></select></div>
 <div><label>Subcategoria *</label><select id="sub" required></select></div>
 <div><label>Detalhe (Audiologia/Medicina)</label><input id="detail"></div>
 <div><label>Estoque</label><input id="stock" type="number" min="0" value="0"></div><div><label>Destaque na loja</label><select id="featured"><option value="false">Não</option><option value="true">Sim</option></select></div>
@@ -175,9 +175,10 @@ async function updateShipping(id){
   status("Envio atualizado.");await loadOrders();
  }catch(e){status(e.message,false)}
 }
-function safeAdminImage(v){try{const u=new URL(String(v||""));return (u.protocol==="https:"||u.protocol==="http:")?u.href:""}catch{return ""}}\nfunction renderList(){
+function safeAdminImage(v){try{const u=new URL(String(v||""));return (u.protocol==="https:"||u.protocol==="http:")?u.href:""}catch{return ""}}
+function renderList(){
  const q=($("productSearch")?.value||"").toLowerCase(),stockFilter=$("stockFilter")?.value||"";
- const products=adminProducts.filter(p=>{const hay=[p.n,p.c,p.sub,p.detail].join(" ").toLowerCase(),stock=Number(p.stock)||0;return (!q||hay.includes(q))&&(!stockFilter||(stockFilter==="out"?stock===0:stock<=5));});
+ const products=adminProducts.filter(p=>{const hay=[p.n,p.c,p.sub,p.detail,p.sku,p.brand,...(p.tags||[])].join(" ").toLowerCase(),stock=Number(p.stock)||0;return (!q||hay.includes(q))&&(!stockFilter||(stockFilter==="out"?stock===0:stock<=5));});
  if($("productSummary"))$("productSummary").textContent=products.length+" exibidos de "+adminProducts.length+" produtos";
  $("list").innerHTML=products.length?products.map(p=>{
   const img=safeAdminImage(p.i);
@@ -192,14 +193,20 @@ function safeAdminImage(v){try{const u=new URL(String(v||""));return (u.protocol
 }
 function editProduct(id){
  const p=adminProducts.find(x=>String(x.id)===String(id));if(!p)return;
- ["id","n","i","c","detail","stock","p","oldPrice","rating","reviews","installments","shipping","weightKg","lengthCm","widthCm","heightCm","sku","brand","description"].forEach(k=>{if($(k))$(k).value=p[k]??""});if($("images"))$("images").value=(p.images||[]).join("\n");if($("featured"))$("featured").value=p.featured?"true":"false";
+ ["id","n","i","c","detail","stock","p","oldPrice","rating","reviews","installments","shipping","weightKg","lengthCm","widthCm","heightCm","sku","brand","description"].forEach(k=>{if($(k))$(k).value=p[k]??""});if($("images"))$("images").value=(p.images||[]).join("\n");if($("featured"))$("featured").value=p.featured?"true":"false";$("variants").value=(p.variants||[]).map(v=>v.name+": "+v.value).join("\n");$("tags").value=(p.tags||[]).join(", ");
  $("c").dispatchEvent(new Event("change"));$("sub").value=p.sub||"";scrollTo({top:0,behavior:"smooth"});
 }
 function clearForm(){$("form").reset();$("id").value="";$("installments").value=10;$("stock").value=0;$("sub").innerHTML='<option value="">Selecione</option>'}
 $("form").addEventListener("submit",async e=>{
  e.preventDefault();
+ if(!adminConnected){status("Entre como administrador primeiro.",false);return;}
+ const variantLines=$("variants").value.split(/\n/).map(x=>x.trim()).filter(Boolean);
+ if(variantLines.length>30||variantLines.some(x=>x.indexOf(":")<1||!x.slice(x.indexOf(":")+1).trim())){status("Use até 30 linhas no formato Nome: Valor para as características.",false);return;}
+ const variants=variantLines.map(x=>({name:x.slice(0,x.indexOf(":")).trim(),value:x.slice(x.indexOf(":")+1).trim()}));
+ const tags=[...new Set($("tags").value.split(",").map(x=>x.trim()).filter(Boolean))];
+ if(tags.length>10){status("Use até 10 etiquetas.",false);return;}
  const id=$("id").value;
- const body={n:$("n").value,i:$("i").value,c:$("c").value,sub:$("sub").value,detail:$("detail").value,stock:$("stock").value,p:$("p").value,oldPrice:$("oldPrice").value,rating:$("rating").value,reviews:$("reviews").value,installments:$("installments").value,shipping:$("shipping").value,weightKg:$("weightKg").value,lengthCm:$("lengthCm").value,widthCm:$("widthCm").value,heightCm:$("heightCm").value,sku:$("sku").value,brand:$("brand").value,description:$("description").value,images:$("images").value.split(/\n/).map(x=>x.trim()).filter(Boolean).slice(0,8),featured:$("featured").value==="true"};
+ const body={n:$("n").value,i:$("i").value,c:$("c").value,sub:$("sub").value,detail:$("detail").value,stock:$("stock").value,p:$("p").value,oldPrice:$("oldPrice").value,rating:$("rating").value,reviews:$("reviews").value,installments:$("installments").value,shipping:$("shipping").value,weightKg:$("weightKg").value,lengthCm:$("lengthCm").value,widthCm:$("widthCm").value,heightCm:$("heightCm").value,sku:$("sku").value,brand:$("brand").value,description:$("description").value,images:$("images").value.split(/\n/).map(x=>x.trim()).filter(Boolean).slice(0,8),featured:$("featured").value==="true",variants,tags};
  try{
   const r=await fetch(id?"/api/produtos/"+id:"/api/produtos",{method:id?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   const data=await r.json();if(!r.ok)throw new Error(data.error||"Erro");

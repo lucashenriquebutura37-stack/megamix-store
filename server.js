@@ -111,8 +111,8 @@ const ADMIN_SESSION_TTL_MS=8*60*60*1000;
 const adminSessions=new Map();
 function adminSessionToken(req){
   const raw=String(req.headers.cookie||"");
-  const m=raw.match(/(?:^|;\\s*)vorzeli_admin=([^;]+)/);
-  return m?decodeURIComponent(m[1]):"";
+  const m=raw.match(/(?:^|;\s*)vorzeli_admin=([^;]+)/);
+  return m?m[1]:"";
 }
 function cleanupAdminSessions(){
   const now=Date.now();
@@ -314,12 +314,12 @@ app.put("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
     if(!cur.rows.length)return res.status(404).json({error:"Produto não encontrado."});
     const checked=validateProductInput(req.body||{},toProduct(cur.rows[0]));
     if(checked.error)return res.status(400).json({error:checked.error});
-    const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13,weight_kg=$14,length_cm=$15,width_cm=$16,height_cm=$17,description=$18,sku=$19,brand=$20,images=$21::jsonb WHERE id=$22 RETURNING *`,[...checked.values,checked.extra.description,checked.extra.sku,checked.extra.brand,JSON.stringify(checked.extra.images),req.params.id]);
+    const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13,weight_kg=$14,length_cm=$15,width_cm=$16,height_cm=$17,description=$18,sku=$19,brand=$20,images=$21::jsonb,variants=$22::jsonb,tags=$23::jsonb WHERE id=$24 RETURNING *`,[...checked.values,checked.extra.description,checked.extra.sku,checked.extra.brand,JSON.stringify(checked.extra.images),JSON.stringify(checked.extra.variants),JSON.stringify(checked.extra.tags),req.params.id]);
     res.json(toProduct(r.rows[0]));
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar produto."});}
 });
 app.delete("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
-  try{if(!/^\\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("DELETE FROM products WHERE id=$1 RETURNING id",[req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Produto não encontrado."});res.json({ok:true});}
+  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("DELETE FROM products WHERE id=$1 RETURNING id",[req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Produto não encontrado."});res.json({ok:true});}
   catch(e){if(e.code==="23503")return res.status(409).json({error:"Este produto já faz parte de um pedido e não pode ser excluído. Zere o estoque em vez disso."});console.error(e);res.status(500).json({error:"Erro ao excluir produto."});}
 });
 
