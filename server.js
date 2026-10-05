@@ -192,7 +192,9 @@ function validateProductInput(b,current={}){
   if(rawImage&&!image)return {error:"A URL da imagem deve começar com http:// ou https://."};
   const description=clean(b.description??current.description,5000),sku=clean(b.sku??current.sku,100),brand=clean(b.brand??current.brand,120);
   const rawImages=Array.isArray(b.images)?b.images:(Array.isArray(current.images)?current.images:[]),images=rawImages.slice(0,8).map(x=>safeImage(clean(x,1000))).filter(Boolean);
-  return {values:[name,category,subcategory,clean(b.detail??current.detail,120),price,oldPrice,Math.floor(stock),image,rating,Math.floor(reviews),clean(b.shipping??current.shipping,120),Math.floor(installments),Boolean(b.featured??current.featured),weightKg,lengthCm,widthCm,heightCm],extra:{description,sku,brand,images}};
+  const rawTags=Array.isArray(b.tags)?b.tags:(Array.isArray(current.tags)?current.tags:[]),tags=[...new Set(rawTags.map(x=>clean(x,40)).filter(Boolean))].slice(0,10);
+  const rawVariants=Array.isArray(b.variants)?b.variants:(Array.isArray(current.variants)?current.variants:[]),variants=rawVariants.slice(0,30).map(v=>({name:clean(v?.name,60),value:clean(v?.value,80)})).filter(v=>v.name&&v.value);
+  return {values:[name,category,subcategory,clean(b.detail??current.detail,120),price,oldPrice,Math.floor(stock),image,rating,Math.floor(reviews),clean(b.shipping??current.shipping,120),Math.floor(installments),Boolean(b.featured??current.featured),weightKg,lengthCm,widthCm,heightCm],extra:{description,sku,brand,images,tags,variants}};
 }
 
 const ADMIN_LOGIN_WINDOW_MS=15*60*1000;
