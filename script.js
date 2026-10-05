@@ -1413,3 +1413,55 @@ loadCatalog();
     Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=d[key]||""});
   }catch{}
 })();
+
+
+/* =========================
+   CEP AUTOMÁTICO
+========================= */
+(function setupCepLookup(){
+  const cepInput=document.getElementById("postalCode");
+  if(!cepInput)return;
+
+  let lastCep="";
+  const setValue=(id,value)=>{
+    const el=document.getElementById(id);
+    if(el && value) el.value=value;
+  };
+
+  async function lookupCep(){
+    const cep=cepInput.value.replace(/\D/g,"").slice(0,8);
+    cepInput.value=cep.length>5?cep.slice(0,5)+"-"+cep.slice(5):cep;
+    if(cep.length!==8 || cep===lastCep)return;
+    lastCep=cep;
+
+    const oldPlaceholder=cepInput.placeholder;
+    cepInput.disabled=true;
+    cepInput.placeholder="Buscando CEP...";
+    try{
+      const response=await fetch("https://viacep.com.br/ws/"+cep+"/json/");
+      if(!response.ok)throw new Error("CEP não encontrado.");
+      const data=await response.json();
+      if(data.erro)throw new Error("CEP não encontrado.");
+      setValue("addressLine",data.logradouro);
+      setValue("neighborhood",data.bairro);
+      setValue("city",data.localidade);
+      setValue("state",data.uf);
+      const number=document.getElementById("addressNumber");
+      if(number)number.focus();
+    }catch(error){
+      lastCep="";
+      alert("Não foi possível localizar esse CEP. Confira o número ou preencha o endereço manualmente.");
+    }finally{
+      cepInput.disabled=false;
+      cepInput.placeholder=oldPlaceholder;
+    }
+  }
+
+  cepInput.addEventListener("input",()=>{
+    const digits=cepInput.value.replace(/\D/g,"").slice(0,8);
+    cepInput.value=digits.length>5?digits.slice(0,5)+"-"+digits.slice(5):digits;
+    if(digits.length===8)lookupCep();
+    else lastCep="";
+  });
+  cepInput.addEventListener("blur",lookupCep);
+})();
