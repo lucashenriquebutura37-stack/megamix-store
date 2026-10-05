@@ -31,7 +31,7 @@
     </button>
 
     <div class="logo">
-      <img src="logo-vorzeli.png" alt="VORZELI">
+      <img src="logo-vorzeli.png" alt="VORZELI" decoding="async" fetchpriority="high">
     </div>
 
     <div class="search">
@@ -373,6 +373,14 @@
       </div>
 
 
+      <div class="catalogFilters" aria-label="Filtros de produtos">
+        <label>Preço mínimo <input id="filterMin" type="number" min="0" step="0.01" inputmode="decimal" oninput="render()"></label>
+        <label>Preço máximo <input id="filterMax" type="number" min="0" step="0.01" inputmode="decimal" oninput="render()"></label>
+        <label>Marca <input id="filterBrand" type="search" placeholder="Digite a marca" oninput="render()"></label>
+        <label><input id="filterStock" type="checkbox" onchange="render()"> Somente em estoque</label>
+        <label><input id="filterOffers" type="checkbox" onchange="render()"> Somente ofertas</label>
+        <button type="button" onclick="clearCatalogFilters()">Limpar filtros</button>
+      </div>
       <div
         id="grid"
         class="grid">

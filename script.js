@@ -549,7 +549,7 @@ function vorzeliIconHTML(group, name, fallback = "") {
   const src = vorzeliIconPath(group, name);
 
   if (src) {
-    return `<img class="vorzeliIcon" src="${src}" alt="" loading="lazy">`;
+    return `<img class="vorzeliIcon" src="${src}" alt="" loading="lazy" decoding="async">`;
   }
 
   return fallback;
@@ -562,7 +562,7 @@ function vorzeliAreaIconHTML(area) {
   if (group && typeof group === "object") {
     const first = Object.values(group).find(value => typeof value === "string");
     if (first) {
-      return `<img class="vorzeliGraphicIcon" src="${first}" alt="" loading="lazy">`;
+      return `<img class="vorzeliGraphicIcon" src="${first}" alt="" loading="lazy" decoding="async">`;
     }
   }
 
@@ -852,6 +852,19 @@ function selectDetail(
    MOSTRAR PRODUTOS
 ========================= */
 
+function clearCatalogFilters(){
+  for(const id of ["filterMin","filterMax","filterBrand"]){const el=document.getElementById(id);if(el)el.value="";}
+  for(const id of ["filterStock","filterOffers"]){const el=document.getElementById(id);if(el)el.checked=false;}
+  render();
+}
+function matchesCatalogFilters(product,filters){
+  const price=Number(product.p);
+  return (filters.min===""||price>=Number(filters.min))&&
+    (filters.max===""||price<=Number(filters.max))&&
+    (!filters.brand||String(product.brand||"").toLowerCase().includes(filters.brand.toLowerCase()))&&
+    (!filters.stock||Number(product.stock)>0)&&
+    (!filters.offers||Number(product.oldPrice)>price);
+}
 function render() {
 
   const grid =
@@ -920,7 +933,13 @@ function render() {
         categoryOK &&
         subcategoryOK &&
         detailOK &&
-        searchOK
+        searchOK && matchesCatalogFilters(product,{
+          min:document.getElementById("filterMin")?.value||"",
+          max:document.getElementById("filterMax")?.value||"",
+          brand:document.getElementById("filterBrand")?.value.trim()||"",
+          stock:document.getElementById("filterStock")?.checked,
+          offers:document.getElementById("filterOffers")?.checked
+        })
       );
     });
 
@@ -990,7 +1009,7 @@ function render() {
         const shipping = product.shipping || product.frete || "";
         const safeImg = safeImageUrl(product.i);
         const imageContent = safeImg
-          ? `<img src="${escapeHTML(safeImg)}" alt="${escapeHTML(product.n)}" loading="lazy">`
+          ? `<img src="${escapeHTML(safeImg)}" alt="${escapeHTML(product.n)}" loading="lazy" decoding="async">`
           : '<span class="productFallback">V</span>';
 
         return `
@@ -1062,7 +1081,7 @@ function render() {
 function railCard(product) {
   const safeImg = safeImageUrl(product.i);
   const image = safeImg
-    ? '<img src="'+escapeHTML(safeImg)+'" alt="'+escapeHTML(product.n)+'" loading="lazy">'
+    ? '<img src="'+escapeHTML(safeImg)+'" alt="'+escapeHTML(product.n)+'" loading="lazy" decoding="async">'
     : '<span class="productFallback">V</span>';
   const stock = Number(product.stock || 0);
   return '<article class="card"><div class="pic">'+image+'</div><div class="info"><span class="badge">'+escapeHTML(product.c).toUpperCase()+'</span><h3>'+escapeHTML(product.n)+'</h3><button type="button" class="productDetailsButton" onclick="openProductDetails('+Number(product.id)+')">Ver detalhes</button><div class="priceBlock"><div class="price">'+money(product.p)+'</div></div><div class="shippingInfo"><span>✓</span> '+(stock>0?escapeHTML(product.shipping||"Disponível"):"Sem estoque")+'</div><button class="add" '+(stock<=0?'disabled':'onclick="add('+product.id+')"')+'><span>'+(stock>0?"Adicionar ao carrinho":"Indisponível")+'</span><span class="addArrow">→</span></button></div></article>';
@@ -1634,7 +1653,7 @@ function openProductDetails(id) {
   document.getElementById("productDetailsContent").innerHTML=`
     <nav class="productBreadcrumb" aria-label="Navegação"><button type="button" onclick="document.getElementById('productDetailsDialog').close()">Início</button><span>›</span><span>${escapeHTML(product.c||"Produto")}</span></nav>
     <h2 id="productDetailsTitle">${escapeHTML(product.n)}</h2>
-    ${images.length?`<div class="productGallery">${images.map((src,i)=>`<img src="${escapeHTML(src)}" alt="${escapeHTML(product.n)} - foto ${i+1}" loading="${i?"lazy":"eager"}">`).join("")}</div>`:""}
+    ${images.length?`<div class="productGallery">${images.map((src,i)=>`<img src="${escapeHTML(src)}" alt="${escapeHTML(product.n)} - foto ${i+1}" loading="${i?"lazy":"eager"}" decoding="async">`).join("")}</div>`:""}
     <div class="productBuyPanel">
       ${oldPrice>Number(product.p)?`<div class="oldPrice">${money(oldPrice)} <b class="discountPillInline">-${discount}%</b></div>`:""}
       <div class="price">${money(product.p)}</div>

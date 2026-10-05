@@ -2,6 +2,8 @@ const express = require("express");
 const { Pool } = require("pg");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
+const {decodeSecret,matchingCounter}=require("./lib/totp");
+if(process.env.ADMIN_TOTP_SECRET)decodeSecret(process.env.ADMIN_TOTP_SECRET);
 
 const app = express();
 app.set("trust proxy", 1);
@@ -230,6 +232,7 @@ async function initDatabase() {
       expires_at TIMESTAMPTZ NOT NULL,
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    CREATE TABLE IF NOT EXISTS admin_totp_usage (identity TEXT PRIMARY KEY, last_counter BIGINT NOT NULL);
     CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires_at ON admin_sessions(expires_at);
   `);
 }
@@ -417,6 +420,13 @@ app.post("/api/admin/auth",async(req,res)=>{
     if(adminLoginBlocked(loginKey)){res.setHeader("Retry-After","900");return res.status(429).json({error:"Muitas tentativas de login. Aguarde alguns minutos."});}
     const a=Buffer.from(provided),b=Buffer.from(configured);
     if(a.length!==b.length||!crypto.timingSafeEqual(a,b)){recordAdminLoginFailure(loginKey);return res.status(401).json({error:"Senha administrativa inválida."});}
+    if(process.env.ADMIN_TOTP_SECRET){
+      const counter=matchingCounter(process.env.ADMIN_TOTP_SECRET,req.headers["x-admin-otp"]);
+      if(counter===null){recordAdminLoginFailure(loginKey);return res.status(401).json({error:"Código do autenticador inválido."});}
+      const identity=crypto.createHash("sha256").update(process.env.ADMIN_TOTP_SECRET).digest("hex");
+      const used=await pool.query("INSERT INTO admin_totp_usage(identity,last_counter) VALUES($1,$2) ON CONFLICT(identity) DO UPDATE SET last_counter=EXCLUDED.last_counter WHERE admin_totp_usage.last_counter<EXCLUDED.last_counter RETURNING identity",[identity,counter]);
+      if(!used.rows.length){recordAdminLoginFailure(loginKey);return res.status(401).json({error:"Código já utilizado. Aguarde o próximo código."});}
+    }
     clearAdminLoginFailures(loginKey);
     await cleanupAdminSessions();
     const token=crypto.randomBytes(32).toString("hex");
@@ -913,11 +923,13 @@ app.get("/api/status",async(req,res)=>{
     public_url:Boolean(process.env.PUBLIC_URL),
     webhook_signature:Boolean(process.env.MP_WEBHOOK_SECRET),
     admin_password:Boolean(process.env.ADMIN_PASSWORD),
+    admin_2fa:Boolean(process.env.ADMIN_TOTP_SECRET),
     smtp_email:Boolean(smtpConfig())
   };
   const required=["database","payments","shipping","public_url","webhook_signature","admin_password","smtp_email"];
   const missing=required.filter(k=>!checks[k]);
   const warnings=[];
+  if(!checks.admin_2fa)warnings.push("admin_2fa_not_configured");
   if(database&&dbLatencyMs>1000)warnings.push("database_slow");
   const healthy=missing.length===0;
   res.set("Cache-Control","no-store");
