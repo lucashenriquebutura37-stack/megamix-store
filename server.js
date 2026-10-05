@@ -242,12 +242,17 @@ function smtpConfig(){
 async function sendPaymentConfirmationEmail({to,publicId,total}){
   const cfg=smtpConfig();
   if(!cfg||!to)return false;
+  const site=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"");
+  const trackingUrl=`${site}/pedido.html?pedido=${encodeURIComponent(publicId)}`;
+  const totalFormatted=Number(total).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+  const safeId=String(publicId).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
   const transporter=nodemailer.createTransport({host:cfg.host,port:cfg.port,secure:cfg.port===465,auth:{user:cfg.user,pass:cfg.pass}});
   await transporter.sendMail({
     from:`VORZELI <${cfg.from}>`,
     to,
     subject:`Pagamento confirmado — ${publicId}`,
-    text:`Olá! Recebemos o pagamento do pedido ${publicId}. Total: ${Number(total).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}. Você pode acompanhar o pedido em ${(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"")}/pedido.html?pedido=${encodeURIComponent(publicId)}. Obrigado por comprar na VORZELI.`
+    text:`Pagamento confirmado! Recebemos o pagamento do pedido ${publicId}. Total: ${totalFormatted}. Acompanhe seu pedido: ${trackingUrl}. Obrigado por comprar na VORZELI.`,
+    html:`<!doctype html><html><body style="margin:0;background:#f4f5f7;font-family:Arial,sans-serif;color:#171717"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f4f5f7;padding:28px 12px"><tr><td align="center"><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width:600px;background:#fff;border-radius:18px;overflow:hidden"><tr><td style="background:#111;padding:24px 28px;color:#fff;font-size:24px;font-weight:800;letter-spacing:.5px">VORZELI</td></tr><tr><td style="padding:30px 28px"><div style="font-size:26px;font-weight:800;margin-bottom:12px">Pagamento confirmado ✓</div><p style="font-size:16px;line-height:1.6;margin:0 0 20px">Recebemos o pagamento do seu pedido e já podemos seguir com a preparação.</p><table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background:#f7f7f8;border-radius:12px;margin-bottom:24px"><tr><td style="padding:16px"><div style="font-size:13px;color:#666">Pedido</div><div style="font-size:17px;font-weight:700">${safeId}</div></td><td style="padding:16px;text-align:right"><div style="font-size:13px;color:#666">Total</div><div style="font-size:17px;font-weight:700">${totalFormatted}</div></td></tr></table><a href="${trackingUrl}" style="display:inline-block;background:#ff5a1f;color:#fff;text-decoration:none;font-weight:700;padding:14px 22px;border-radius:10px">Acompanhar meu pedido</a><p style="font-size:13px;line-height:1.6;color:#6b6b6b;margin:26px 0 0">Você receberá novas informações conforme o pedido avançar. Em caso de dúvida, responda a este e-mail.</p></td></tr><tr><td style="padding:18px 28px;border-top:1px solid #eee;color:#777;font-size:12px">VORZELI • Compra simples, acompanhamento fácil.</td></tr></table></td></tr></table></body></html>`
   });
   return true;
 }
