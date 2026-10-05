@@ -1048,46 +1048,25 @@ function render() {
    PÁGINA INICIAL
 ========================= */
 
+function railCard(product) {
+  const image = product.i && /^(https?:|\/)/i.test(String(product.i))
+    ? '<img src="'+product.i+'" alt="'+product.n+'" loading="lazy">'
+    : '<span class="productFallback">V</span>';
+  const stock = Number(product.stock || 0);
+  return '<article class="card"><div class="pic">'+image+'</div><div class="info"><span class="badge">'+product.c.toUpperCase()+'</span><h3>'+product.n+'</h3><div class="priceBlock"><div class="price">'+money(product.p)+'</div></div><div class="shippingInfo"><span>✓</span> '+(stock>0?(product.shipping||"Disponível"):"Sem estoque")+'</div><button class="add" '+(stock<=0?'disabled':'onclick="add('+product.id+')"')+'><span>'+(stock>0?"Adicionar ao carrinho":"Indisponível")+'</span><span class="addArrow">→</span></button></div></article>';
+}
+
 function fillRails() {
-
-  const content = `
-
-    <button class="marketPlaceholder" onclick="document.getElementById('areas')?.scrollIntoView({behavior:'smooth'})">
-      <span class="marketPlaceholderIcon">🏷️</span>
-      <span class="marketPlaceholderText">
-        <small>SELEÇÃO VORZELI</small>
-        <strong>Ofertas chegando</strong>
-        <em>Explore as categorias enquanto preparamos os produtos.</em>
-      </span>
-      <span class="marketArrow">→</span>
-    </button>
-
-    <button class="marketPlaceholder" onclick="document.getElementById('areas')?.scrollIntoView({behavior:'smooth'})">
-      <span class="marketPlaceholderIcon">✨</span>
-      <span class="marketPlaceholderText">
-        <small>NOVIDADES</small>
-        <strong>Novos itens em breve</strong>
-        <em>Acompanhe as categorias da loja.</em>
-      </span>
-      <span class="marketArrow">→</span>
-    </button>
-
-  `;
-
-  [
-    "offerGrid",
-    "bestGrid",
-    "newGrid"
-  ]
-  .forEach(id => {
-
-    const element =
-      document.getElementById(id);
-
-    if (element) {
-      element.innerHTML = content;
-    }
-  });
+  const ids=["offerGrid","bestGrid","newGrid"];
+  if (!products.length) {
+    const empty='<div class="marketPlaceholder"><span class="marketPlaceholderText"><small>VORZELI</small><strong>Produtos em breve</strong><em>A estrutura da loja está pronta. Novos itens aparecerão aqui automaticamente quando forem cadastrados.</em></span></div>';
+    ids.forEach(id=>{const el=document.getElementById(id);if(el)el.innerHTML=empty;});
+    return;
+  }
+  const offers=[...products].filter(p=>Number(p.oldPrice)>Number(p.p)).slice(0,8);
+  const best=[...products].sort((a,b)=>Number(b.reviews||0)-Number(a.reviews||0)).slice(0,8);
+  const newest=[...products].slice(0,8);
+  [[ids[0],offers.length?offers:newest],[ids[1],best],[ids[2],newest]].forEach(([id,list])=>{const el=document.getElementById(id);if(el)el.innerHTML=list.map(railCard).join("");});
 }
 
 
