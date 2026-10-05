@@ -363,8 +363,10 @@ const safeImage=(v)=>{const x=clean(v,1000);if(!x)return "";try{const u=new URL(
 function validateProductInput(b,current={}){
   const name=clean(b.n??current.n,180),category=clean(b.c??current.c,120),subcategory=clean(b.sub??current.sub,120);
   const price=finite(b.p??current.p,0.01,99999999),oldPrice=finite(b.oldPrice??current.oldPrice??0,0,99999999);
-  const stock=finite(b.stock??current.stock??0,0,1000000),rating=finite(b.rating??current.rating??0,0,5);
-  const reviews=finite(b.reviews??current.reviews??0,0,100000000),installments=finite(b.installments??current.installments??10,1,48);
+  const stock=finite(b.stock??current.stock??0,0,1000000);
+  // Avaliação e quantidade de reviews são calculadas exclusivamente a partir de avaliações verificadas.
+  const rating=finite(current.rating??0,0,5),reviews=finite(current.reviews??0,0,100000000);
+  const installments=finite(b.installments??current.installments??10,1,48);
   const weightKg=finite(b.weightKg??current.weightKg??0,0,1000),lengthCm=finite(b.lengthCm??current.lengthCm??0,0,1000);
   const widthCm=finite(b.widthCm??current.widthCm??0,0,1000),heightCm=finite(b.heightCm??current.heightCm??0,0,1000);
   if(!name||!category||!subcategory||price===null)return {error:"Nome, categoria, subcategoria e preço válido são obrigatórios."};
