@@ -1,0 +1,30 @@
+const test=require("node:test");
+const assert=require("node:assert/strict");
+const fs=require("node:fs");
+
+const server=fs.readFileSync("server.js","utf8");
+const index=fs.readFileSync("index.html","utf8");
+const pedido=fs.readFileSync("pedido.html","utf8");
+
+test("rotas críticas da loja continuam presentes",()=>{
+  for(const route of ["/api/frete/cotar","/api/criar-preferencia","/api/mercadopago/webhook","/api/pedido/:publicId","/api/status"]){
+    assert.ok(server.includes(route),route+" ausente");
+  }
+});
+test("proteções HTTP essenciais continuam configuradas",()=>{
+  for(const header of ["Content-Security-Policy","Strict-Transport-Security","X-Content-Type-Options","Permissions-Policy"]){
+    assert.ok(server.includes(header),header+" ausente");
+  }
+  assert.ok(server.includes("rateLimit("),"rate limiting ausente");
+});
+test("SEO básico e produto indexável continuam ativos",()=>{
+  assert.match(index,/rel="canonical"/);
+  assert.match(index,/property="og:title"/);
+  assert.ok(server.includes('app.get("/produto/:id"'));
+  assert.ok(server.includes('app.get("/sitemap.xml"'));
+});
+test("checkout, acompanhamento e frete continuam visíveis",()=>{
+  assert.match(index,/Finalizar pagamento/);
+  assert.match(index,/Calcular frete/);
+  assert.match(pedido,/Consultar pedido/);
+});
