@@ -75,6 +75,9 @@ async function initDatabase() {
       product_id BIGINT NOT NULL REFERENCES products(id), product_name TEXT NOT NULL,
       unit_price NUMERIC(12,2) NOT NULL, quantity INTEGER NOT NULL
     );
+    CREATE INDEX IF NOT EXISTS idx_orders_reservation_expiry ON orders(reservation_expires_at) WHERE stock_reserved=TRUE;
+    CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
+    CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
   `);
 }
 
