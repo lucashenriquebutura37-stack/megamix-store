@@ -576,6 +576,8 @@ app.post("/api/admin/cupons",adminOnly,requireDatabase,async(req,res)=>{
 });
 app.patch("/api/admin/cupons/:id",adminOnly,requireDatabase,async(req,res)=>{try{const r=await pool.query("UPDATE coupons SET active=$1 WHERE id=$2 RETURNING id,active",[Boolean(req.body?.active),req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Cupom não encontrado."});res.json(r.rows[0]);}catch(e){res.status(500).json({error:"Erro ao atualizar cupom."});}});
 
+function moneyCents(value){return Math.round((Number(value)||0)*100)}
+
 function mercadoPagoItemsWithExactDiscount(items,discount){
   const totalUnits=items.reduce((sum,item)=>sum+item.quantity,0);
   const originalCents=items.map(item=>Math.round(item.unit_price*100)*item.quantity);
@@ -621,7 +623,7 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     if(pr.rows.length!==ids.length)return res.status(400).json({error:"Um produto não está mais disponível."});
     const byId=new Map(pr.rows.map(r=>[Number(r.id),r]));
     const items=normalized.map(x=>{const p=byId.get(x.id);if(Number(p.stock)<x.q)throw Object.assign(new Error(`Estoque insuficiente para ${p.name}.`),{status:409});return {id:String(p.id),title:p.name,quantity:x.q,unit_price:Number(p.price),currency_id:"BRL"};});
-    const productsTotal=items.reduce((s,x)=>s+x.quantity*x.unit_price,0);
+    const productsTotalCents=items.reduce((sum,x)=>sum+x.quantity*moneyCents(x.unit_price),0),productsTotal=productsTotalCents/100;
     let coupon=null,discount=0;
     const couponCode=clean(req.body?.coupon_code,40).toUpperCase();
     const requestedShippingId=clean(req.body?.shipping_service_id,40);
@@ -641,10 +643,10 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
       if(!cr.rows.length||!cr.rows[0].active||(cr.rows[0].expires_at&&new Date(cr.rows[0].expires_at)<=new Date())||(Number(cr.rows[0].max_uses)>0&&Number(cr.rows[0].uses)>=Number(cr.rows[0].max_uses)))throw Object.assign(new Error("O cupom não está mais disponível."),{status:409});
       coupon=cr.rows[0];
       if(productsTotal<Number(coupon.min_order||0))throw Object.assign(new Error("O valor do carrinho não atende à compra mínima do cupom."),{status:409});
-      discount=coupon.discount_type==="percent"?productsTotal*Math.min(Number(coupon.discount_value),100)/100:Math.min(Number(coupon.discount_value),productsTotal);
-      discount=Number(discount.toFixed(2));
+      const discountCents=coupon.discount_type==="percent"?Math.round(productsTotalCents*Math.min(Number(coupon.discount_value),100)/100):Math.min(moneyCents(coupon.discount_value),productsTotalCents);
+      discount=discountCents/100;
     }
-    const total=Math.max(0.01,productsTotal-discount)+selectedShipping.price;
+    const total=(Math.max(1,productsTotalCents-moneyCents(discount))+moneyCents(selectedShipping.price))/100;
     for(const x of normalized)if((lockedStock.get(x.id)??0)<x.q)throw Object.assign(new Error("O estoque mudou. Atualize o carrinho e tente novamente."),{status:409});
     for(const x of normalized){
       const reserved=await client.query("UPDATE products SET stock=stock-$1 WHERE id=$2 AND stock >= $1 RETURNING id",[x.q,x.id]);
