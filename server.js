@@ -107,7 +107,7 @@ app.post("/api/frete/cotar",requireDatabase,async(req,res)=>{
     if(!r.ok)return res.status(r.status).json({error:"Não foi possível calcular o frete.",details:data});
     const quotes=(Array.isArray(data)?data:[]).filter(x=>!x.error&&Number(x.custom_price??x.price)>0).map(x=>({
       id:x.id,name:x.name,company:x.company?.name||"",price:Number(x.custom_price??x.price),
-      delivery_time:Number(x.custom_delivery_time??x.delivery_time||0),currency:"BRL"
+      delivery_time:Number((x.custom_delivery_time??x.delivery_time) || 0),currency:"BRL"
     })).sort((a,b)=>a.price-b.price);
     res.json({origin_postal_code:SHIPPING_ORIGIN_CEP,destination_postal_code:destination,quotes});
   }catch(e){console.error(e);res.status(e.status||500).json({error:e.message||"Erro ao calcular frete."});}
