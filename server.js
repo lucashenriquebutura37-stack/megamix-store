@@ -295,7 +295,7 @@ async function sendPaymentConfirmationEmail({to,publicId,total}){
 }
 async function sendShippingUpdateEmail({to,publicId,status,trackingCode=""}){
   const cfg=smtpConfig();if(!cfg||!to)return false;
-  const site=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,""),trackingUrl=`${site}/pedido.html?id=${encodeURIComponent(publicId)}`;
+  const site=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,""),trackingUrl=`${site}/pedido.html?pedido=${encodeURIComponent(publicId)}`;
   const labels={preparando:"Pedido em preparação",enviado:"Pedido enviado",entregue:"Pedido entregue"};
   const title=labels[status];if(!title)return false;
   const safeId=htmlEscape(publicId),safeTrack=htmlEscape(trackingCode);
