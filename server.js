@@ -193,6 +193,11 @@ function recordAdminLoginFailure(key){
   entry.count++;adminLoginAttempts.set(key,entry);
 }
 function clearAdminLoginFailures(key){adminLoginAttempts.delete(key)}
+function cleanupAdminLoginAttempts(){
+  const now=Date.now();
+  for(const [key,entry] of adminLoginAttempts)if(now-entry.started>=ADMIN_LOGIN_WINDOW_MS)adminLoginAttempts.delete(key);
+}
+setInterval(()=>{cleanupAdminSessions();cleanupAdminLoginAttempts();},15*60*1000).unref();
 
 app.use("/api/admin",(req,res,next)=>{res.set("Cache-Control","no-store");next();});
 
