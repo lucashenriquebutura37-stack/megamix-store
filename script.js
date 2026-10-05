@@ -1347,7 +1347,9 @@ function chooseShipping(index){
    MERCADO PAGO
 ========================= */
 
+let checkoutInProgress=false;
 async function checkout() {
+  if(checkoutInProgress)return;
   if (!cart.length) return alert("Adicione produtos ao carrinho.");
   const val=id=>(document.getElementById(id)?.value||"").trim();
   const customer={
@@ -1362,13 +1364,18 @@ async function checkout() {
   if(!selectedShipping)return alert("Calcule e escolha uma opção de frete antes de finalizar.");
   localStorage.setItem("deliveryData",JSON.stringify(customer));
   const button = document.querySelector(".checkout");
-  if (button) { button.disabled = true; button.textContent = "Preparando pagamento..."; }
+  checkoutInProgress=true;
+  if (button) { button.disabled = true; button.setAttribute("aria-busy","true"); button.textContent = "Preparando pagamento..."; }
   try {
-    const response = await fetch("/api/criar-preferencia", {
+    const controller=new AbortController();
+    const timer=setTimeout(()=>controller.abort(),20000);
+    let response;
+    try{response=await fetch("/api/criar-preferencia", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ items: cart.map(item => ({ id:item.id, q:item.q })), customer, shipping_service_id:selectedShipping?.id||"" })
-    });
+      body: JSON.stringify({ items: cart.map(item => ({ id:item.id, q:item.q })), customer, shipping_service_id:selectedShipping?.id||"" }),
+      signal:controller.signal
+    });}finally{clearTimeout(timer);}
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Não foi possível iniciar o pagamento.");
     if (data.order_id) localStorage.setItem("lastOrderId", data.order_id);
@@ -1376,10 +1383,12 @@ async function checkout() {
     if (!url) throw new Error("Link de pagamento não recebido.");
     window.location.href = url;
   } catch (error) {
-    alert(error.message || "Erro ao conectar com o Mercado Pago.");
+    const message=error?.name==="AbortError"?"O pagamento demorou para responder. Verifique sua conexão e tente novamente.":(error.message || "Erro ao conectar com o Mercado Pago.");
+    alert(message);
     await loadCatalog();
   } finally {
-    if (button) { button.disabled = false; button.textContent = "Finalizar pagamento"; }
+    checkoutInProgress=false;
+    if (button) { button.disabled = false; button.removeAttribute("aria-busy"); button.textContent = "Finalizar pagamento"; }
   }
 }
 
