@@ -435,6 +435,7 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
           }
         }
         await client.query("UPDATE orders SET status='paid',stock_reduced=TRUE,stock_reserved=FALSE,reservation_expires_at=NULL,shipping_status=CASE WHEN shipping_status='aguardando_pagamento' THEN 'preparando' ELSE shipping_status END,payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
+        await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[current.id,"payment_approved","Pagamento aprovado pelo Mercado Pago."]);
       }else if(["rejected","cancelled","refunded","charged_back"].includes(pay.status)){
         if(["rejected","cancelled"].includes(pay.status)&&current.status==="paid"){await client.query("COMMIT");return;}
         if((["refunded","charged_back"].includes(pay.status)&&current.stock_reduced)||(["rejected","cancelled"].includes(pay.status)&&current.stock_reserved)){
@@ -443,6 +444,7 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
           await client.query("UPDATE orders SET stock_reduced=FALSE,stock_reserved=FALSE,reservation_expires_at=NULL WHERE id=$1",[current.id]);
         }
         await client.query("UPDATE orders SET status=$1,payment_id=$2,payer_email=$3,shipping_status=CASE WHEN $1 IN ('refunded','charged_back','cancelled') AND shipping_status<>'entregue' THEN 'cancelado' ELSE shipping_status END WHERE id=$4",[pay.status,String(pay.id),clean(pay.payer?.email,240),current.id]);
+        await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[current.id,"payment_"+pay.status,"Pagamento atualizado para: "+pay.status+"."]);
       }
       await client.query("COMMIT");
       return res.sendStatus(200);
