@@ -96,3 +96,10 @@ test("pedido registra cupom e desconto para auditoria",()=>{
   assert.ok(server.includes("ADD COLUMN IF NOT EXISTS discount_amount"));
   assert.ok(server.includes("shipping_delivery_time,coupon_code,discount_amount"));
 });
+
+test("reserva de cupom é protegida e liberada em pedidos não pagos",()=>{
+  assert.ok(server.includes("LIMIT 1 FOR UPDATE"));
+  assert.ok(server.includes("GREATEST(uses-1,0)"));
+  assert.ok(server.includes("SELECT id,coupon_code FROM orders WHERE stock_reserved=TRUE"));
+  assert.ok(server.includes("SELECT id,stock_reserved,coupon_code FROM orders WHERE public_id=$1 FOR UPDATE"));
+});
