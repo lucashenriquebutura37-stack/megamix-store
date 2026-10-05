@@ -128,6 +128,12 @@ async function initDatabase() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_order_events_order_id_created_at ON order_events(order_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS admin_sessions (
+      token_hash TEXT PRIMARY KEY,
+      expires_at TIMESTAMPTZ NOT NULL,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
+    CREATE INDEX IF NOT EXISTS idx_admin_sessions_expires_at ON admin_sessions(expires_at);
   `);
 }
 
@@ -141,34 +147,36 @@ function toProduct(row) {
     createdAt:row.created_at };
 }
 const ADMIN_SESSION_TTL_MS=8*60*60*1000;
-const adminSessions=new Map();
 function adminSessionToken(req){
   const raw=String(req.headers.cookie||"");
   const m=raw.match(/(?:^|;\s*)vorzeli_admin=([^;]+)/);
   return m?m[1]:"";
 }
-function cleanupAdminSessions(){
-  const now=Date.now();
-  for(const [token,expires] of adminSessions)if(expires<=now)adminSessions.delete(token);
+const sessionHash=token=>crypto.createHash("sha256").update(String(token)).digest("hex");
+async function cleanupAdminSessions(){
+  if(!process.env.DATABASE_URL)return;
+  try{await pool.query("DELETE FROM admin_sessions WHERE expires_at<=NOW()");}catch(e){console.error("Falha ao limpar sessões administrativas:",e);}
 }
-function adminOnly(req,res,next){
-  const configured=process.env.ADMIN_PASSWORD;
-  if(!configured)return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
-  if(!["GET","HEAD","OPTIONS"].includes(req.method)&&String(req.get("sec-fetch-site")||"").toLowerCase()==="cross-site")return res.status(403).json({error:"Origem não autorizada."});
-  if(!["GET","HEAD","OPTIONS"].includes(req.method)){
-    const origin=String(req.get("origin")||"");
-    if(origin){
-      try{if(new URL(origin).host!==req.get("host"))return res.status(403).json({error:"Origem não autorizada."});}
-      catch{return res.status(403).json({error:"Origem não autorizada."});}
+async function adminOnly(req,res,next){
+  try{
+    const configured=process.env.ADMIN_PASSWORD;
+    if(!configured)return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
+    if(!process.env.DATABASE_URL)return res.status(503).json({error:"Banco de dados indisponível."});
+    if(!["GET","HEAD","OPTIONS"].includes(req.method)&&String(req.get("sec-fetch-site")||"").toLowerCase()==="cross-site")return res.status(403).json({error:"Origem não autorizada."});
+    if(!["GET","HEAD","OPTIONS"].includes(req.method)){
+      const origin=String(req.get("origin")||"");
+      if(origin){
+        try{if(new URL(origin).host!==req.get("host"))return res.status(403).json({error:"Origem não autorizada."});}
+        catch{return res.status(403).json({error:"Origem não autorizada."});}
+      }
     }
-  }
-  const token=adminSessionToken(req),expires=adminSessions.get(token);
-  if(!token||!expires||expires<=Date.now()){
-    if(token)adminSessions.delete(token);
-    return res.status(401).json({error:"Sessão administrativa inválida ou expirada."});
-  }
-  adminSessions.set(token,Date.now()+ADMIN_SESSION_TTL_MS);
-  next();
+    const token=adminSessionToken(req);
+    if(!token)return res.status(401).json({error:"Sessão administrativa inválida ou expirada."});
+    const expiresAt=new Date(Date.now()+ADMIN_SESSION_TTL_MS);
+    const result=await pool.query("UPDATE admin_sessions SET expires_at=$2 WHERE token_hash=$1 AND expires_at>NOW() RETURNING token_hash",[sessionHash(token),expiresAt]);
+    if(!result.rows.length)return res.status(401).json({error:"Sessão administrativa inválida ou expirada."});
+    next();
+  }catch(e){console.error("Falha ao validar sessão administrativa:",e);res.status(500).json({error:"Não foi possível validar a sessão administrativa."});}
 }
 function requireDatabase(req,res,next){
   if(!process.env.DATABASE_URL) return res.status(503).json({error:"Banco de dados indisponível."});
@@ -252,21 +260,24 @@ setInterval(()=>{cleanupAdminSessions();cleanupAdminLoginAttempts();},15*60*1000
 
 app.use("/api/admin",(req,res,next)=>{res.set("Cache-Control","no-store");next();});
 
-app.post("/api/admin/auth",(req,res)=>{
-  const configured=process.env.ADMIN_PASSWORD,provided=String(req.headers["x-admin-password"]||""),loginKey=adminLoginKey(req);
-  if(!configured)return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
-  if(adminLoginBlocked(loginKey)){res.setHeader("Retry-After","900");return res.status(429).json({error:"Muitas tentativas de login. Aguarde alguns minutos."});}
-  const a=Buffer.from(provided),b=Buffer.from(configured);
-  if(a.length!==b.length||!crypto.timingSafeEqual(a,b)){recordAdminLoginFailure(loginKey);return res.status(401).json({error:"Senha administrativa inválida."});}
-  clearAdminLoginFailures(loginKey);
-  cleanupAdminSessions();
-  const token=crypto.randomBytes(32).toString("hex");
-  adminSessions.set(token,Date.now()+ADMIN_SESSION_TTL_MS);
-  res.setHeader("Set-Cookie",`vorzeli_admin=${token}; Max-Age=${ADMIN_SESSION_TTL_MS/1000}; Path=/; HttpOnly; Secure; SameSite=Strict`);
-  res.json({ok:true});
+app.post("/api/admin/auth",async(req,res)=>{
+  try{
+    const configured=process.env.ADMIN_PASSWORD,provided=String(req.headers["x-admin-password"]||""),loginKey=adminLoginKey(req);
+    if(!configured)return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
+    if(!process.env.DATABASE_URL)return res.status(503).json({error:"Banco de dados indisponível."});
+    if(adminLoginBlocked(loginKey)){res.setHeader("Retry-After","900");return res.status(429).json({error:"Muitas tentativas de login. Aguarde alguns minutos."});}
+    const a=Buffer.from(provided),b=Buffer.from(configured);
+    if(a.length!==b.length||!crypto.timingSafeEqual(a,b)){recordAdminLoginFailure(loginKey);return res.status(401).json({error:"Senha administrativa inválida."});}
+    clearAdminLoginFailures(loginKey);
+    await cleanupAdminSessions();
+    const token=crypto.randomBytes(32).toString("hex");
+    await pool.query("INSERT INTO admin_sessions(token_hash,expires_at) VALUES($1,$2)",[sessionHash(token),new Date(Date.now()+ADMIN_SESSION_TTL_MS)]);
+    res.setHeader("Set-Cookie",`vorzeli_admin=${token}; Max-Age=${ADMIN_SESSION_TTL_MS/1000}; Path=/; HttpOnly; Secure; SameSite=Strict`);
+    res.json({ok:true});
+  }catch(e){console.error("Falha no login administrativo:",e);res.status(500).json({error:"Não foi possível iniciar a sessão administrativa."});}
 });
-app.post("/api/admin/logout",(req,res)=>{
-  const token=adminSessionToken(req);if(token)adminSessions.delete(token);
+app.post("/api/admin/logout",async(req,res)=>{
+  try{const token=adminSessionToken(req);if(token&&process.env.DATABASE_URL)await pool.query("DELETE FROM admin_sessions WHERE token_hash=$1",[sessionHash(token)]);}catch(e){console.error("Falha ao encerrar sessão:",e);}
   res.setHeader("Set-Cookie","vorzeli_admin=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict");
   res.json({ok:true});
 });
