@@ -410,8 +410,11 @@
   <div class="orderSummary" aria-label="Resumo do pedido">
     <div><span>Subtotal</span><strong id="subtotal">R$ 0,00</strong></div>
     <div><span>Frete</span><strong id="shippingTotal">A calcular</strong></div>
+    <div id="discountRow" style="display:none"><span>Desconto</span><strong id="discountTotal">- R$ 0,00</strong></div>
     <div class="grandTotal"><span>Total</span><strong id="total" aria-live="polite">R$ 0,00</strong></div>
   </div>
+
+  <div class="couponBox"><label for="couponCode">Cupom de desconto</label><div><input id="couponCode" maxlength="40" autocomplete="off" placeholder="Digite seu cupom"><button type="button" onclick="applyCoupon()">Aplicar</button></div><small id="couponStatus" aria-live="polite"></small></div>
 
   <div class="deliveryBox">
     <div class="checkoutSectionTitle"><span>2</span><div><h3>Entrega</h3><p>Informe onde você quer receber o pedido.</p></div></div>
