@@ -48,6 +48,11 @@ async function initDatabase() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_status TEXT DEFAULT 'aguardando_pagamento';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_code TEXT DEFAULT '';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_test BOOLEAN DEFAULT FALSE;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_service_id TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_service_name TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_company TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_price NUMERIC(12,2) DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_delivery_time INTEGER DEFAULT 0;
     CREATE TABLE IF NOT EXISTS order_items (
       id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
       product_id BIGINT NOT NULL REFERENCES products(id), product_name TEXT NOT NULL,
@@ -142,6 +147,27 @@ app.delete("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
   catch(e){if(e.code==="23503")return res.status(409).json({error:"Este produto já faz parte de um pedido e não pode ser excluído. Zere o estoque em vez disso."});console.error(e);res.status(500).json({error:"Erro ao excluir produto."});}
 });
 
+async function quoteShipping(destination, normalized, productRows){
+  if(!process.env.MELHOR_ENVIO_TOKEN)throw Object.assign(new Error("Frete ainda não ativado."),{status:503});
+  const byId=new Map(productRows.map(p=>[Number(p.id),p]));
+  const shippingProducts=normalized.map(x=>{
+    const p=byId.get(x.id),weight=Number(p.weight_kg),length=Number(p.length_cm),width=Number(p.width_cm),height=Number(p.height_cm);
+    if(!(weight>0&&length>0&&width>0&&height>0))throw Object.assign(new Error("Produto sem peso ou dimensões cadastradas."),{status:409});
+    return {id:String(p.id),width,height,length,weight,insurance_value:Number(p.price),quantity:x.q};
+  });
+  const apiBase=process.env.MELHOR_ENVIO_SANDBOX==="true"?"https://sandbox.melhorenvio.com.br":"https://melhorenvio.com.br";
+  const r=await fetch(apiBase+"/api/v2/me/shipment/calculate",{method:"POST",headers:{
+    "Accept":"application/json","Content-Type":"application/json","Authorization":"Bearer "+process.env.MELHOR_ENVIO_TOKEN,
+    "User-Agent":process.env.MELHOR_ENVIO_USER_AGENT||"VORZELI (loja online)"
+  },body:JSON.stringify({from:{postal_code:SHIPPING_ORIGIN_CEP},to:{postal_code:destination},products:shippingProducts,options:{receipt:false,own_hand:false}})});
+  const data=await r.json();
+  if(!r.ok)throw Object.assign(new Error("Não foi possível calcular o frete."),{status:502,details:data});
+  return (Array.isArray(data)?data:[]).filter(x=>!x.error&&Number(x.custom_price??x.price)>0).map(x=>({
+    id:String(x.id),name:clean(x.name,120),company:clean(x.company?.name,120),price:Number(x.custom_price??x.price),
+    delivery_time:Number((x.custom_delivery_time??x.delivery_time)||0)
+  }));
+}
+
 app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
   const client=await pool.connect();
   try{
@@ -162,15 +188,21 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     if(pr.rows.length!==ids.length)return res.status(400).json({error:"Um produto não está mais disponível."});
     const byId=new Map(pr.rows.map(r=>[Number(r.id),r]));
     const items=normalized.map(x=>{const p=byId.get(x.id);if(Number(p.stock)<x.q)throw Object.assign(new Error(`Estoque insuficiente para ${p.name}.`),{status:409});return {id:String(p.id),title:p.name,quantity:x.q,unit_price:Number(p.price),currency_id:"BRL"};});
-    const total=items.reduce((s,x)=>s+x.quantity*x.unit_price,0);
+    const productsTotal=items.reduce((s,x)=>s+x.quantity*x.unit_price,0);
+    const requestedShippingId=clean(req.body?.shipping_service_id,40);
+    if(!requestedShippingId)return res.status(400).json({error:"Escolha uma opção de frete."});
+    const shippingQuotes=await quoteShipping(postalCode,normalized,pr.rows);
+    const selectedShipping=shippingQuotes.find(q=>q.id===requestedShippingId);
+    if(!selectedShipping)return res.status(400).json({error:"A opção de frete escolhida não está mais disponível. Calcule novamente."});
+    const total=productsTotal+selectedShipping.price;
     const publicId="VZ-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(3).toString("hex").toUpperCase();
     await client.query("BEGIN");
-    const or=await client.query(`INSERT INTO orders(public_id,total,customer_name,customer_phone,postal_code,address_line,address_number,address_extra,neighborhood,city,state)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
-      [publicId,total,customerName,customerPhone,postalCode,addressLine,addressNumber,addressExtra,neighborhood,city,state]);
+    const or=await client.query(`INSERT INTO orders(public_id,total,customer_name,customer_phone,postal_code,address_line,address_number,address_extra,neighborhood,city,state,shipping_service_id,shipping_service_name,shipping_company,shipping_price,shipping_delivery_time)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
+      [publicId,total,customerName,customerPhone,postalCode,addressLine,addressNumber,addressExtra,neighborhood,city,state,selectedShipping.id,selectedShipping.name,selectedShipping.company,selectedShipping.price,selectedShipping.delivery_time]);
     for(const it of items)await client.query("INSERT INTO order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,$3,$4,$5)",[or.rows[0].id,Number(it.id),it.title,it.unit_price,it.quantity]);
     const root=baseUrl(req);
-    const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({items,external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
+    const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({items:[...items,{id:"frete",title:"Frete - "+(selectedShipping.company?selectedShipping.company+" ":"")+selectedShipping.name,quantity:1,unit_price:selectedShipping.price,currency_id:"BRL"}],external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
     const data=await mp.json();if(!mp.ok)throw Object.assign(new Error("Mercado Pago recusou a preferência."),{details:data});
     await client.query("COMMIT");
     res.json({order_id:publicId,checkout_url:data.init_point,sandbox_url:data.sandbox_init_point});
