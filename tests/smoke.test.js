@@ -16,6 +16,8 @@ test("proteções HTTP essenciais continuam configuradas",()=>{
     assert.ok(server.includes(header),header+" ausente");
   }
   assert.ok(server.includes("rateLimit("),"rate limiting ausente");
+  assert.ok(server.includes('["/api/mercadopago/webhook","/api/webhook"]'),"alias público do webhook ausente");
+  assert.ok(server.includes("if(!secret)return false;"),"webhook não falha fechado sem segredo");
 });
 test("SEO básico e produto indexável continuam ativos",()=>{
   assert.match(index,/rel="canonical"/);
