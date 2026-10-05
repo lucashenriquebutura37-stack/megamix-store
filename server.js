@@ -388,6 +388,7 @@ function validateProductInput(b,current={}){
 
 const ADMIN_LOGIN_WINDOW_MS=15*60*1000;
 const ADMIN_LOGIN_MAX_ATTEMPTS=8;
+const ADMIN_MAX_ACTIVE_SESSIONS=5;
 const adminLoginAttempts=new Map();
 function adminLoginKey(req){return String(req.ip||req.socket?.remoteAddress||"unknown").slice(0,120)}
 function adminLoginBlocked(key){
@@ -420,12 +421,15 @@ app.post("/api/admin/auth",async(req,res)=>{
     await cleanupAdminSessions();
     const token=crypto.randomBytes(32).toString("hex");
     await pool.query("INSERT INTO admin_sessions(token_hash,expires_at) VALUES($1,$2)",[sessionHash(token),new Date(Date.now()+ADMIN_SESSION_TTL_MS)]);
+    await pool.query(`DELETE FROM admin_sessions WHERE token_hash IN (
+      SELECT token_hash FROM admin_sessions WHERE expires_at>NOW() ORDER BY created_at DESC OFFSET $1
+    )`,[ADMIN_MAX_ACTIVE_SESSIONS]);
     res.setHeader("Set-Cookie",`__Host-vorzeli_admin=${token}; Max-Age=${ADMIN_SESSION_TTL_MS/1000}; Path=/; HttpOnly; Secure; SameSite=Strict`);
     res.json({ok:true});
-  }catch(e){console.error("Falha no login administrativo:",e);res.status(500).json({error:"Não foi possível iniciar a sessão administrativa."});}
+  }catch(e){console.error("Falha no login administrativo:",safeError(e));res.status(500).json({error:"Não foi possível iniciar a sessão administrativa."});}
 });
 app.post("/api/admin/logout",async(req,res)=>{
-  try{const token=adminSessionToken(req);if(token&&process.env.DATABASE_URL)await pool.query("DELETE FROM admin_sessions WHERE token_hash=$1",[sessionHash(token)]);}catch(e){console.error("Falha ao encerrar sessão:",e);}
+  try{const token=adminSessionToken(req);if(token&&process.env.DATABASE_URL)await pool.query("DELETE FROM admin_sessions WHERE token_hash=$1",[sessionHash(token)]);}catch(e){console.error("Falha ao encerrar sessão:",safeError(e));}
   res.setHeader("Set-Cookie",["__Host-vorzeli_admin=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict","vorzeli_admin=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict"]);
   res.json({ok:true});
 });
