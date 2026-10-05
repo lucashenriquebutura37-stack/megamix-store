@@ -267,3 +267,9 @@ test("dashboard administrativo destaca pedidos pendentes separadamente",()=>{
   assert.ok(admin.includes('"mPendingOrders").textContent=d.pending_orders??0'));
   assert.ok(admin.includes("Moderação pendente"));
 });
+
+test("dashboard destaca produtos sem estoque",()=>{
+  assert.ok(server.includes("COUNT(*) FILTER (WHERE stock=0)::int out_of_stock"));
+  assert.ok(admin.includes('id="mOutStock"'));
+  assert.ok(admin.includes('"mOutStock").textContent=d.out_of_stock??0'));
+});
