@@ -411,7 +411,7 @@ app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res
 });
 
 app.get("/api/pedido/:publicId",requireDatabase,async(req,res)=>{
-  try{const r=await pool.query("SELECT public_id,status,total,shipping_status,tracking_code,shipping_service_name,shipping_company,shipping_price,shipping_delivery_time,created_at,paid_at FROM orders WHERE public_id=$1",[clean(req.params.publicId,80)]);if(!r.rows.length)return res.status(404).json({error:"Pedido não encontrado."});res.json({...r.rows[0],total:Number(r.rows[0].total),shipping_price:Number(r.rows[0].shipping_price||0),shipping_delivery_time:Number(r.rows[0].shipping_delivery_time||0)});}
+  try{const r=await pool.query("SELECT public_id,status,total,shipping_status,tracking_code,shipping_service_name,shipping_company,shipping_price,shipping_delivery_time,created_at,paid_at,shipped_at,delivered_at FROM orders WHERE public_id=$1",[clean(req.params.publicId,80)]);if(!r.rows.length)return res.status(404).json({error:"Pedido não encontrado."});res.json({...r.rows[0],total:Number(r.rows[0].total),shipping_price:Number(r.rows[0].shipping_price||0),shipping_delivery_time:Number(r.rows[0].shipping_delivery_time||0)});}
   catch(e){res.status(500).json({error:"Erro ao consultar pedido."});}
 });
 
