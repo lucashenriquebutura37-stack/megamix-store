@@ -22,6 +22,10 @@
 </div><div class="actions"><button class="primary" type="button" onclick="createTestOrder()">Criar pedido de teste</button></div>
 <div class="status" id="testOrderStatus"></div>
 <hr style="border:0;border-top:1px solid #eee;margin:22px 0">
+<h3>Testar e-mail</h3><small>Envia uma mensagem pela Brevo usando o remetente da VORZELI.</small>
+<div class="grid" style="margin-top:10px"><div class="full"><label>E-mail de destino</label><input id="emailTestTo" type="email" placeholder="Digite o e-mail que receberá o teste"></div></div>
+<div class="actions"><button class="primary" type="button" onclick="testEmail()">Enviar e-mail de teste</button></div>
+<div id="emailTestStatus" class="status" role="status" aria-live="polite"></div>
 <h3>Testar frete real</h3><small>Consulta o Melhor Envio sem criar produto, pedido ou cobrança.</small>
 <div class="grid" style="margin-top:14px">
 <div><label>CEP de destino *</label><input id="fCep" inputmode="numeric" maxlength="9" placeholder="00000-000"></div>
@@ -99,6 +103,17 @@ async function testShipping(){
   fs.textContent="Integração funcionando • ambiente: "+d.environment;fs.style.color="#198754";
   box.innerHTML=d.quotes?.length?d.quotes.map(q=>'<div class="order"><b>'+esc(q.company?q.company+" • ":"")+esc(q.name)+'</b><div class="orderItems">R$ '+Number(q.price).toFixed(2).replace(".",",")+(q.delivery_time?" • até "+Number(q.delivery_time)+" dias úteis":"")+'</div></div>').join(""):'<div class="order">A API respondeu, mas não retornou opções para esse CEP.</div>';
  }catch(e){fs.textContent=e.message;fs.style.color="#c0392b";}
+}
+async function testEmail(){
+ if(!adminConnected){status("Entre como administrador primeiro.",false);return}
+ const el=$("emailTestStatus"),email=$("emailTestTo").value.trim();
+ if(!email){el.textContent="Digite o e-mail que receberá o teste.";el.style.color="#c0392b";$("emailTestTo").focus();return}
+ el.textContent="Enviando e-mail de teste...";el.style.color="#5f636b";
+ try{
+  const r=await fetch("/api/admin/email-teste",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||"Falha no envio.");
+  el.textContent="✓ "+d.message;el.style.color="#198754";
+ }catch(e){el.textContent=e.message;el.style.color="#c0392b"}
 }
 async function createTestOrder(){
  if(!adminConnected){$("testOrderStatus").textContent="Entre como administrador primeiro.";$("testOrderStatus").style.color="#c0392b";return}
