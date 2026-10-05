@@ -2,7 +2,7 @@
    VORZELI - SCRIPT PRINCIPAL
 ========================================================= */
 
-const products = [];
+let products = [];
 
 
 /* =========================
@@ -1505,12 +1505,29 @@ if (searchInput) {
    INICIAR SITE
 ========================= */
 
+async function loadCatalog() {
+  try {
+    const response = await fetch("/api/produtos", { cache: "no-store" });
+    if (!response.ok) throw new Error("Falha ao carregar catálogo");
+    products = await response.json();
+
+    cart = cart.filter(item =>
+      products.some(product => product.id === item.id)
+    );
+
+    localStorage.setItem("cart", JSON.stringify(cart));
+    updateCart();
+  } catch (error) {
+    console.error("Catálogo:", error);
+  }
+}
+
 renderAreas();
 
 renderMenu();
 
 fillRails();
 
-updateCart();
-
 hideProductArea();
+
+loadCatalog();
