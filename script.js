@@ -1249,7 +1249,7 @@ function updateCart() {
   if (totalElement) {
 
     totalElement.textContent =
-      money(total);
+      money(total + Number(selectedShipping?.price||0));
   }
 }
 
@@ -1302,6 +1302,31 @@ function openCart() {
 
 
 /* =========================
+   FRETE
+========================= */
+let selectedShipping=null;
+
+async function calculateShipping(){
+  if(!cart.length)return alert("Adicione produtos ao carrinho.");
+  const cep=(document.getElementById("postalCode")?.value||"").replace(/\D/g,"");
+  if(cep.length!==8)return alert("Digite um CEP válido.");
+  const box=document.getElementById("shippingOptions");
+  if(box)box.innerHTML='<p style="font-size:13px">Calculando opções de entrega...</p>';
+  selectedShipping=null;
+  try{
+    const r=await fetch("/api/frete/cotar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({postal_code:cep,items:cart.map(i=>({id:i.id,q:i.q}))})});
+    const d=await r.json();if(!r.ok)throw new Error(d.error||"Não foi possível calcular o frete.");
+    if(!d.quotes?.length)throw new Error("Nenhuma opção de entrega disponível para este CEP.");
+    if(box)box.innerHTML=d.quotes.map((q,i)=>'<label class="shippingOption" style="display:flex;gap:10px;align-items:flex-start;padding:12px;margin-top:8px;border:1px solid #e1e3e7;border-radius:12px;cursor:pointer"><input type="radio" name="shippingOption" value="'+q.id+'" style="width:auto;height:auto;margin-top:3px" onchange="chooseShipping('+i+')"><span><b>'+(q.company?q.company+" • ":"")+q.name+'</b><br><small>R$ '+Number(q.price).toFixed(2).replace(".",",")+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</small></span></label>').join("");
+    window.shippingQuotes=d.quotes;
+  }catch(e){if(box)box.innerHTML='<p style="font-size:13px;color:#c0392b">'+e.message+'</p>';}
+}
+function chooseShipping(index){
+  selectedShipping=window.shippingQuotes?.[index]||null;
+  updateCart();
+}
+
+/* =========================
    MERCADO PAGO
 ========================= */
 
@@ -1317,6 +1342,7 @@ async function checkout() {
   if(!customer.name||!customer.phone||cep.length!==8||!customer.address||!customer.number||!customer.neighborhood||!customer.city||customer.state.length!==2)
     return alert("Preencha todos os dados obrigatórios de entrega.");
   customer.postalCode=cep;
+  if(!selectedShipping)return alert("Calcule e escolha uma opção de frete antes de finalizar.");
   localStorage.setItem("deliveryData",JSON.stringify(customer));
   const button = document.querySelector(".checkout");
   if (button) { button.disabled = true; button.textContent = "Preparando pagamento..."; }
@@ -1324,7 +1350,7 @@ async function checkout() {
     const response = await fetch("/api/criar-preferencia", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ items: cart.map(item => ({ id:item.id, q:item.q })), customer })
+      body: JSON.stringify({ items: cart.map(item => ({ id:item.id, q:item.q })), customer, shipping_service_id:selectedShipping?.id||"" })
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Não foi possível iniciar o pagamento.");
@@ -1462,6 +1488,8 @@ loadCatalog();
     cepInput.value=digits.length>5?digits.slice(0,5)+"-"+digits.slice(5):digits;
     if(digits.length===8)lookupCep();
     else lastCep="";
+    selectedShipping=null;
+    const shippingOptions=document.getElementById("shippingOptions");if(shippingOptions)shippingOptions.innerHTML="";
   });
   cepInput.addEventListener("blur",lookupCep);
 })();
