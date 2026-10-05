@@ -121,8 +121,8 @@ app.post("/api/produtos",adminOnly,requireDatabase,async(req,res)=>{
   try{
     const b=req.body||{}, price=Number(b.p), rating=Math.min(5,Math.max(0,Number(b.rating||0)));
     if(!clean(b.n)||!clean(b.c)||!clean(b.sub)||!Number.isFinite(price)||price<=0) return res.status(400).json({error:"Nome, categoria, subcategoria e preço são obrigatórios."});
-    const v=[clean(b.n,180),clean(b.c,120),clean(b.sub,120),clean(b.detail,120),price,Math.max(0,Number(b.oldPrice||0)),Math.max(0,Math.floor(Number(b.stock||0))),clean(b.i,1000),rating,Math.max(0,Math.floor(Number(b.reviews||0))),clean(b.shipping,120),Math.max(1,Math.floor(Number(b.installments||10))),Boolean(b.featured)];
-    const r=await pool.query(`INSERT INTO products(name,category,subcategory,detail,price,old_price,stock,image,rating,reviews,shipping,installments,featured) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) RETURNING *`,v);
+    const v=[clean(b.n,180),clean(b.c,120),clean(b.sub,120),clean(b.detail,120),price,Math.max(0,Number(b.oldPrice||0)),Math.max(0,Math.floor(Number(b.stock||0))),clean(b.i,1000),rating,Math.max(0,Math.floor(Number(b.reviews||0))),clean(b.shipping,120),Math.max(1,Math.floor(Number(b.installments||10))),Boolean(b.featured),Math.max(0,Number(b.weightKg||0)),Math.max(0,Number(b.lengthCm||0)),Math.max(0,Number(b.widthCm||0)),Math.max(0,Number(b.heightCm||0))];
+    const r=await pool.query(`INSERT INTO products(name,category,subcategory,detail,price,old_price,stock,image,rating,reviews,shipping,installments,featured,weight_kg,length_cm,width_cm,height_cm) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,v);
     res.status(201).json(toProduct(r.rows[0]));
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao cadastrar produto."});}
 });
@@ -132,8 +132,8 @@ app.put("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
     if(!cur.rows.length)return res.status(404).json({error:"Produto não encontrado."});
     const p=toProduct(cur.rows[0]),b=req.body||{},price=Number(b.p??p.p);
     if(!Number.isFinite(price)||price<=0)return res.status(400).json({error:"Preço inválido."});
-    const v=[clean(b.n??p.n,180),clean(b.c??p.c,120),clean(b.sub??p.sub,120),clean(b.detail??p.detail,120),price,Math.max(0,Number(b.oldPrice??p.oldPrice)),Math.max(0,Math.floor(Number(b.stock??p.stock))),clean(b.i??p.i,1000),Math.min(5,Math.max(0,Number(b.rating??p.rating))),Math.max(0,Math.floor(Number(b.reviews??p.reviews))),clean(b.shipping??p.shipping,120),Math.max(1,Math.floor(Number(b.installments??p.installments))),Boolean(b.featured??p.featured),req.params.id];
-    const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13 WHERE id=$14 RETURNING *`,v);
+    const v=[clean(b.n??p.n,180),clean(b.c??p.c,120),clean(b.sub??p.sub,120),clean(b.detail??p.detail,120),price,Math.max(0,Number(b.oldPrice??p.oldPrice)),Math.max(0,Math.floor(Number(b.stock??p.stock))),clean(b.i??p.i,1000),Math.min(5,Math.max(0,Number(b.rating??p.rating))),Math.max(0,Math.floor(Number(b.reviews??p.reviews))),clean(b.shipping??p.shipping,120),Math.max(1,Math.floor(Number(b.installments??p.installments))),Boolean(b.featured??p.featured),Math.max(0,Number(b.weightKg??p.weightKg)),Math.max(0,Number(b.lengthCm??p.lengthCm)),Math.max(0,Number(b.widthCm??p.widthCm)),Math.max(0,Number(b.heightCm??p.heightCm)),req.params.id];
+    const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13,weight_kg=$14,length_cm=$15,width_cm=$16,height_cm=$17 WHERE id=$18 RETURNING *`,v);
     res.json(toProduct(r.rows[0]));
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar produto."});}
 });
