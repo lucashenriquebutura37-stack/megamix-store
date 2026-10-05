@@ -11,8 +11,8 @@
 </head>
 <body><main class="wrap">
 <div class="head"><div><h1>Painel de Produtos</h1><small>VORZELI • cadastro e estoque</small></div><div><div class="login" id="loginBox"><div><label>Senha administrativa</label><input id="password" type="password" placeholder="Senha do Render" autocomplete="current-password"></div><button class="secondary" type="button" onclick="loginAdmin()">Entrar</button></div><div class="adminConnected" id="adminConnected"><strong>✓ Administrador conectado</strong><button class="secondary" type="button" onclick="logoutAdmin()">Sair</button></div></div></div>
-<div class="adminTabs"><button class="secondary" type="button" onclick="document.getElementById('productSection').scrollIntoView({behavior:'smooth'})">Produtos</button><button class="secondary" type="button" onclick="loadOrders()">Pedidos</button><button class="secondary" type="button" onclick="loadQuestions()">Perguntas</button><button class="secondary" type="button" onclick="document.getElementById('testSection').scrollIntoView({behavior:'smooth'})">Teste</button></div>
-<section class="panel" id="questionsSection" style="margin-bottom:18px">
+<div class="adminTabs"><button class="secondary" type="button" onclick="document.getElementById('productSection').scrollIntoView({behavior:'smooth'})">Produtos</button><button class="secondary" type="button" onclick="loadOrders()">Pedidos</button><button class="secondary" type="button" onclick="loadQuestions()">Perguntas</button><button class="secondary" type="button" onclick="loadReviews()">Avaliações</button><button class="secondary" type="button" onclick="document.getElementById('testSection').scrollIntoView({behavior:'smooth'})">Teste</button></div>
+<section class="panel" id="reviewsSection" style="margin-bottom:18px"><h2 style="margin-top:0">Avaliações verificadas</h2><small>Apenas avaliações vinculadas a pedidos pagos e entregues chegam aqui.</small><div id="reviewsList" class="list" style="margin-top:14px"></div></section><section class="panel" id="questionsSection" style="margin-bottom:18px">
 <h2 style="margin-top:0">Perguntas de clientes</h2><small>Responda e aprove apenas o conteúdo que deve aparecer publicamente.</small>
 <div id="questionsList" class="list" style="margin-top:14px"><div class="panel">Entre como administrador para visualizar perguntas.</div></div>
 </section><section class="panel" id="testSection" style="margin-bottom:18px">
@@ -175,6 +175,14 @@ async function toggleOrderHistory(id){
   const events=await r.json();if(!r.ok)throw new Error(events.error||"Erro ao carregar histórico.");
   box.innerHTML=events.length?'<div style="margin-top:10px"><b>Histórico do pedido</b>'+events.map(e=>'<div style="padding:9px 0;border-bottom:1px solid #eee"><small>'+esc(new Date(e.created_at).toLocaleString("pt-BR"))+'</small><br>'+esc(e.detail||e.event_type)+'</div>').join("")+'</div>':'<small>Nenhum evento registrado ainda.</small>';
  }catch(e){box.innerHTML='<small>'+esc(e.message)+'</small>'}
+}
+async function loadReviews(){
+ if(!adminConnected){status("Entre como administrador primeiro.",false);return}
+ const box=$("reviewsList");box.innerHTML='<div class="panel">Carregando avaliações...</div>';
+ try{const r=await fetch("/api/admin/avaliacoes"),rows=await r.json();if(!r.ok)throw new Error(rows.error||"Erro ao carregar avaliações.");box.innerHTML=rows.length?rows.map(x=>'<div class="order"><b>'+esc(x.product_name)+'</b><div class="orderItems"><strong>'+esc(x.customer_name||"Cliente")+'</strong> • '+esc(x.public_id)+'<br>'+"★".repeat(Number(x.rating))+"☆".repeat(5-Number(x.rating))+' • Compra verificada<br>'+esc(x.comment||"Sem comentário")+'</div><div class="actions"><label><input id="review-'+x.id+'" type="checkbox" '+(x.approved?"checked":"")+'> Publicar avaliação</label><button class="primary" type="button" onclick="saveReview('+x.id+')">Salvar</button></div></div>').join(""):'<div class="panel">Nenhuma avaliação recebida.</div>';$("reviewsSection").scrollIntoView({behavior:"smooth"});}catch(e){box.innerHTML='<div class="panel">'+esc(e.message)+'</div>'}
+}
+async function saveReview(id){
+ try{const r=await fetch("/api/admin/avaliacoes/"+id,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({approved:$("review-"+id).checked})}),d=await r.json();if(!r.ok)throw new Error(d.error||"Erro ao salvar.");status("Avaliação atualizada.");await loadReviews();await loadProducts();}catch(e){status(e.message,false)}
 }
 async function loadQuestions(){
  if(!adminConnected){status("Entre como administrador primeiro.",false);return}
