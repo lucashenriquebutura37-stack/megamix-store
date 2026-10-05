@@ -1484,3 +1484,46 @@ html{scroll-behavior:smooth}body{background:var(--vz-bg);-webkit-font-smoothing:
  .subcat{min-width:132px!important;width:132px!important;flex:0 0 132px!important;scroll-snap-align:start!important}
  .subcatEdge{display:flex;position:absolute;right:0;top:33px;bottom:10px;width:48px;align-items:center;justify-content:flex-end;padding-right:8px;pointer-events:none;background:linear-gradient(90deg,rgba(246,247,249,0),rgba(246,247,249,.96) 58%);color:#ff5a1f;font-size:34px;font-weight:300}
 }
+
+
+/* VORZELI — correção definitiva da tela de categorias no celular */
+@media(max-width:760px){
+ .areaModal{background:#f6f7f9!important}
+ .areaModalBody{padding:18px 14px 32px!important;overflow-y:auto!important}
+ .subcatCarousel{margin:0!important;padding:0!important;overflow:visible!important}
+ .swipeHint,.subcatEdge{display:none!important}
+ .subcategories{
+   display:grid!important;
+   grid-template-columns:repeat(2,minmax(0,1fr))!important;
+   gap:12px!important;
+   margin:0!important;
+   padding:0!important;
+   overflow:visible!important;
+   scroll-snap-type:none!important;
+ }
+ .subcat{
+   width:100%!important;
+   min-width:0!important;
+   max-width:none!important;
+   min-height:132px!important;
+   height:auto!important;
+   flex:none!important;
+   margin:0!important;
+   padding:18px 10px!important;
+   border-radius:18px!important;
+   display:flex!important;
+   flex-direction:column!important;
+   align-items:center!important;
+   justify-content:center!important;
+   gap:12px!important;
+   background:#fff!important;
+   border:1px solid #e5e7eb!important;
+   box-shadow:0 5px 16px rgba(20,24,30,.05)!important;
+   scroll-snap-align:none!important;
+ }
+ .subcatIcon{min-height:46px!important;display:flex!important;align-items:center!important;justify-content:center!important}
+ .subcatIcon img{width:42px!important;height:42px!important;object-fit:contain!important}
+ .subcat>span:last-child{font-size:14px!important;line-height:1.2!important;text-align:center!important;font-weight:800!important;color:#17191d!important}
+ .areaModalHead{position:sticky!important;top:0!important;z-index:10!important;background:rgba(255,255,255,.96)!important;backdrop-filter:blur(16px)!important;border-bottom:1px solid #e8eaee!important}
+ .areaModalHead h2{font-size:16px!important}
+}
