@@ -1492,7 +1492,13 @@ fillRails();
 
 hideProductArea();
 
-loadCatalog();
+loadCatalog().then(()=>{
+  const q=new URLSearchParams(location.search),reviewId=Number(q.get("avaliar")),orderId=(q.get("pedido")||"").trim();
+  if(reviewId){
+    openProductDetails(reviewId);
+    setTimeout(()=>{const input=document.getElementById("reviewOrder");if(input)input.value=orderId;document.querySelector(".productReviews")?.scrollIntoView({behavior:"smooth",block:"center"});},180);
+  }
+});
 
 
 /* =========================
