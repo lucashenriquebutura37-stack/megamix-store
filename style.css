@@ -1544,3 +1544,47 @@ html{scroll-behavior:smooth}body{background:var(--vz-bg);-webkit-font-smoothing:
  .quick a{display:flex!important;align-items:center!important;height:32px!important;padding:0 13px!important;border-radius:999px!important;background:#f5f5f6!important;font-size:11px!important}
  .hero{margin:12px 12px 18px!important}
 }
+
+
+/* VORZELI — iPhone compact commerce pass */
+@media(max-width:760px){
+ .top{height:34px!important;min-height:34px!important}
+ .top span{font-size:10px!important}
+ .nav{grid-template-rows:46px 44px!important;padding:6px 14px 8px!important;row-gap:6px!important}
+ .logo img{width:120px!important;max-height:42px!important}
+ .menuBtn,.cartBtn{width:38px!important;height:38px!important}
+ .search{height:44px!important}
+ .search input{font-size:14px!important}
+ .trustStrip{height:32px!important;padding:0 14px!important;gap:16px!important;font-size:9px!important;background:#fff!important}
+ .quick{height:42px!important;padding:0 14px!important;gap:8px!important}
+ .quick a{height:30px!important;padding:0 12px!important;font-size:10px!important}
+ .hero{min-height:0!important;height:auto!important;margin:10px 12px 14px!important;padding:27px 22px 25px!important;border-radius:20px!important;overflow:hidden!important}
+ .hero>div:first-child{max-width:76%!important;position:relative!important;z-index:2!important}
+ .hero .tag{font-size:10px!important;padding:8px 11px!important;margin-bottom:18px!important;letter-spacing:.09em!important}
+ .hero h1{font-size:34px!important;line-height:1.02!important;margin-bottom:14px!important}
+ .hero>div:first-child>p:not(.tag){font-size:13px!important;line-height:1.48!important;margin-bottom:18px!important}
+ .heroActions{gap:13px!important}
+ .heroActions button{padding:12px 16px!important;font-size:13px!important;border-radius:12px!important}
+ .heroActions span{font-size:9px!important;line-height:1.35!important}
+ .heroShowcase{transform:scale(.72)!important;transform-origin:right center!important;right:-42px!important;opacity:.78!important}
+ .discovery{margin:0 12px 18px!important;display:grid!important;grid-template-columns:repeat(3,1fr)!important;border-radius:15px!important}
+ .discovery div{min-width:0!important;padding:12px 9px!important;border-bottom:0!important;border-right:1px solid #e8eaee!important}
+ .discovery div:last-child{border-right:0!important}
+ .discovery b{font-size:10px!important;line-height:1.2!important}
+ .discovery span{font-size:8.5px!important;line-height:1.3!important;margin-top:4px!important}
+ .areas{padding-top:24px!important;padding-bottom:30px!important}
+ .sectionTitle{margin-bottom:18px!important}
+ .sectionTitle>span{font-size:9px!important}
+ .sectionTitle h2{font-size:28px!important;margin:7px 0 8px!important}
+ .sectionTitle p{font-size:12px!important}
+ .categoryHint{min-height:44px!important;padding:10px 13px!important;border-radius:13px!important;margin-bottom:14px!important}
+ .categoryHint b{font-size:11px!important}
+ .categoryHint span{font-size:10px!important}
+ .benefits{margin-top:22px!important;margin-bottom:22px!important}
+}
+@media(max-width:390px){
+ .hero h1{font-size:31px!important}
+ .hero>div:first-child{max-width:80%!important}
+ .discovery span{display:none!important}
+ .discovery div{padding:11px 7px!important}
+}
