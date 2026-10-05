@@ -168,11 +168,28 @@ function validateProductInput(b,current={}){
   return {values:[name,category,subcategory,clean(b.detail??current.detail,120),price,oldPrice,Math.floor(stock),image,rating,Math.floor(reviews),clean(b.shipping??current.shipping,120),Math.floor(installments),Boolean(b.featured??current.featured),weightKg,lengthCm,widthCm,heightCm]};
 }
 
+const ADMIN_LOGIN_WINDOW_MS=15*60*1000;
+const ADMIN_LOGIN_MAX_ATTEMPTS=8;
+const adminLoginAttempts=new Map();
+function adminLoginKey(req){return String(req.ip||req.socket?.remoteAddress||"unknown").slice(0,120)}
+function adminLoginBlocked(key){
+  const now=Date.now(),entry=adminLoginAttempts.get(key);
+  if(!entry||now-entry.started>=ADMIN_LOGIN_WINDOW_MS){adminLoginAttempts.set(key,{started:now,count:0});return false}
+  return entry.count>=ADMIN_LOGIN_MAX_ATTEMPTS;
+}
+function recordAdminLoginFailure(key){
+  const entry=adminLoginAttempts.get(key)||{started:Date.now(),count:0};
+  entry.count++;adminLoginAttempts.set(key,entry);
+}
+function clearAdminLoginFailures(key){adminLoginAttempts.delete(key)}
+
 app.post("/api/admin/auth",(req,res)=>{
-  const configured=process.env.ADMIN_PASSWORD,provided=String(req.headers["x-admin-password"]||"");
+  const configured=process.env.ADMIN_PASSWORD,provided=String(req.headers["x-admin-password"]||""),loginKey=adminLoginKey(req);
   if(!configured)return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
+  if(adminLoginBlocked(loginKey)){res.setHeader("Retry-After","900");return res.status(429).json({error:"Muitas tentativas de login. Aguarde alguns minutos."});}
   const a=Buffer.from(provided),b=Buffer.from(configured);
-  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:"Senha administrativa inválida."});
+  if(a.length!==b.length||!crypto.timingSafeEqual(a,b)){recordAdminLoginFailure(loginKey);return res.status(401).json({error:"Senha administrativa inválida."});}
+  clearAdminLoginFailures(loginKey);
   cleanupAdminSessions();
   const token=crypto.randomBytes(32).toString("hex");
   adminSessions.set(token,Date.now()+ADMIN_SESSION_TTL_MS);
