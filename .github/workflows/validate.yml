@@ -22,3 +22,40 @@ jobs:
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run validate
+  postgres:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: vorzeli_test
+          POSTGRES_PASSWORD: disposable_ci_password
+          POSTGRES_DB: vorzeli_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vorzeli_test -d vorzeli_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      TEST_DATABASE_URL: postgresql://vorzeli_test:disposable_ci_password@localhost:5432/vorzeli_test
+      RESTORE_DATABASE_URL: postgresql://vorzeli_test:disposable_ci_password@localhost:5432/vorzeli_restore
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
+      - run: sudo apt-get update && sudo apt-get install -y postgresql-client-16
+      - run: node --test tests/integration/*.test.js
+      - name: Backup and restore disposable fixtures
+        shell: bash
+        run: |
+          export PGDATABASE="$TEST_DATABASE_URL"
+          psql -X -v ON_ERROR_STOP=1 -c 'CREATE DATABASE vorzeli_restore'
+          DATABASE_URL="$TEST_DATABASE_URL" bash scripts/backup.sh "$RUNNER_TEMP/vorzeli-fixture.dump"
+          DATABASE_URL="$TEST_DATABASE_URL" bash scripts/restore-rehearsal.sh "$RUNNER_TEMP/vorzeli-fixture.dump"
+          node scripts/verify-restore.js
