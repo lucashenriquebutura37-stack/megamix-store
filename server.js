@@ -79,7 +79,39 @@ const baseUrl=req=>`${req.protocol}://${req.get("host")}`;
 const SHIPPING_ORIGIN_CEP="29177297";
 
 app.post("/api/admin/auth",adminOnly,(req,res)=>res.json({ok:true}));
-app.get("/api/frete/config",(req,res)=>res.json({origin_postal_code:SHIPPING_ORIGIN_CEP.replace(/(\d{5})(\d{3})/,"$1-$2"),ready_for_quotes:false,message:"Origem configurada. Cadastre peso e dimensões dos produtos e conecte uma transportadora para habilitar cotações reais."}));
+app.get("/api/frete/config",(req,res)=>res.json({origin_postal_code:SHIPPING_ORIGIN_CEP.replace(/(\d{5})(\d{3})/,"$1-$2"),provider:"Melhor Envio",ready_for_quotes:Boolean(process.env.MELHOR_ENVIO_TOKEN),message:process.env.MELHOR_ENVIO_TOKEN?"Integração de frete configurada.":"Configure MELHOR_ENVIO_TOKEN no Render para ativar cotações reais."}));
+
+app.post("/api/frete/cotar",requireDatabase,async(req,res)=>{
+  try{
+    if(!process.env.MELHOR_ENVIO_TOKEN)return res.status(503).json({error:"Frete ainda não ativado. Configure MELHOR_ENVIO_TOKEN."});
+    const destination=clean(req.body?.postal_code,12).replace(/\D/g,"");
+    const incoming=Array.isArray(req.body?.items)?req.body.items:[];
+    if(destination.length!==8)return res.status(400).json({error:"CEP de destino inválido."});
+    if(!incoming.length||incoming.length>50)return res.status(400).json({error:"Carrinho inválido."});
+    const normalized=incoming.map(x=>({id:Number(x.id),q:Math.max(1,Math.min(99,Math.floor(Number(x.q)||1)))}));
+    const ids=[...new Set(normalized.map(x=>x.id))];
+    const pr=await pool.query("SELECT id,name,price,weight_kg,length_cm,width_cm,height_cm FROM products WHERE id = ANY($1::bigint[])",[ids]);
+    if(pr.rows.length!==ids.length)return res.status(400).json({error:"Produto não encontrado."});
+    const byId=new Map(pr.rows.map(p=>[Number(p.id),p]));
+    const products=normalized.map(x=>{
+      const p=byId.get(x.id),weight=Number(p.weight_kg),length=Number(p.length_cm),width=Number(p.width_cm),height=Number(p.height_cm);
+      if(!(weight>0&&length>0&&width>0&&height>0))throw Object.assign(new Error("Cadastre peso e dimensões de todos os produtos antes de calcular o frete."),{status:409});
+      return {id:String(p.id),width,height,length,weight,insurance_value:Number(p.price),quantity:x.q};
+    });
+    const apiBase=process.env.MELHOR_ENVIO_SANDBOX==="true"?"https://sandbox.melhorenvio.com.br":"https://melhorenvio.com.br";
+    const r=await fetch(apiBase+"/api/v2/me/shipment/calculate",{method:"POST",headers:{
+      "Accept":"application/json","Content-Type":"application/json","Authorization":"Bearer "+process.env.MELHOR_ENVIO_TOKEN,
+      "User-Agent":process.env.MELHOR_ENVIO_USER_AGENT||"VORZELI (contato da loja)"
+    },body:JSON.stringify({from:{postal_code:SHIPPING_ORIGIN_CEP},to:{postal_code:destination},products,options:{receipt:false,own_hand:false}})});
+    const data=await r.json();
+    if(!r.ok)return res.status(r.status).json({error:"Não foi possível calcular o frete.",details:data});
+    const quotes=(Array.isArray(data)?data:[]).filter(x=>!x.error&&Number(x.custom_price??x.price)>0).map(x=>({
+      id:x.id,name:x.name,company:x.company?.name||"",price:Number(x.custom_price??x.price),
+      delivery_time:Number(x.custom_delivery_time??x.delivery_time||0),currency:"BRL"
+    })).sort((a,b)=>a.price-b.price);
+    res.json({origin_postal_code:SHIPPING_ORIGIN_CEP,destination_postal_code:destination,quotes});
+  }catch(e){console.error(e);res.status(e.status||500).json({error:e.message||"Erro ao calcular frete."});}
+});
 
 app.get("/api/produtos",requireDatabase,async(req,res)=>{
   try{const r=await pool.query("SELECT * FROM products ORDER BY created_at DESC");res.json(r.rows.map(toProduct));}
