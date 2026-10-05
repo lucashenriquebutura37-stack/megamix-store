@@ -4,11 +4,11 @@
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Painel de Produtos — VORZELI</title>
 <style>
-*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#f5f6f8;color:#171717}.wrap{max-width:1100px;margin:auto;padding:22px}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.head h1{margin:0;font-size:24px}.panel{background:#fff;border:1px solid #e7e8ec;border-radius:20px;padding:18px;box-shadow:0 8px 30px #1111}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.full{grid-column:1/-1}label{font-size:11px;font-weight:800;color:#5f636b;display:block;margin-bottom:5px}input,select{width:100%;height:44px;border:1px solid #dfe1e6;border-radius:12px;padding:0 12px;background:#fff;font:inherit}input:focus,select:focus{outline:3px solid #ff5a1f18;border-color:#ff5a1f}.actions{display:flex;gap:8px;margin-top:14px}button{border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer}.primary{background:#ff5a1f;color:#fff}.secondary{background:#eee}.danger{background:#fff0ec;color:#d43d0c}.status{font-size:12px;margin:12px 0;min-height:18px}.list{display:grid;gap:10px;margin-top:18px}.item{background:#fff;border:1px solid #e7e8ec;border-radius:16px;padding:13px;display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center}.thumb{width:58px;height:58px;border-radius:12px;background:#f3f4f6;object-fit:contain}.meta b{display:block}.meta small{color:#747982}.itemActions{display:flex;gap:6px}.itemActions button{padding:8px 10px}.login{display:flex;gap:8px;align-items:end}.login>div{flex:1}@media(max-width:650px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.item{grid-template-columns:48px 1fr}.thumb{width:48px;height:48px}.itemActions{grid-column:1/-1}.head{align-items:flex-start;flex-direction:column}.login{width:100%}}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#f5f6f8;color:#171717}.wrap{max-width:1100px;margin:auto;padding:22px}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.head h1{margin:0;font-size:24px}.panel{background:#fff;border:1px solid #e7e8ec;border-radius:20px;padding:18px;box-shadow:0 8px 30px #1111}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.full{grid-column:1/-1}label{font-size:11px;font-weight:800;color:#5f636b;display:block;margin-bottom:5px}input,select{width:100%;height:44px;border:1px solid #dfe1e6;border-radius:12px;padding:0 12px;background:#fff;font:inherit}input:focus,select:focus{outline:3px solid #ff5a1f18;border-color:#ff5a1f}.actions{display:flex;gap:8px;margin-top:14px}button{border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer}.primary{background:#ff5a1f;color:#fff}.secondary{background:#eee}.danger{background:#fff0ec;color:#d43d0c}.status{font-size:12px;margin:12px 0;min-height:18px}.list{display:grid;gap:10px;margin-top:18px}.item{background:#fff;border:1px solid #e7e8ec;border-radius:16px;padding:13px;display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center}.thumb{width:58px;height:58px;border-radius:12px;background:#f3f4f6;object-fit:contain}.meta b{display:block}.meta small{color:#747982}.itemActions{display:flex;gap:6px}.itemActions button{padding:8px 10px}.login{display:flex;gap:8px;align-items:end}.login>div{flex:1}.adminConnected{display:none;align-items:center;gap:10px;padding:8px 0}.adminConnected strong{color:#198754}@media(max-width:650px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.item{grid-template-columns:48px 1fr}.thumb{width:48px;height:48px}.itemActions{grid-column:1/-1}.head{align-items:flex-start;flex-direction:column}.login{width:100%}}
 </style>
 </head>
 <body><main class="wrap">
-<div class="head"><div><h1>Painel de Produtos</h1><small>VORZELI • cadastro e estoque</small></div><div class="login"><div><label>Senha administrativa</label><input id="password" type="password" placeholder="Senha do Render"></div><button class="secondary" onclick="loadProducts()">Entrar</button></div></div>
+<div class="head"><div><h1>Painel de Produtos</h1><small>VORZELI • cadastro e estoque</small></div><div><div class="login" id="loginBox"><div><label>Senha administrativa</label><input id="password" type="password" placeholder="Senha do Render" autocomplete="current-password"></div><button class="secondary" type="button" onclick="loginAdmin()">Entrar</button></div><div class="adminConnected" id="adminConnected"><strong>✓ Administrador conectado</strong><button class="secondary" type="button" onclick="logoutAdmin()">Sair</button></div></div></div>
 <section class="panel">
 <form id="form">
 <input type="hidden" id="id">
@@ -36,7 +36,8 @@
 <script>
 const $=id=>document.getElementById(id);
 let adminProducts=[];
-function pass(){return $("password").value}
+let adminPassword="";
+function pass(){return adminPassword}
 function status(t,ok=true){$("status").textContent=t;$("status").style.color=ok?"#198754":"#c0392b"}
 function setupCategories(){
  $("c").innerHTML='<option value="">Selecione</option>'+areas.map(a=>'<option>'+a.name+'</option>').join("");
@@ -45,6 +46,17 @@ function setupCategories(){
    $("sub").innerHTML='<option value="">Selecione</option>'+(a?a.subs.map(x=>'<option>'+x[0]+'</option>').join(""):"");
  });
 }
+async function loginAdmin(){
+ const typed=$("password").value;
+ if(!typed){status("Digite a senha administrativa.",false);return;}
+ try{
+  const r=await fetch("/api/admin/auth",{method:"POST",headers:{"x-admin-password":typed}});
+  const data=await r.json();if(!r.ok)throw new Error(data.error||"Senha administrativa inválida.");
+  adminPassword=typed;$("password").value="";$("loginBox").style.display="none";$("adminConnected").style.display="flex";
+  status("Administrador conectado.");await loadProducts();
+ }catch(e){$("password").value="";status(e.message,false)}
+}
+function logoutAdmin(){adminPassword="";$("password").value="";$("loginBox").style.display="flex";$("adminConnected").style.display="none";status("Sessão administrativa encerrada.");}
 async function loadProducts(){
  try{const r=await fetch("/api/produtos");adminProducts=await r.json();renderList();status("Catálogo carregado.");}
  catch(e){status("Erro ao carregar catálogo.",false)}
