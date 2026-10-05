@@ -1016,31 +1016,25 @@ function fillRails() {
 
   const content = `
 
-    <div class="emptyCard">
+    <button class="marketPlaceholder" onclick="document.getElementById('areas')?.scrollIntoView({behavior:'smooth'})">
+      <span class="marketPlaceholderIcon">🏷️</span>
+      <span class="marketPlaceholderText">
+        <small>SELEÇÃO VORZELI</small>
+        <strong>Ofertas chegando</strong>
+        <em>Explore as categorias enquanto preparamos os produtos.</em>
+      </span>
+      <span class="marketArrow">→</span>
+    </button>
 
-      🛍️
-
-      <strong>
-        Produtos em breve
-      </strong>
-
-      Estamos selecionando
-      novidades para a VORZELI.
-
-    </div>
-
-    <div class="emptyCard">
-
-      ✨
-
-      <strong>
-        Novidades chegando
-      </strong>
-
-      Novos produtos
-      aparecerão aqui.
-
-    </div>
+    <button class="marketPlaceholder" onclick="document.getElementById('areas')?.scrollIntoView({behavior:'smooth'})">
+      <span class="marketPlaceholderIcon">✨</span>
+      <span class="marketPlaceholderText">
+        <small>NOVIDADES</small>
+        <strong>Novos itens em breve</strong>
+        <em>Acompanhe as categorias da loja.</em>
+      </span>
+      <span class="marketArrow">→</span>
+    </button>
 
   `;
 
