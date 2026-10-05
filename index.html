@@ -418,6 +418,10 @@
     <div class="deliveryRow"><input id="addressNumber" placeholder="Número"><input id="addressExtra" placeholder="Complemento"></div>
     <input id="neighborhood" placeholder="Bairro">
     <input id="city" autocomplete="address-level2" placeholder="Cidade">
+    <div id="shippingBox" style="margin-top:12px">
+      <button class="secondary shippingCalcBtn" type="button" onclick="calculateShipping()">Calcular frete</button>
+      <div id="shippingOptions" aria-live="polite"></div>
+    </div>
   </div>
 
   <button class="checkout" onclick="checkout()">Finalizar pagamento</button>
