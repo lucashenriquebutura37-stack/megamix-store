@@ -9,7 +9,16 @@
 </head>
 <body><main class="wrap">
 <div class="head"><div><h1>Painel de Produtos</h1><small>VORZELI • cadastro e estoque</small></div><div><div class="login" id="loginBox"><div><label>Senha administrativa</label><input id="password" type="password" placeholder="Senha do Render" autocomplete="current-password"></div><button class="secondary" type="button" onclick="loginAdmin()">Entrar</button></div><div class="adminConnected" id="adminConnected"><strong>✓ Administrador conectado</strong><button class="secondary" type="button" onclick="logoutAdmin()">Sair</button></div></div></div>
-<div class="adminTabs"><button class="secondary" type="button" onclick="document.getElementById('productSection').scrollIntoView({behavior:'smooth'})">Produtos</button><button class="secondary" type="button" onclick="loadOrders()">Pedidos</button></div><section class="panel" id="productSection">
+<div class="adminTabs"><button class="secondary" type="button" onclick="document.getElementById('productSection').scrollIntoView({behavior:'smooth'})">Produtos</button><button class="secondary" type="button" onclick="loadOrders()">Pedidos</button><button class="secondary" type="button" onclick="document.getElementById('testSection').scrollIntoView({behavior:'smooth'})">Teste</button></div>
+<section class="panel" id="testSection" style="margin-bottom:18px">
+<h2 style="margin-top:0">Pedido de teste</h2><small>Não abre o Mercado Pago, não cobra e não reduz estoque.</small>
+<div class="grid" style="margin-top:14px">
+<div><label>Nome *</label><input id="tName" placeholder="Cliente de teste"></div><div><label>Telefone *</label><input id="tPhone" placeholder="(00) 00000-0000"></div>
+<div><label>CEP *</label><input id="tCep" inputmode="numeric" maxlength="9" placeholder="00000-000"></div><div><label>UF *</label><input id="tState" maxlength="2"></div>
+<div class="full"><label>Rua / Avenida *</label><input id="tAddress"></div><div><label>Número *</label><input id="tNumber"></div><div><label>Complemento</label><input id="tExtra"></div>
+<div><label>Bairro *</label><input id="tNeighborhood"></div><div><label>Cidade *</label><input id="tCity"></div>
+</div><div class="actions"><button class="primary" type="button" onclick="createTestOrder()">Criar pedido de teste</button></div>
+</section><section class="panel" id="productSection">
 <form id="form">
 <input type="hidden" id="id">
 <div class="grid">
@@ -62,6 +71,28 @@ async function loadProducts(){
  catch(e){status("Erro ao carregar catálogo.",false)}
 }
 
+async function createTestOrder(){
+ if(!adminPassword){status("Entre como administrador primeiro.",false);return}
+ const cep=$("tCep").value.replace(/\D/g,"");
+ const customer={name:$("tName").value,phone:$("tPhone").value,postalCode:cep,address:$("tAddress").value,number:$("tNumber").value,extra:$("tExtra").value,neighborhood:$("tNeighborhood").value,city:$("tCity").value,state:$("tState").value.toUpperCase()};
+ try{
+  const r=await fetch("/api/admin/pedido-teste",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify({customer})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||"Erro ao criar teste.");
+  status("Pedido de teste criado: "+d.order_id);await loadOrders();
+ }catch(e){status(e.message,false)}
+}
+(function setupTestCep(){
+ const el=$("tCep");if(!el)return;let last="";
+ async function lookup(){
+  const cep=el.value.replace(/\D/g,"").slice(0,8);el.value=cep.length>5?cep.slice(0,5)+"-"+cep.slice(5):cep;
+  if(cep.length!==8||cep===last)return;last=cep;
+  try{const r=await fetch("https://viacep.com.br/ws/"+cep+"/json/");const d=await r.json();if(!r.ok||d.erro)throw 0;
+   $("tAddress").value=d.logradouro||"";$("tNeighborhood").value=d.bairro||"";$("tCity").value=d.localidade||"";$("tState").value=d.uf||"";$("tNumber").focus();
+  }catch{last="";status("CEP não encontrado. Você pode preencher manualmente.",false)}
+ }
+ el.addEventListener("input",()=>{const d=el.value.replace(/\D/g,"").slice(0,8);el.value=d.length>5?d.slice(0,5)+"-"+d.slice(5):d;if(d.length===8)lookup();else last=""});
+ el.addEventListener("blur",lookup);
+})();
 async function loadOrders(){
  if(!adminPassword)return;
  try{
@@ -70,7 +101,7 @@ async function loadOrders(){
   const box=$("ordersList");
   box.innerHTML=data.length?data.map(o=>{
     const lines=(o.items||[]).map(i=>i.quantity+"× "+i.name).join("<br>");
-    const label=o.status==="paid"?"PAGO":String(o.status).toUpperCase();
+    const label=o.is_test?"PEDIDO DE TESTE":(o.status==="paid"?"PAGO":String(o.status).toUpperCase());
     const shipLabels={aguardando_pagamento:"Aguardando pagamento",preparando:"Preparando",enviado:"Enviado",entregue:"Entregue",cancelado:"Cancelado"};
     const address=[o.address_line,o.address_number,o.address_extra,o.neighborhood,o.city,o.state,o.postal_code].filter(Boolean).join(" • ");
     return '<div class="order"><div class="orderHead"><div><b>'+o.public_id+'</b><br><small>'+new Date(o.created_at).toLocaleString("pt-BR")+'</small></div><div><b>R$ '+Number(o.total).toFixed(2).replace(".",",")+'</b><br><strong class="'+(o.status==="paid"?"paid":"pending")+'">'+label+'</strong></div></div><div class="orderItems">'+lines+'</div>'+(o.customer_name?'<div class="orderItems"><b>'+o.customer_name+'</b> • '+(o.customer_phone||"")+'<br>'+address+'</div>':'')+'<div class="orderItems"><b>Entrega:</b> '+(shipLabels[o.shipping_status]||o.shipping_status||"—")+(o.tracking_code?'<br><b>Rastreio:</b> '+o.tracking_code:'')+'</div><div class="actions"><select id="ship-'+o.public_id+'"><option value="aguardando_pagamento">Aguardando pagamento</option><option value="preparando">Preparando</option><option value="enviado">Enviado</option><option value="entregue">Entregue</option><option value="cancelado">Cancelado</option></select><input id="track-'+o.public_id+'" placeholder="Código de rastreio" value="'+(o.tracking_code||"")+'"><button class="primary" type="button" onclick="updateShipping(\''+o.public_id+'\')">Atualizar envio</button></div></div>';
