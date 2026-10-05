@@ -21,9 +21,10 @@ NODE
 unset DATABASE_URL
 export PGDATABASE="$RESTORE_DATABASE_URL"
 export PGCONNECT_TIMEOUT=15
+client="$(dirname "$0")/pg-client.js"
 # Fail closed before any restore if the destination is not an empty database.
-objects=$(psql -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname <> 'information_schema';")
+objects=$(node "$client" psql -X -A -t -v ON_ERROR_STOP=1 -c "SELECT count(*) FROM pg_class c JOIN pg_namespace n ON n.oid=c.relnamespace WHERE n.nspname NOT LIKE 'pg_%' AND n.nspname <> 'information_schema';")
 if [ "$objects" != '0' ]; then echo 'Destino não está vazio; restauração cancelada.' >&2; exit 2; fi
-pg_restore --list "$1" >/dev/null
-pg_restore --single-transaction --exit-on-error --no-owner --no-acl --dbname="" "$1"
+node "$client" pg_restore --list "$1" >/dev/null
+node "$client" pg_restore --single-transaction --exit-on-error --no-owner --no-acl --dbname="" "$1"
 printf 'Restauração de ensaio concluída. Compare contagens e valide os fluxos em homologação.\n'

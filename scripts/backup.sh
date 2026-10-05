@@ -5,6 +5,7 @@ umask 077
 if [ "$#" -ne 1 ]; then echo 'Uso: scripts/backup.sh /caminho/backup.dump' >&2; exit 2; fi
 if [ -e "$1" ]; then echo 'Arquivo já existe; escolha outro destino.' >&2; exit 2; fi
 export PGDATABASE="$DATABASE_URL"
-pg_dump --format=custom --no-owner --no-acl --file="$1"
-pg_restore --list "$1" >/dev/null
+client="$(dirname "$0")/pg-client.js"
+node "$client" pg_dump --format=custom --no-owner --no-acl --file="$1"
+node "$client" pg_restore --list "$1" >/dev/null
 printf 'Backup gerado e catálogo validado. Faça a restauração de ensaio antes de considerar recuperável.\n'

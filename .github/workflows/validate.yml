@@ -55,7 +55,7 @@ jobs:
         shell: bash
         run: |
           export PGDATABASE="$TEST_DATABASE_URL"
-          psql -X -v ON_ERROR_STOP=1 -c 'CREATE DATABASE vorzeli_restore'
+          node scripts/pg-client.js psql -X -v ON_ERROR_STOP=1 -c 'CREATE DATABASE vorzeli_restore'
           DATABASE_URL="$TEST_DATABASE_URL" bash scripts/backup.sh "$RUNNER_TEMP/vorzeli-fixture.dump"
           DATABASE_URL="$TEST_DATABASE_URL" bash scripts/restore-rehearsal.sh "$RUNNER_TEMP/vorzeli-fixture.dump"
           node scripts/verify-restore.js
