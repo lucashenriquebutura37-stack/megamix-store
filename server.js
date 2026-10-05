@@ -45,7 +45,20 @@ app.use("/api/frete/cotar",rateLimit({windowMs:60000,max:30,keyPrefix:"shipping"
 app.use("/api/criar-preferencia",rateLimit({windowMs:60000,max:15,keyPrefix:"checkout"}));
 
 app.get("/robots.txt",(req,res)=>res.type("text/plain").send("User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /api/\n\nSitemap: https://vorzeli.com.br/sitemap.xml\n"));
-app.get("/sitemap.xml",(req,res)=>res.type("application/xml").send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://vorzeli.com.br/</loc><changefreq>daily</changefreq><priority>1.0</priority></url><url><loc>https://vorzeli.com.br/politicas.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url></urlset>'));
+const xmlEscape=v=>String(v??"").replace(/[<>&'"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"}[c]));
+app.get("/sitemap.xml",async(req,res)=>{
+  try{
+    const root=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"");
+    let products=[];
+    if(process.env.DATABASE_URL){const r=await pool.query("SELECT id,created_at FROM products ORDER BY id");products=r.rows;}
+    const urls=[
+      `<url><loc>${xmlEscape(root+"/")}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+      `<url><loc>${xmlEscape(root+"/politicas.html")}</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>`,
+      ...products.map(p=>`<url><loc>${xmlEscape(root+"/produto/"+p.id)}</loc><lastmod>${new Date(p.created_at).toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`)
+    ];
+    res.type("application/xml").send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join("")+"</urlset>");
+  }catch(e){res.status(500).type("text/plain").send("Erro ao gerar sitemap.");}
+});
 
 // Somente páginas e recursos públicos podem ser servidos pelo diretório da aplicação.
 const publicStatic=express.static(__dirname,{
@@ -68,6 +81,23 @@ app.use((req,res,next)=>{
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,
   ssl: process.env.DATABASE_URL ? { rejectUnauthorized: false } : undefined
+});
+
+const htmlEscape=v=>String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+app.get("/produto/:id",async(req,res)=>{
+  try{
+    if(!process.env.DATABASE_URL)return res.status(503).send("Loja temporariamente indisponível.");
+    const id=Number(req.params.id);
+    if(!Number.isInteger(id)||id<=0)return res.status(404).send("Produto não encontrado.");
+    const r=await pool.query("SELECT id,name,description,brand,price,image,images,stock FROM products WHERE id=$1",[id]);
+    if(!r.rows.length)return res.status(404).send("Produto não encontrado.");
+    const p=r.rows[0],root=(process.env.PUBLIC_URL||`${req.protocol}://${req.get("host")}`).replace(/\/$/,"");
+    const images=Array.isArray(p.images)?p.images:[],image=p.image||images[0]||root+"/logo-vorzeli.png";
+    const title=htmlEscape(p.name+" — VORZELI"),description=htmlEscape((p.description||("Compre "+p.name+" na VORZELI.")).slice(0,160));
+    const canonical=root+"/produto/"+p.id,price=Number(p.price).toFixed(2);
+    const schema=JSON.stringify({"@context":"https://schema.org","@type":"Product",name:p.name,description:p.description||undefined,image:[image,...images].filter(Boolean),brand:p.brand?{"@type":"Brand",name:p.brand}:undefined,offers:{"@type":"Offer",priceCurrency:"BRL",price,availability:Number(p.stock)>0?"https://schema.org/InStock":"https://schema.org/OutOfStock",url:canonical}});
+    res.type("html").send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${htmlEscape(canonical)}"><meta property="og:type" content="product"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:image" content="${htmlEscape(image)}"><meta property="og:url" content="${htmlEscape(canonical)}"><script type="application/ld+json">${schema.replace(/</g,"\\u003c")}</script><style>*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#f5f6f8;color:#171717}.wrap{max-width:900px;margin:auto;padding:24px}.logo{width:150px}.card{margin-top:24px;background:#fff;border:1px solid #e7e8ec;border-radius:22px;padding:24px;display:grid;grid-template-columns:minmax(240px,1fr) 1fr;gap:28px}.pic{width:100%;aspect-ratio:1;object-fit:contain;background:#f7f7f8;border-radius:16px}.price{font-size:28px;font-weight:900}.stock{color:#198754;font-weight:800}.btn{display:inline-block;margin-top:16px;padding:13px 18px;background:#ff5a1f;color:#fff;text-decoration:none;border-radius:12px;font-weight:800}@media(max-width:650px){.card{grid-template-columns:1fr;padding:16px}.wrap{padding:16px}}</style></head><body><main class="wrap"><a href="/"><img class="logo" src="/logo-vorzeli.png" alt="VORZELI"></a><article class="card"><img class="pic" src="${htmlEscape(image)}" alt="${htmlEscape(p.name)}"><div><h1>${htmlEscape(p.name)}</h1>${p.brand?`<p>Marca: <b>${htmlEscape(p.brand)}</b></p>`:""}<p class="price">${Number(p.price).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</p><p class="stock">${Number(p.stock)>0?"Em estoque":"Indisponível"}</p><p>${htmlEscape(p.description||"Confira este produto na VORZELI.")}</p><a class="btn" href="/?produto=${p.id}">Ver na loja</a></div></article></main></body></html>`);
+  }catch(e){console.error("Página de produto:",e);res.status(500).send("Não foi possível carregar o produto.");}
 });
 
 async function initDatabase() {
