@@ -7,7 +7,7 @@ const index=fs.readFileSync("index.html","utf8");
 const pedido=fs.readFileSync("pedido.html","utf8");
 
 test("rotas críticas da loja continuam presentes",()=>{
-  for(const route of ["/api/frete/cotar","/api/criar-preferencia","/api/mercadopago/webhook","/api/pedido/:publicId","/api/status"]){
+  for(const route of ["/api/frete/cotar","/api/criar-preferencia","/api/mercadopago/webhook","/api/pedido/:publicId","/api/status","/healthz"]){
     assert.ok(server.includes(route),route+" ausente");
   }
 });
@@ -24,6 +24,9 @@ test("SEO básico e produto indexável continuam ativos",()=>{
   assert.match(index,/property="og:title"/);
   assert.ok(server.includes('app.get("/produto/:id"'));
   assert.ok(server.includes('app.get("/sitemap.xml"'));
+  for(const marker of ["application/ld+json","schema.org/InStock","product:price:amount","twitter:card"]){
+    assert.ok(server.includes(marker),marker+" ausente");
+  }
 });
 test("checkout, acompanhamento e frete continuam visíveis",()=>{
   assert.match(index,/Ir para pagamento seguro/);
