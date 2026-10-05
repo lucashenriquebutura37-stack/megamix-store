@@ -1527,3 +1527,20 @@ html{scroll-behavior:smooth}body{background:var(--vz-bg);-webkit-font-smoothing:
  .areaModalHead{position:sticky!important;top:0!important;z-index:10!important;background:rgba(255,255,255,.96)!important;backdrop-filter:blur(16px)!important;border-bottom:1px solid #e8eaee!important}
  .areaModalHead h2{font-size:16px!important}
 }
+
+
+/* VORZELI — refinamento final do topo mobile */
+@media(max-width:760px){
+ .top{height:38px!important;min-height:38px!important;padding:0 12px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:7px!important}
+ .top span{font-size:11px!important;line-height:1!important}
+ .nav{grid-template-rows:50px 46px!important;padding:7px 14px 9px!important;row-gap:7px!important}
+ .logo img{width:128px!important;max-height:46px!important;object-fit:contain!important}
+ .menuBtn,.cartBtn{width:40px!important;height:40px!important;border-radius:13px!important}
+ .search{height:46px!important;border-radius:14px!important}
+ .search input{font-size:15px!important;padding-left:15px!important}
+ .trustStrip{height:38px!important;padding:0 14px!important;display:flex!important;align-items:center!important;justify-content:flex-start!important;gap:18px!important;overflow-x:auto!important;font-size:10px!important;font-weight:700!important;border-top:1px solid #f0f1f3!important;border-bottom:1px solid #f0f1f3!important}
+ .trustStrip span{flex:0 0 auto!important}
+ .quick{height:46px!important;padding:0 14px!important;display:flex!important;align-items:center!important;gap:9px!important;background:#fff!important}
+ .quick a{display:flex!important;align-items:center!important;height:32px!important;padding:0 13px!important;border-radius:999px!important;background:#f5f5f6!important;font-size:11px!important}
+ .hero{margin:12px 12px 18px!important}
+}
