@@ -19,6 +19,17 @@
 <div class="full"><label>Rua / Avenida *</label><input id="tAddress"></div><div><label>Número *</label><input id="tNumber"></div><div><label>Complemento</label><input id="tExtra"></div>
 <div><label>Bairro *</label><input id="tNeighborhood"></div><div><label>Cidade *</label><input id="tCity"></div>
 </div><div class="actions"><button class="primary" type="button" onclick="createTestOrder()">Criar pedido de teste</button></div>
+<hr style="border:0;border-top:1px solid #eee;margin:22px 0">
+<h3>Testar frete real</h3><small>Consulta o Melhor Envio sem criar produto, pedido ou cobrança.</small>
+<div class="grid" style="margin-top:14px">
+<div><label>CEP de destino *</label><input id="fCep" inputmode="numeric" maxlength="9" placeholder="00000-000"></div>
+<div><label>Peso (kg)</label><input id="fWeight" type="number" step=".001" value="0.3"></div>
+<div><label>Comprimento (cm)</label><input id="fLength" type="number" step=".1" value="20"></div>
+<div><label>Largura (cm)</label><input id="fWidth" type="number" step=".1" value="15"></div>
+<div><label>Altura (cm)</label><input id="fHeight" type="number" step=".1" value="10"></div>
+</div>
+<div class="actions"><button class="primary" type="button" onclick="testShipping()">Testar cotação</button></div>
+<div class="status" id="freightStatus"></div><div id="freightResults" class="list"></div>
 </section><section class="panel" id="productSection">
 <form id="form">
 <input type="hidden" id="id">
@@ -76,6 +87,17 @@ async function loadProducts(){
  catch(e){status("Erro ao carregar catálogo.",false)}
 }
 
+async function testShipping(){
+ if(!adminPassword){status("Entre como administrador primeiro.",false);return}
+ const fs=$("freightStatus"),box=$("freightResults"),cep=$("fCep").value.replace(/\D/g,"");
+ fs.textContent="Consultando Melhor Envio...";fs.style.color="#5f636b";box.innerHTML="";
+ try{
+  const r=await fetch("/api/admin/frete-teste",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify({postal_code:cep,weight_kg:$("fWeight").value,length_cm:$("fLength").value,width_cm:$("fWidth").value,height_cm:$("fHeight").value})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||"Erro na cotação.");
+  fs.textContent="Integração funcionando • ambiente: "+d.environment;fs.style.color="#198754";
+  box.innerHTML=d.quotes?.length?d.quotes.map(q=>'<div class="order"><b>'+(q.company?q.company+" • ":"")+q.name+'</b><div class="orderItems">R$ '+Number(q.price).toFixed(2).replace(".",",")+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</div></div>').join(""):'<div class="order">A API respondeu, mas não retornou opções para esse CEP.</div>';
+ }catch(e){fs.textContent=e.message;fs.style.color="#c0392b";}
+}
 async function createTestOrder(){
  if(!adminPassword){status("Entre como administrador primeiro.",false);return}
  const cep=$("tCep").value.replace(/\D/g,"");
