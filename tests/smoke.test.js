@@ -162,3 +162,10 @@ test("dashboard alerta quais produtos estão com estoque baixo",()=>{
   assert.ok(server.includes("WHERE stock<=3 ORDER BY stock ASC"));
   assert.ok(admin.includes('id="lowStockItems"'));
 });
+
+test("uso de cupom só pode ser devolvido uma vez",()=>{
+  assert.ok(server.includes("coupon_released BOOLEAN DEFAULT FALSE"));
+  assert.ok(server.includes("!order.coupon_released"));
+  assert.ok(server.includes("!r.rows[0].coupon_released"));
+  assert.ok(server.includes("coupon_released=TRUE"));
+});
