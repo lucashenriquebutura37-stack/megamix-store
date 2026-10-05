@@ -404,7 +404,7 @@ app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res
     if(!current.rows[0].is_test&&["enviado","entregue"].includes(shippingStatus)&&current.rows[0].status!=="paid")return res.status(409).json({error:"Somente pedidos pagos podem ser marcados como enviados ou entregues."});
     if(current.rows[0].shipping_status==="entregue"&&shippingStatus!=="entregue")return res.status(409).json({error:"Pedido já entregue. O status não pode ser retrocedido automaticamente."});
     if(current.rows[0].shipping_status==="enviado"&&["aguardando_pagamento","preparando"].includes(shippingStatus))return res.status(409).json({error:"Pedido já enviado. O status não pode voltar para uma etapa anterior."});
-    const r=await pool.query("UPDATE orders SET shipping_status=$1,tracking_code=$2 WHERE public_id=$3 RETURNING public_id,shipping_status,tracking_code",[shippingStatus,trackingCode,publicId]);
+    const r=await pool.query("UPDATE orders SET shipping_status=$1,tracking_code=$2,shipped_at=CASE WHEN $1=\'enviado\' AND shipped_at IS NULL THEN NOW() ELSE shipped_at END,delivered_at=CASE WHEN $1=\'entregue\' AND delivered_at IS NULL THEN NOW() ELSE delivered_at END WHERE public_id=$3 RETURNING public_id,shipping_status,tracking_code,shipped_at,delivered_at",[shippingStatus,trackingCode,publicId]);
     if(!r.rows.length)return res.status(404).json({error:"Pedido não encontrado."});
     res.json(r.rows[0]);
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar envio."});}
