@@ -56,13 +56,14 @@
 <div class="status" id="status"></div>
 </form>
 </section>
-<div class="list" id="list"></div><section id="ordersSection" style="margin-top:28px"><h2>Pedidos</h2><div class="list" id="ordersList"><div class="panel">Entre como administrador para visualizar pedidos.</div></div></section>
+<div class="list" id="list"></div><section id="ordersSection" style="margin-top:28px"><h2>Pedidos</h2><div class="panel" id="orderTools" style="margin:10px 0 14px;display:none"><div class="grid"><div><label>Buscar pedido</label><input id="orderSearch" placeholder="Pedido, cliente, cidade..." oninput="renderOrders()"></div><div><label>Filtrar</label><select id="orderFilter" onchange="renderOrders()"><option value="">Todos</option><option value="paid">Pagos</option><option value="pending">Pendentes</option><option value="test">Testes</option><option value="enviado">Enviados</option><option value="entregue">Entregues</option></select></div></div><div id="orderSummary" class="status"></div></div><div class="list" id="ordersList"><div class="panel">Entre como administrador para visualizar pedidos.</div></div></section>
 </main>
 <script src="script.js"></script>
 <script>
 const $=id=>document.getElementById(id);
 let adminProducts=[];
 let adminPassword="";
+let adminOrders=[];
 function pass(){return adminPassword}
 function status(t,ok=true){$("status").textContent=t;$("status").style.color=ok?"#198754":"#c0392b"}
 function setupCategories(){
@@ -122,20 +123,33 @@ async function createTestOrder(){
  el.addEventListener("input",()=>{const d=el.value.replace(/\D/g,"").slice(0,8);el.value=d.length>5?d.slice(0,5)+"-"+d.slice(5):d;if(d.length===8)lookup();else last=""});
  el.addEventListener("blur",lookup);
 })();
+function esc(v){return String(v??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function renderOrders(){
+ const q=($("orderSearch")?.value||"").toLowerCase(),filter=$("orderFilter")?.value||"";
+ const data=adminOrders.filter(o=>{
+   const hay=[o.public_id,o.customer_name,o.customer_phone,o.city,o.state,o.shipping_company,o.shipping_service_name].join(" ").toLowerCase();
+   const matchQ=!q||hay.includes(q);
+   const matchF=!filter||(filter==="enviado"||filter==="entregue"?o.shipping_status===filter:o.status===filter);
+   return matchQ&&matchF;
+ });
+ const paid=adminOrders.filter(o=>o.status==="paid"&&!o.is_test), revenue=paid.reduce((a,o)=>a+Number(o.total||0),0);
+ if($("orderSummary"))$("orderSummary").textContent=adminOrders.length+" pedidos • "+paid.length+" pagos • "+revenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+ const box=$("ordersList");
+ box.innerHTML=data.length?data.map(o=>{
+   const lines=(o.items||[]).map(i=>esc(i.quantity)+"× "+esc(i.name)).join("<br>");
+   const label=o.is_test?"PEDIDO DE TESTE":(o.status==="paid"?"PAGO":String(o.status).toUpperCase());
+   const shipLabels={aguardando_pagamento:"Aguardando pagamento",preparando:"Preparando",enviado:"Enviado",entregue:"Entregue",cancelado:"Cancelado"};
+   const address=[o.address_line,o.address_number,o.address_extra,o.neighborhood,o.city,o.state,o.postal_code].filter(Boolean).map(esc).join(" • ");
+   return '<div class="order"><div class="orderHead"><div><b>'+esc(o.public_id)+'</b><br><small>'+new Date(o.created_at).toLocaleString("pt-BR")+'</small></div><div><b>R$ '+Number(o.total).toFixed(2).replace(".",",")+'</b><br><strong class="'+(o.status==="paid"?"paid":"pending")+'">'+esc(label)+'</strong></div></div><div class="orderItems">'+lines+'</div>'+(o.customer_name?'<div class="orderItems"><b>'+esc(o.customer_name)+'</b> • '+esc(o.customer_phone||"")+'<br>'+address+'</div>':'')+'<div class="orderItems"><b>Entrega:</b> '+esc(shipLabels[o.shipping_status]||o.shipping_status||"—")+(o.shipping_service_name?'<br><b>Frete:</b> '+esc(o.shipping_company?o.shipping_company+" • ":"")+esc(o.shipping_service_name)+' • R$ '+Number(o.shipping_price||0).toFixed(2).replace(".",",")+(o.shipping_delivery_time?' • até '+Number(o.shipping_delivery_time)+' dias úteis':''):'')+(o.tracking_code?'<br><b>Rastreio:</b> '+esc(o.tracking_code):'')+'</div><div class="actions"><select id="ship-'+esc(o.public_id)+'"><option value="aguardando_pagamento">Aguardando pagamento</option><option value="preparando">Preparando</option><option value="enviado">Enviado</option><option value="entregue">Entregue</option><option value="cancelado">Cancelado</option></select><input id="track-'+esc(o.public_id)+'" placeholder="Código de rastreio" value="'+esc(o.tracking_code||"")+'"><button class="primary" type="button" onclick="updateShipping(\''+esc(o.public_id)+'\')">Atualizar envio</button></div></div>';
+ }).join(""):'<div class="panel">Nenhum pedido encontrado.</div>';
+ data.forEach(o=>{const sel=$("ship-"+o.public_id);if(sel)sel.value=o.shipping_status||"aguardando_pagamento"});
+}
 async function loadOrders(){
  if(!adminPassword)return;
  try{
   const r=await fetch("/api/pedidos",{headers:{"x-admin-password":pass()}});
   const data=await r.json();if(!r.ok)throw new Error(data.error||"Erro ao carregar pedidos.");
-  const box=$("ordersList");
-  box.innerHTML=data.length?data.map(o=>{
-    const lines=(o.items||[]).map(i=>i.quantity+"× "+i.name).join("<br>");
-    const label=o.is_test?"PEDIDO DE TESTE":(o.status==="paid"?"PAGO":String(o.status).toUpperCase());
-    const shipLabels={aguardando_pagamento:"Aguardando pagamento",preparando:"Preparando",enviado:"Enviado",entregue:"Entregue",cancelado:"Cancelado"};
-    const address=[o.address_line,o.address_number,o.address_extra,o.neighborhood,o.city,o.state,o.postal_code].filter(Boolean).join(" • ");
-    return '<div class="order"><div class="orderHead"><div><b>'+o.public_id+'</b><br><small>'+new Date(o.created_at).toLocaleString("pt-BR")+'</small></div><div><b>R$ '+Number(o.total).toFixed(2).replace(".",",")+'</b><br><strong class="'+(o.status==="paid"?"paid":"pending")+'">'+label+'</strong></div></div><div class="orderItems">'+lines+'</div>'+(o.customer_name?'<div class="orderItems"><b>'+o.customer_name+'</b> • '+(o.customer_phone||"")+'<br>'+address+'</div>':'')+'<div class="orderItems"><b>Entrega:</b> '+(shipLabels[o.shipping_status]||o.shipping_status||"—")+(o.shipping_service_name?'<br><b>Frete:</b> '+(o.shipping_company?o.shipping_company+' • ':'')+o.shipping_service_name+' • R$ '+Number(o.shipping_price||0).toFixed(2).replace(".",",")+(o.shipping_delivery_time?' • até '+o.shipping_delivery_time+' dias úteis':''):'')+(o.tracking_code?'<br><b>Rastreio:</b> '+o.tracking_code:'')+'</div><div class="actions"><select id="ship-'+o.public_id+'"><option value="aguardando_pagamento">Aguardando pagamento</option><option value="preparando">Preparando</option><option value="enviado">Enviado</option><option value="entregue">Entregue</option><option value="cancelado">Cancelado</option></select><input id="track-'+o.public_id+'" placeholder="Código de rastreio" value="'+(o.tracking_code||"")+'"><button class="primary" type="button" onclick="updateShipping(\''+o.public_id+'\')">Atualizar envio</button></div></div>';
-  }).join(""):'<div class="panel">Nenhum pedido recebido ainda.</div>';
-  data.forEach(o=>{const sel=$("ship-"+o.public_id);if(sel)sel.value=o.shipping_status||"aguardando_pagamento"});
+  adminOrders=data;$("orderTools").style.display="block";renderOrders();
   $("ordersSection").scrollIntoView({behavior:"smooth"});
  }catch(e){status(e.message,false)}
 }
