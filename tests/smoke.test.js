@@ -238,3 +238,15 @@ test("logs críticos usam sanitização de erro",()=>{
   assert.ok(server.includes('"Checkout:",safeError(e)'));
   assert.ok(server.includes('"Falha ao inicializar banco:",safeError(e)'));
 });
+
+test("consulta pública de pedido valida identificador e bloqueia cache",()=>{
+  const start=server.indexOf('app.get("/api/pedido/:publicId"');
+  const end=server.indexOf('app.get("/healthz"',start);
+  const block=server.slice(start,end);
+  assert.ok(block.includes("Pedido não encontrado."));
+  assert.ok(block.includes("no-store, private"));
+  assert.ok(block.includes('"Pragma","no-cache"'));
+  assert.ok(!block.includes("customer_phone"));
+  assert.ok(!block.includes("address_line"));
+  assert.ok(!block.includes("payer_email"));
+});
