@@ -93,6 +93,22 @@ function requireDatabase(req,res,next){
 const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
 const baseUrl=req=>process.env.PUBLIC_URL ? String(process.env.PUBLIC_URL).replace(/\/$/,"") : `${req.protocol}://${req.get("host")}`;
 const SHIPPING_ORIGIN_CEP="29177297";
+const STOCK_RESERVATION_MINUTES=30;
+async function releaseExpiredReservations(){
+  if(!process.env.DATABASE_URL)return;
+  const client=await pool.connect();
+  try{
+    await client.query("BEGIN");
+    const expired=await client.query("SELECT id FROM orders WHERE stock_reserved=TRUE AND stock_reduced=FALSE AND reservation_expires_at<=NOW() FOR UPDATE SKIP LOCKED");
+    for(const order of expired.rows){
+      const items=await client.query("SELECT product_id,quantity FROM order_items WHERE order_id=$1",[order.id]);
+      for(const item of items.rows)await client.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[item.quantity,item.product_id]);
+      await client.query("UPDATE orders SET stock_reserved=FALSE,status='expired',shipping_status='cancelado' WHERE id=$1",[order.id]);
+    }
+    await client.query("COMMIT");
+  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error("Erro ao liberar reservas expiradas:",e);}
+  finally{client.release();}
+}
 const finite=(v,min=0,max=Number.MAX_SAFE_INTEGER)=>{const n=Number(v);return Number.isFinite(n)&&n>=min&&n<=max?n:null};
 const safeImage=(v)=>{const x=clean(v,1000);if(!x)return "";try{const u=new URL(x);return (u.protocol==="https:"||u.protocol==="http:")?x:""}catch{return ""}};
 function validateProductInput(b,current={}){
