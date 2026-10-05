@@ -12,7 +12,7 @@ test("rotas críticas da loja continuam presentes",()=>{
   }
 });
 test("proteções HTTP essenciais continuam configuradas",()=>{
-  for(const header of ["Content-Security-Policy","Strict-Transport-Security","X-Content-Type-Options","Permissions-Policy"]){
+  for(const header of ["Content-Security-Policy","Strict-Transport-Security","X-Content-Type-Options","Permissions-Policy","X-Frame-Options","Referrer-Policy","X-Permitted-Cross-Domain-Policies","Origin-Agent-Cluster","Cross-Origin-Opener-Policy","Cross-Origin-Resource-Policy"]){
     assert.ok(server.includes(header),header+" ausente");
   }
   assert.ok(server.includes("rateLimit("),"rate limiting ausente");
@@ -64,4 +64,10 @@ test("cupons e pós-venda permanecem integrados",()=>{
   assert.ok(admin.includes("loadCoupons"),"gestão de cupons ausente");
   assert.match(pedido,/Pedido entregue/);
   assert.match(pedido,/Avaliar/);
+});
+
+test("avaliações verificadas exigem compra paga e entregue",()=>{
+  for(const marker of ["CREATE TABLE IF NOT EXISTS product_reviews","o.status='paid'","shipping_status!==\"entregue\"","verified_purchase"]){
+    assert.ok(server.includes(marker),marker+" ausente");
+  }
 });
