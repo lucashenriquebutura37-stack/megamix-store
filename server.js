@@ -356,9 +356,8 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
     if(!paymentId||!process.env.MP_ACCESS_TOKEN)return res.sendStatus(200);
     if(!/^\d{1,30}$/.test(String(paymentId)))return res.sendStatus(400);
     if(!validMercadoPagoSignature(req,paymentId))return res.sendStatus(401);
-    res.sendStatus(200);
     const mp=await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,{signal:externalSignal(),headers:{Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`}});
-    if(!mp.ok)return;
+    if(!mp.ok)return res.sendStatus(503);
     const pay=await mp.json(), publicId=clean(pay.external_reference,80);
     if(!publicId||!publicId.startsWith("VZ-"))return;
     const client=await pool.connect();
@@ -386,8 +385,9 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
         await client.query("UPDATE orders SET status=$1,payment_id=$2,payer_email=$3,shipping_status=CASE WHEN $1 IN ('refunded','charged_back','cancelled') AND shipping_status<>'entregue' THEN 'cancelado' ELSE shipping_status END WHERE id=$4",[pay.status,String(pay.id),clean(pay.payer?.email,240),current.id]);
       }
       await client.query("COMMIT");
-    }catch(e){await client.query("ROLLBACK");console.error(e);}finally{client.release();}
-  }catch(e){console.error("Webhook Mercado Pago:",e);}
+      return res.sendStatus(200);
+    }catch(e){await client.query("ROLLBACK");console.error(e);if(!res.headersSent)return res.sendStatus(500);}finally{client.release();}
+  }catch(e){console.error("Webhook Mercado Pago:",e);if(!res.headersSent)return res.sendStatus(500);}
 });
 
 app.get("/api/pedidos",adminOnly,requireDatabase,async(req,res)=>{
