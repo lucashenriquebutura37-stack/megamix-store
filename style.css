@@ -1620,3 +1620,24 @@ html{scroll-behavior:smooth}body{background:var(--vz-bg);-webkit-font-smoothing:
 .productDescription{white-space:pre-wrap;line-height:1.6;overflow-wrap:anywhere}
 .productCharacteristics div{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:10px 0;border-bottom:1px solid #eee}
 .productCharacteristics dt{font-weight:700}.productCharacteristics dd{margin:0;overflow-wrap:anywhere}
+
+/* Checkout VORZELI — fluxo guiado */
+.checkoutSteps{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin:14px 0 12px}
+.checkoutSteps span{padding:8px 5px;border-radius:10px;background:#f3f4f6;color:#747983;text-align:center;font-size:11px;font-weight:800}
+.checkoutSteps span.active{background:#fff0ea;color:#c43c0b;box-shadow:inset 0 0 0 1px #ffd1bf}
+.checkoutSteps span.done{background:#edf8f0;color:#19713a}
+.orderSummary{padding:14px 15px;border:1px solid #e8e9ec;border-radius:16px;background:#fff;margin-bottom:14px}
+.orderSummary>div{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:5px 0;font-size:13px}
+.orderSummary .grandTotal{border-top:1px solid #eceef1;margin-top:7px;padding-top:12px;font-size:16px}
+.orderSummary .grandTotal strong{font-size:20px}
+.checkoutSectionTitle{display:flex;gap:11px;align-items:flex-start;margin-bottom:12px}
+.checkoutSectionTitle>span{width:28px;height:28px;flex:0 0 28px;border-radius:50%;display:grid;place-items:center;background:#ff5a1f;color:#fff;font-weight:900;font-size:12px}
+.checkoutSectionTitle h3,.checkoutSectionTitle p{margin:0}.checkoutSectionTitle p{font-size:12px;color:#6b7078;margin-top:3px}
+.checkoutNotice{display:none;margin:12px 0;padding:11px 12px;border-radius:12px;font-size:12px;line-height:1.4}
+.checkoutNotice.show{display:block;background:#f4f5f7;color:#333}
+.checkoutNotice.success{background:#edf8f0;color:#176b37}.checkoutNotice.warning{background:#fff6e6;color:#8a5700}.checkoutNotice.error{background:#fff0f0;color:#a12828}
+.paymentTrust{display:flex;flex-direction:column;gap:4px;padding:13px 14px;border-radius:14px;background:#f6f7f8;margin:10px 0}
+.paymentTrust b{font-size:13px}.paymentTrust span,.paymentTrust a{font-size:11px;color:#666;line-height:1.4}.paymentTrust a{color:#b43b10;font-weight:700}
+.cart .checkout{width:100%;min-height:50px;border-radius:14px;font-size:15px;box-shadow:0 10px 24px rgba(255,90,31,.18)}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(255,90,31,.3);outline-offset:2px}
+@media(max-width:600px){.checkoutSteps{position:sticky;top:-1px;z-index:2;background:#fff;padding:8px 0;margin-top:4px}.orderSummary{margin-top:4px}.paymentTrust{margin-bottom:8px}.cart .checkout{position:sticky;bottom:8px;z-index:3;box-shadow:0 8px 30px rgba(20,20,20,.18)}}
