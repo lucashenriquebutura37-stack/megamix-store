@@ -138,3 +138,11 @@ test("dashboard administrativo resume operação da loja",()=>{
   assert.ok(admin.includes('id="dashboard"'));
   assert.ok(admin.includes("loadDashboard"));
 });
+
+test("dashboard inclui produtos mais vendidos, cupons e pedidos pendentes",()=>{
+  assert.ok(server.includes("top_products"));
+  assert.ok(server.includes("top_coupons"));
+  assert.ok(server.includes("pending_orders"));
+  assert.ok(admin.includes('id="topProducts"'));
+  assert.ok(admin.includes('id="topCoupons"'));
+});
