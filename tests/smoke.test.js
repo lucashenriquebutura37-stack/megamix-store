@@ -185,3 +185,10 @@ test("checkout calcula dinheiro em centavos para evitar divergência de arredond
   assert.ok(server.includes("moneyCents(selectedShipping.price)"));
   assert.ok(server.includes("discountCents/100"));
 });
+
+test("rate limiting usa armazenamento persistente com fallback em memória",()=>{
+  assert.ok(server.includes("CREATE TABLE IF NOT EXISTS rate_limits"));
+  assert.ok(server.includes("ON CONFLICT(key) DO UPDATE"));
+  assert.ok(server.includes("Rate limit persistente indisponível; usando memória"));
+  assert.ok(server.includes("cleanupRateLimits"));
+});
