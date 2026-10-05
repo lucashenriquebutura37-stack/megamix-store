@@ -781,6 +781,18 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
   }catch(e){console.error("Webhook Mercado Pago:",e);if(!res.headersSent)return res.sendStatus(500);}
 });
 
+app.get("/api/admin/dashboard",adminOnly,requireDatabase,async(req,res)=>{
+  try{
+    const [orders,products,pending]=await Promise.all([
+      pool.query(`SELECT COUNT(*)::int total_orders,COUNT(*) FILTER (WHERE status='paid')::int paid_orders,COALESCE(SUM(total) FILTER (WHERE status='paid'),0)::numeric revenue FROM orders WHERE is_test=FALSE`),
+      pool.query(`SELECT COUNT(*)::int total_products,COUNT(*) FILTER (WHERE stock<=3)::int low_stock,COALESCE(SUM(stock),0)::int stock_units FROM products`),
+      pool.query(`SELECT (SELECT COUNT(*) FROM product_questions WHERE approved=FALSE)::int pending_questions,(SELECT COUNT(*) FROM product_reviews WHERE approved=FALSE)::int pending_reviews`)
+    ]);
+    res.set("Cache-Control","no-store");
+    res.json({...orders.rows[0],...products.rows[0],...pending.rows[0],revenue:Number(orders.rows[0].revenue||0)});
+  }catch(e){console.error("Dashboard:",e);res.status(500).json({error:"Não foi possível carregar o resumo da loja."});}
+});
+
 app.get("/api/pedidos",adminOnly,requireDatabase,async(req,res)=>{
   try{
     const r=await pool.query(`SELECT o.*,COALESCE(json_agg(json_build_object('name',oi.product_name,'quantity',oi.quantity,'unit_price',oi.unit_price) ORDER BY oi.id) FILTER (WHERE oi.id IS NOT NULL),'[]') items FROM orders o LEFT JOIN order_items oi ON oi.order_id=o.id GROUP BY o.id ORDER BY o.created_at DESC LIMIT 200`);
