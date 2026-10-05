@@ -116,3 +116,10 @@ test("avaliações públicas não expõem nome completo do comprador",()=>{
   assert.ok(server.includes("customer_name:publicReviewerName(x.customer_name)"));
   assert.ok(server.includes("items:publicItems"));
 });
+
+test("perguntas e avaliações têm proteção anti-spam",()=>{
+  assert.ok(server.includes('keyPrefix:"questions"'));
+  assert.ok(server.includes('keyPrefix:"reviews"'));
+  assert.ok(server.includes('max:8'));
+  assert.ok(server.includes('max:6'));
+});
