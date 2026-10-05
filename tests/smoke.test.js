@@ -77,3 +77,11 @@ test("pós-venda envia atualizações por e-mail",()=>{
     assert.ok(server.includes(marker),marker+" ausente");
   }
 });
+
+test("cupom é invalidado quando o carrinho muda",()=>{
+  const saveStart=script.indexOf("function save()");
+  const saveEnd=script.indexOf("/* =========================",saveStart);
+  const saveBlock=script.slice(saveStart,saveEnd);
+  assert.ok(saveBlock.includes("appliedCoupon=null"));
+  assert.ok(saveBlock.includes("Aplique o cupom novamente"));
+});
