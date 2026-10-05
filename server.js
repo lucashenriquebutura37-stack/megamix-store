@@ -885,9 +885,13 @@ app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res
 
 app.get("/api/pedido/:publicId",requireDatabase,async(req,res)=>{
   try{
+    const publicId=clean(req.params.publicId,80);
+    if(!/^VZ-[A-Z0-9]+-[A-F0-9]{6}$/i.test(publicId)&&!/^TESTE-[A-Z0-9]+-[A-F0-9]{4}$/i.test(publicId))return res.status(404).json({error:"Pedido não encontrado."});
+    res.set("Cache-Control","no-store, private");
+    res.set("Pragma","no-cache");
     const r=await pool.query(`SELECT o.public_id,o.status,o.total,o.shipping_status,o.tracking_code,o.shipping_service_name,o.shipping_company,o.shipping_price,o.shipping_delivery_time,o.created_at,o.paid_at,o.shipped_at,o.delivered_at,
       COALESCE(json_agg(json_build_object('product_id',oi.product_id,'name',oi.product_name,'quantity',oi.quantity,'unit_price',oi.unit_price) ORDER BY oi.id) FILTER (WHERE oi.id IS NOT NULL),'[]') items
-      FROM orders o LEFT JOIN order_items oi ON oi.order_id=o.id WHERE o.public_id=$1 GROUP BY o.id`,[clean(req.params.publicId,80)]);
+      FROM orders o LEFT JOIN order_items oi ON oi.order_id=o.id WHERE o.public_id=$1 GROUP BY o.id`,[publicId]);
     if(!r.rows.length)return res.status(404).json({error:"Pedido não encontrado."});
     res.json({...r.rows[0],total:Number(r.rows[0].total),shipping_price:Number(r.rows[0].shipping_price||0),shipping_delivery_time:Number(r.rows[0].shipping_delivery_time||0),items:Array.isArray(r.rows[0].items)?r.rows[0].items:[]});
   }catch(e){res.status(500).json({error:"Erro ao consultar pedido."});}
