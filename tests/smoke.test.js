@@ -304,3 +304,11 @@ test("configuração final mantém práticas essenciais de produção",()=>{
   assert.ok(server.includes('Content-Security-Policy'));
   assert.ok(server.includes('Strict-Transport-Security'));
 });
+
+
+test("logs operacionais usam sanitização antes de registrar erros",()=>{
+  assert.ok(server.includes('console.error("Frete:",safeError(e))'));
+  assert.ok(server.includes('console.error("Webhook Mercado Pago:",safeError(e))'));
+  assert.ok(!server.includes('console.error("Webhook Mercado Pago:",e)'));
+  assert.ok(!server.includes('console.error("Teste Melhor Envio:",e)'));
+});
