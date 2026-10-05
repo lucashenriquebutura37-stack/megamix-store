@@ -20,8 +20,13 @@ async function initDatabase() {
       detail TEXT DEFAULT '', price NUMERIC(12,2) NOT NULL, old_price NUMERIC(12,2) DEFAULT 0,
       stock INTEGER DEFAULT 0, image TEXT DEFAULT '', rating NUMERIC(2,1) DEFAULT 0,
       reviews INTEGER DEFAULT 0, shipping TEXT DEFAULT '', installments INTEGER DEFAULT 10,
-      featured BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW()
+      featured BOOLEAN DEFAULT FALSE, weight_kg NUMERIC(8,3) DEFAULT 0, length_cm NUMERIC(8,2) DEFAULT 0,
+      width_cm NUMERIC(8,2) DEFAULT 0, height_cm NUMERIC(8,2) DEFAULT 0, created_at TIMESTAMPTZ DEFAULT NOW()
     );
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS weight_kg NUMERIC(8,3) DEFAULT 0;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS length_cm NUMERIC(8,2) DEFAULT 0;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS width_cm NUMERIC(8,2) DEFAULT 0;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS height_cm NUMERIC(8,2) DEFAULT 0;
     CREATE TABLE IF NOT EXISTS orders (
       id BIGSERIAL PRIMARY KEY, public_id TEXT UNIQUE NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
       total NUMERIC(12,2) NOT NULL DEFAULT 0, payment_id TEXT, payer_email TEXT,
@@ -55,7 +60,9 @@ function toProduct(row) {
   return { id:Number(row.id), n:row.name, c:row.category, sub:row.subcategory, detail:row.detail||"",
     p:Number(row.price), oldPrice:Number(row.old_price||0), stock:Number(row.stock||0), i:row.image||"",
     rating:Number(row.rating||0), reviews:Number(row.reviews||0), shipping:row.shipping||"",
-    installments:Number(row.installments||10), featured:Boolean(row.featured), createdAt:row.created_at };
+    installments:Number(row.installments||10), featured:Boolean(row.featured),
+    weightKg:Number(row.weight_kg||0), lengthCm:Number(row.length_cm||0), widthCm:Number(row.width_cm||0), heightCm:Number(row.height_cm||0),
+    createdAt:row.created_at };
 }
 function adminOnly(req,res,next){
   const configured=process.env.ADMIN_PASSWORD;
@@ -69,8 +76,10 @@ function requireDatabase(req,res,next){
 }
 const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
 const baseUrl=req=>`${req.protocol}://${req.get("host")}`;
+const SHIPPING_ORIGIN_CEP="29177297";
 
 app.post("/api/admin/auth",adminOnly,(req,res)=>res.json({ok:true}));
+app.get("/api/frete/config",(req,res)=>res.json({origin_postal_code:SHIPPING_ORIGIN_CEP.replace(/(\d{5})(\d{3})/,"$1-$2"),ready_for_quotes:false,message:"Origem configurada. Cadastre peso e dimensões dos produtos e conecte uma transportadora para habilitar cotações reais."}));
 
 app.get("/api/produtos",requireDatabase,async(req,res)=>{
   try{const r=await pool.query("SELECT * FROM products ORDER BY created_at DESC");res.json(r.rows.map(toProduct));}
