@@ -42,7 +42,7 @@ function rateLimit({windowMs=60000,max=120,keyPrefix="global"}={}){
           return res.status(429).json({error:"Muitas solicitações. Tente novamente em instantes."});
         }
         return next();
-      }catch(e){console.error("Rate limit persistente indisponível; usando memória:",e.message);}
+      }catch(e){console.error("Rate limit persistente indisponível; usando memória:",safeError(e));}
     }
     const current=rateBuckets.get(key);
     if(!current||current.reset<=now){rateBuckets.set(key,{count:1,reset:now+windowMs});return next();}
@@ -252,7 +252,7 @@ function adminSessionToken(req){
 const sessionHash=token=>crypto.createHash("sha256").update(String(token)).digest("hex");
 async function cleanupRateLimits(){
   if(!process.env.DATABASE_URL)return;
-  try{await pool.query("DELETE FROM rate_limits WHERE reset_at<=NOW()");}catch(e){console.error("Falha ao limpar limites expirados:",e.message);}
+  try{await pool.query("DELETE FROM rate_limits WHERE reset_at<=NOW()");}catch(e){console.error("Falha ao limpar limites expirados:",safeError(e));}
 }
 async function cleanupAdminSessions(){
   if(!process.env.DATABASE_URL)return;
@@ -465,7 +465,7 @@ app.post("/api/frete/cotar",requireDatabase,async(req,res)=>{
       delivery_time:Number((x.custom_delivery_time??x.delivery_time) || 0),currency:"BRL"
     })).sort((a,b)=>a.price-b.price);
     res.json({origin_postal_code:SHIPPING_ORIGIN_CEP,destination_postal_code:destination,quotes});
-  }catch(e){console.error(e);res.status(e.status||500).json({error:e.message||"Erro ao calcular frete."});}
+  }catch(e){console.error("Frete:",safeError(e));res.status(e.status||500).json({error:e.status?e.message:"Erro ao calcular frete."});}
 });
 
 app.post("/api/admin/frete-teste",adminOnly,async(req,res)=>{
@@ -488,12 +488,12 @@ app.post("/api/admin/frete-teste",adminOnly,async(req,res)=>{
       delivery_time:Number((x.custom_delivery_time??x.delivery_time)||0)
     })).sort((a,b)=>a.price-b.price);
     res.json({ok:true,environment:process.env.MELHOR_ENVIO_SANDBOX==="true"?"sandbox":"producao",origin_postal_code:SHIPPING_ORIGIN_CEP,quotes});
-  }catch(e){console.error("Teste Melhor Envio:",e);res.status(500).json({error:"Falha ao testar a integração de frete."});}
+  }catch(e){console.error("Teste Melhor Envio:",safeError(e));res.status(500).json({error:"Falha ao testar a integração de frete."});}
 });
 
 app.get("/api/produtos",requireDatabase,async(req,res)=>{
   try{const r=await pool.query("SELECT * FROM products ORDER BY created_at DESC");res.json(r.rows.map(toProduct));}
-  catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar produtos."});}
+  catch(e){console.error(safeError(e));res.status(500).json({error:"Erro ao carregar produtos."});}
 });
 function publicReviewerName(name){
   const first=clean(name,80).split(/\s+/).filter(Boolean)[0]||"Cliente";
@@ -501,7 +501,7 @@ function publicReviewerName(name){
 }
 app.get("/api/produtos/:id/avaliacoes",requireDatabase,async(req,res)=>{
   try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("SELECT customer_name,rating,comment,verified_purchase,created_at FROM product_reviews WHERE product_id=$1 AND approved=TRUE ORDER BY created_at DESC LIMIT 100",[req.params.id]);const publicItems=r.rows.map(x=>({...x,customer_name:publicReviewerName(x.customer_name)}));const summary=await pool.query("SELECT COALESCE(ROUND(AVG(rating)::numeric,1),0) rating,COUNT(*)::int reviews FROM product_reviews WHERE product_id=$1 AND approved=TRUE",[req.params.id]);res.json({summary:summary.rows[0],items:publicItems});}
-  catch(e){console.error("Avaliações:",e);res.status(500).json({error:"Não foi possível carregar avaliações."});}
+  catch(e){console.error("Avaliações:",safeError(e));res.status(500).json({error:"Não foi possível carregar avaliações."});}
 });
 app.post("/api/produtos/:id/avaliacoes",requireDatabase,async(req,res)=>{
   try{
@@ -513,11 +513,11 @@ app.post("/api/produtos/:id/avaliacoes",requireDatabase,async(req,res)=>{
     if(o.rows[0].shipping_status!=="entregue")return res.status(409).json({error:"A avaliação fica disponível após o pedido ser marcado como entregue."});
     await pool.query("INSERT INTO product_reviews(product_id,order_id,customer_name,rating,comment) VALUES($1,$2,$3,$4,$5) ON CONFLICT(product_id,order_id) DO UPDATE SET rating=EXCLUDED.rating,comment=EXCLUDED.comment,approved=FALSE,created_at=NOW()",[req.params.id,o.rows[0].id,cleanUserText(o.rows[0].customer_name,80),rating,comment]);
     res.status(201).json({ok:true,message:"Avaliação recebida e aguardando moderação."});
-  }catch(e){console.error("Nova avaliação:",e);res.status(500).json({error:"Não foi possível enviar a avaliação."});}
+  }catch(e){console.error("Nova avaliação:",safeError(e));res.status(500).json({error:"Não foi possível enviar a avaliação."});}
 });
 app.get("/api/admin/avaliacoes",adminOnly,requireDatabase,async(req,res)=>{
   try{const r=await pool.query("SELECT r.*,p.name product_name,o.public_id FROM product_reviews r JOIN products p ON p.id=r.product_id JOIN orders o ON o.id=r.order_id ORDER BY r.created_at DESC LIMIT 200");res.json(r.rows);}
-  catch(e){console.error(e);res.status(500).json({error:"Não foi possível carregar avaliações."});}
+  catch(e){console.error(safeError(e));res.status(500).json({error:"Não foi possível carregar avaliações."});}
 });
 app.put("/api/admin/avaliacoes/:id",adminOnly,requireDatabase,async(req,res)=>{
   const client=await pool.connect();
@@ -530,13 +530,13 @@ app.put("/api/admin/avaliacoes/:id",adminOnly,requireDatabase,async(req,res)=>{
     await client.query("UPDATE products SET rating=COALESCE((SELECT ROUND(AVG(rating)::numeric,1) FROM product_reviews WHERE product_id=$1 AND approved=TRUE),0),reviews=(SELECT COUNT(*) FROM product_reviews WHERE product_id=$1 AND approved=TRUE) WHERE id=$1",[productId]);
     await client.query("COMMIT");
     res.json({ok:true});
-  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(e);res.status(500).json({error:"Não foi possível atualizar a avaliação."});}
+  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(safeError(e));res.status(500).json({error:"Não foi possível atualizar a avaliação."});}
   finally{client.release();}
 });
 
 app.get("/api/produtos/:id/perguntas",requireDatabase,async(req,res)=>{
   try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("SELECT id,customer_name,question,answer,created_at,answered_at FROM product_questions WHERE product_id=$1 AND approved=TRUE ORDER BY created_at DESC LIMIT 50",[req.params.id]);res.json(r.rows);}
-  catch(e){console.error("Perguntas:",e);res.status(500).json({error:"Não foi possível carregar as perguntas."});}
+  catch(e){console.error("Perguntas:",safeError(e));res.status(500).json({error:"Não foi possível carregar as perguntas."});}
 });
 app.post("/api/produtos/:id/perguntas",requireDatabase,async(req,res)=>{
   try{
@@ -546,15 +546,15 @@ app.post("/api/produtos/:id/perguntas",requireDatabase,async(req,res)=>{
     const p=await pool.query("SELECT id FROM products WHERE id=$1",[req.params.id]);if(!p.rows.length)return res.status(404).json({error:"Produto não encontrado."});
     await pool.query("INSERT INTO product_questions(product_id,customer_name,question) VALUES($1,$2,$3)",[req.params.id,name,question]);
     res.status(201).json({ok:true,message:"Pergunta enviada. Ela aparecerá após análise da VORZELI."});
-  }catch(e){console.error("Nova pergunta:",e);res.status(500).json({error:"Não foi possível enviar a pergunta."});}
+  }catch(e){console.error("Nova pergunta:",safeError(e));res.status(500).json({error:"Não foi possível enviar a pergunta."});}
 });
 app.get("/api/admin/perguntas",adminOnly,requireDatabase,async(req,res)=>{
   try{const r=await pool.query("SELECT q.*,p.name product_name FROM product_questions q JOIN products p ON p.id=q.product_id ORDER BY q.created_at DESC LIMIT 200");res.json(r.rows);}
-  catch(e){console.error(e);res.status(500).json({error:"Não foi possível carregar perguntas."});}
+  catch(e){console.error(safeError(e));res.status(500).json({error:"Não foi possível carregar perguntas."});}
 });
 app.put("/api/admin/perguntas/:id",adminOnly,requireDatabase,async(req,res)=>{
   try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Pergunta inválida."});const answer=cleanUserText(req.body?.answer,1200),approved=Boolean(req.body?.approved);const r=await pool.query("UPDATE product_questions SET answer=$1,approved=$2,answered_at=CASE WHEN $1<>'' THEN NOW() ELSE answered_at END WHERE id=$3 RETURNING id",[answer,approved,req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Pergunta não encontrada."});res.json({ok:true});}
-  catch(e){console.error(e);res.status(500).json({error:"Não foi possível atualizar a pergunta."});}
+  catch(e){console.error(safeError(e));res.status(500).json({error:"Não foi possível atualizar a pergunta."});}
 });
 
 app.post("/api/produtos",adminOnly,requireDatabase,async(req,res)=>{
@@ -563,7 +563,7 @@ app.post("/api/produtos",adminOnly,requireDatabase,async(req,res)=>{
     if(checked.error)return res.status(400).json({error:checked.error});
     const r=await pool.query(`INSERT INTO products(name,category,subcategory,detail,price,old_price,stock,image,rating,reviews,shipping,installments,featured,weight_kg,length_cm,width_cm,height_cm,description,sku,brand,images,variants,tags) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb,$23::jsonb) RETURNING *`,[...checked.values,checked.extra.description,checked.extra.sku,checked.extra.brand,JSON.stringify(checked.extra.images),JSON.stringify(checked.extra.variants),JSON.stringify(checked.extra.tags)]);
     res.status(201).json(toProduct(r.rows[0]));
-  }catch(e){console.error(e);res.status(500).json({error:"Erro ao cadastrar produto."});}
+  }catch(e){console.error(safeError(e));res.status(500).json({error:"Erro ao cadastrar produto."});}
 });
 app.put("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
   try{
@@ -574,11 +574,11 @@ app.put("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
     if(checked.error)return res.status(400).json({error:checked.error});
     const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13,weight_kg=$14,length_cm=$15,width_cm=$16,height_cm=$17,description=$18,sku=$19,brand=$20,images=$21::jsonb,variants=$22::jsonb,tags=$23::jsonb WHERE id=$24 RETURNING *`,[...checked.values,checked.extra.description,checked.extra.sku,checked.extra.brand,JSON.stringify(checked.extra.images),JSON.stringify(checked.extra.variants),JSON.stringify(checked.extra.tags),req.params.id]);
     res.json(toProduct(r.rows[0]));
-  }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar produto."});}
+  }catch(e){console.error(safeError(e));res.status(500).json({error:"Erro ao atualizar produto."});}
 });
 app.delete("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
   try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("DELETE FROM products WHERE id=$1 RETURNING id",[req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Produto não encontrado."});res.json({ok:true});}
-  catch(e){if(e.code==="23503")return res.status(409).json({error:"Este produto já faz parte de um pedido e não pode ser excluído. Zere o estoque em vez disso."});console.error(e);res.status(500).json({error:"Erro ao excluir produto."});}
+  catch(e){if(e.code==="23503")return res.status(409).json({error:"Este produto já faz parte de um pedido e não pode ser excluído. Zere o estoque em vez disso."});console.error(safeError(e));res.status(500).json({error:"Erro ao excluir produto."});}
 });
 
 async function quoteShipping(destination, normalized, productRows){
@@ -611,7 +611,7 @@ app.post("/api/cupom/validar",requireDatabase,async(req,res)=>{
     if(subtotal<Number(c.min_order||0))return res.status(409).json({error:"Este cupom exige compra mínima de "+Number(c.min_order).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})+"."});
     const discount=c.discount_type==="percent"?subtotal*Math.min(Number(c.discount_value),100)/100:Math.min(Number(c.discount_value),subtotal);
     res.json({ok:true,code:c.code,discount:Number(discount.toFixed(2))});
-  }catch(e){console.error(e);res.status(500).json({error:"Não foi possível validar o cupom."});}
+  }catch(e){console.error(safeError(e));res.status(500).json({error:"Não foi possível validar o cupom."});}
 });
 app.get("/api/admin/cupons",adminOnly,requireDatabase,async(req,res)=>{try{const r=await pool.query("SELECT * FROM coupons ORDER BY created_at DESC");res.json(r.rows);}catch(e){res.status(500).json({error:"Erro ao carregar cupons."});}});
 app.post("/api/admin/cupons",adminOnly,requireDatabase,async(req,res)=>{
@@ -709,7 +709,7 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",signal:externalSignal(),headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({expires:true,expiration_date_from:preferenceStart.toISOString(),expiration_date_to:preferenceEnd.toISOString(),items:[...mercadoPagoItemsWithExactDiscount(items,discount),{id:"frete",title:"Frete - "+(selectedShipping.company?selectedShipping.company+" ":"")+selectedShipping.name,quantity:1,unit_price:selectedShipping.price,currency_id:"BRL"}],external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
     let data;try{data=await mp.json();}catch{data={};}if(!mp.ok){await cancelReservedOrder(publicId);reservationCompensated=true;throw Object.assign(new Error("Mercado Pago recusou a preferência."),{details:data});}
     res.json({order_id:publicId,checkout_url:data.init_point,sandbox_url:data.sandbox_init_point});
-  }catch(e){try{await client.query("ROLLBACK")}catch{};if(typeof publicId!=="undefined"&&publicId&&reservationCommitted&&!paymentRequestStarted&&!reservationCompensated){try{await cancelReservedOrder(publicId);}catch(cancelError){console.error("Falha ao compensar reserva:",cancelError);}}console.error("Checkout:",safeError(e));res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
+  }catch(e){try{await client.query("ROLLBACK")}catch{};if(typeof publicId!=="undefined"&&publicId&&reservationCommitted&&!paymentRequestStarted&&!reservationCompensated){try{await cancelReservedOrder(publicId);}catch(cancelError){console.error("Falha ao compensar reserva:",safeError(cancelError));}}console.error("Checkout:",safeError(e));res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
   finally{client.release();}
 });
 
@@ -729,7 +729,7 @@ app.post("/api/admin/email-teste",adminOnly,async(req,res)=>{
     });
     res.json({ok:true,message:"E-mail de teste enviado com sucesso."});
   }catch(e){
-    console.error("Teste SMTP falhou:",e.message);
+    console.error("Teste SMTP falhou:",safeError(e));
     res.status(502).json({error:"Não foi possível enviar o e-mail de teste. Verifique as configurações SMTP."});
   }
 });
@@ -755,7 +755,7 @@ app.post("/api/admin/pedido-teste",adminOnly,requireDatabase,async(req,res)=>{
     await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[or.rows[0].id,"test_created","Pedido de teste criado pelo administrador."]);
     await client.query("COMMIT");
     res.status(201).json({ok:true,order_id:publicId,message:"Pedido de teste criado sem cobrança e sem alteração de estoque."});
-  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(e);res.status(500).json({error:"Não foi possível criar o pedido de teste."});}
+  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(safeError(e));res.status(500).json({error:"Não foi possível criar o pedido de teste."});}
   finally{client.release();}
 });
 
@@ -823,10 +823,10 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
         await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[current.id,"payment_"+pay.status,"Pagamento atualizado para: "+pay.status+"."]);
       }
       await client.query("COMMIT");
-      if(confirmationEmail)sendPaymentConfirmationEmail(confirmationEmail).catch(e=>console.error("Falha ao enviar confirmação por e-mail:",e.message));
+      if(confirmationEmail)sendPaymentConfirmationEmail(confirmationEmail).catch(e=>console.error("Falha ao enviar confirmação por e-mail:",safeError(e)));
       return res.sendStatus(200);
-    }catch(e){await client.query("ROLLBACK");console.error(e);if(!res.headersSent)return res.sendStatus(500);}finally{client.release();}
-  }catch(e){console.error("Webhook Mercado Pago:",e);if(!res.headersSent)return res.sendStatus(500);}
+    }catch(e){await client.query("ROLLBACK");console.error(safeError(e));if(!res.headersSent)return res.sendStatus(500);}finally{client.release();}
+  }catch(e){console.error("Webhook Mercado Pago:",safeError(e));if(!res.headersSent)return res.sendStatus(500);}
 });
 
 app.get("/api/admin/dashboard",adminOnly,requireDatabase,async(req,res)=>{
@@ -848,7 +848,7 @@ app.get("/api/pedidos",adminOnly,requireDatabase,async(req,res)=>{
   try{
     const r=await pool.query(`SELECT o.*,COALESCE(json_agg(json_build_object('name',oi.product_name,'quantity',oi.quantity,'unit_price',oi.unit_price) ORDER BY oi.id) FILTER (WHERE oi.id IS NOT NULL),'[]') items FROM orders o LEFT JOIN order_items oi ON oi.order_id=o.id GROUP BY o.id ORDER BY o.created_at DESC LIMIT 200`);
     res.json(r.rows.map(o=>({...o,total:Number(o.total)})));
-  }catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar pedidos."});}
+  }catch(e){console.error(safeError(e));res.status(500).json({error:"Erro ao carregar pedidos."});}
 });
 app.get("/api/pedidos/:publicId/eventos",adminOnly,requireDatabase,async(req,res)=>{
   try{
@@ -858,7 +858,7 @@ app.get("/api/pedidos/:publicId/eventos",adminOnly,requireDatabase,async(req,res
     const events=await pool.query("SELECT event_type,detail,created_at FROM order_events WHERE order_id=$1 ORDER BY created_at ASC,id ASC",[order.rows[0].id]);
     res.set("Cache-Control","no-store");
     res.json(events.rows);
-  }catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar histórico do pedido."});}
+  }catch(e){console.error(safeError(e));res.status(500).json({error:"Erro ao carregar histórico do pedido."});}
 });
 
 app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res)=>{
@@ -882,9 +882,9 @@ app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res
       if(previous!==shippingStatus)await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[r.rows[0].id,"shipping_status","Envio: "+previous+" -> "+shippingStatus]);
       await client.query("COMMIT");
       const {id,...result}=r.rows[0];res.json(result);
-      if(previous!==shippingStatus&&current.rows[0].payer_email&&["preparando","enviado","entregue"].includes(shippingStatus))sendShippingUpdateEmail({to:current.rows[0].payer_email,publicId,status:shippingStatus,trackingCode}).catch(e=>console.error("Falha ao enviar atualização de envio:",e.message));
+      if(previous!==shippingStatus&&current.rows[0].payer_email&&["preparando","enviado","entregue"].includes(shippingStatus))sendShippingUpdateEmail({to:current.rows[0].payer_email,publicId,status:shippingStatus,trackingCode}).catch(e=>console.error("Falha ao enviar atualização de envio:",safeError(e)));
     }catch(e){try{await client.query("ROLLBACK")}catch{};throw e;}finally{client.release();}
-  }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar envio."});}
+  }catch(e){console.error(safeError(e));res.status(500).json({error:"Erro ao atualizar envio."});}
 });
 
 app.get("/api/pedido/:publicId",requireDatabase,async(req,res)=>{
