@@ -1771,3 +1771,12 @@ footer a{
     max-width:86vw;
   }
 }
+
+/* VORZELI — experiência de produto 2.0 */
+#productDetailsDialog{width:min(920px,94vw);max-height:92vh;border:0;border-radius:24px;padding:20px;box-shadow:0 24px 80px #0003}
+#productDetailsDialog::backdrop{background:#0008;backdrop-filter:blur(3px)}
+.productBreadcrumb{display:flex;gap:8px;align-items:center;color:#777;font-size:12px;margin:4px 0 12px}.productBreadcrumb button{border:0;background:none;padding:0;color:#555;cursor:pointer}
+.productBuyPanel{border:1px solid #e7e8ec;background:#fafafa;border-radius:18px;padding:16px;margin:16px 0}.productBuyPanel .price{font-size:30px;font-weight:900}.discountPillInline{font-size:12px;background:#eaf8ef;color:#16733a;border-radius:999px;padding:4px 7px}.stockState{font-weight:800;color:#198754}
+.productPrimaryActions,.productSecondaryActions{display:flex;gap:10px;margin-top:10px}.productPrimaryActions>*{flex:1}.buyNow{background:#ff5a1f;color:#fff;border:0;border-radius:12px;padding:14px;font-weight:900;cursor:pointer}.productSecondaryActions button{background:#fff;border:1px solid #ddd;border-radius:10px;padding:10px 12px;font-weight:700;cursor:pointer}
+.productTrustMini{display:grid;gap:6px;margin-top:14px;font-size:12px;color:#555}.productDescription{line-height:1.65}.relatedProducts{margin-top:22px}.relatedProducts>div{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}.relatedProducts button{border:1px solid #e7e8ec;background:#fff;border-radius:14px;padding:10px;text-align:left;cursor:pointer}.relatedProducts img{width:100%;height:90px;object-fit:contain}.relatedProducts span,.relatedProducts b{display:block;margin-top:5px}.productPolicyLink{margin-top:18px;font-size:13px}
+@media(max-width:650px){#productDetailsDialog{width:96vw;padding:14px}.productPrimaryActions,.productSecondaryActions{display:grid;grid-template-columns:1fr}.relatedProducts>div{grid-template-columns:repeat(2,1fr)}.productGallery{scroll-snap-type:x mandatory}.productGallery img{scroll-snap-align:start}}
