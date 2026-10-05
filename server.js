@@ -183,6 +183,12 @@ async function initDatabase() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_order_events_order_id_created_at ON order_events(order_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS coupons (
+      id BIGSERIAL PRIMARY KEY, code TEXT UNIQUE NOT NULL, discount_type TEXT NOT NULL CHECK(discount_type IN ('percent','fixed')),
+      discount_value NUMERIC(12,2) NOT NULL CHECK(discount_value>0), min_order NUMERIC(12,2) DEFAULT 0,
+      active BOOLEAN DEFAULT TRUE, expires_at TIMESTAMPTZ, max_uses INTEGER DEFAULT 0, uses INTEGER DEFAULT 0,
+      created_at TIMESTAMPTZ DEFAULT NOW()
+    );
     CREATE TABLE IF NOT EXISTS product_reviews (
       id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
       order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
@@ -531,6 +537,23 @@ async function quoteShipping(destination, normalized, productRows){
   }));
 }
 
+app.post("/api/cupom/validar",requireDatabase,async(req,res)=>{
+  try{
+    const code=clean(req.body?.code,40).toUpperCase(),subtotal=finite(req.body?.subtotal,0,99999999);
+    if(!code||subtotal===null)return res.status(400).json({error:"Cupom inválido."});
+    const r=await pool.query("SELECT * FROM coupons WHERE UPPER(code)=$1 AND active=TRUE AND (expires_at IS NULL OR expires_at>NOW()) AND (max_uses=0 OR uses<max_uses) LIMIT 1",[code]);
+    if(!r.rows.length)return res.status(404).json({error:"Cupom inválido ou expirado."});const c=r.rows[0];
+    if(subtotal<Number(c.min_order||0))return res.status(409).json({error:"Este cupom exige compra mínima de "+Number(c.min_order).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})+"."});
+    const discount=c.discount_type==="percent"?subtotal*Math.min(Number(c.discount_value),100)/100:Math.min(Number(c.discount_value),subtotal);
+    res.json({ok:true,code:c.code,discount:Number(discount.toFixed(2))});
+  }catch(e){console.error(e);res.status(500).json({error:"Não foi possível validar o cupom."});}
+});
+app.get("/api/admin/cupons",adminOnly,requireDatabase,async(req,res)=>{try{const r=await pool.query("SELECT * FROM coupons ORDER BY created_at DESC");res.json(r.rows);}catch(e){res.status(500).json({error:"Erro ao carregar cupons."});}});
+app.post("/api/admin/cupons",adminOnly,requireDatabase,async(req,res)=>{
+ try{const code=clean(req.body?.code,40).toUpperCase(),type=req.body?.discount_type==="fixed"?"fixed":"percent",value=finite(req.body?.discount_value,0.01,999999),min=finite(req.body?.min_order??0,0,99999999),max=Math.floor(finite(req.body?.max_uses??0,0,1000000)??0);if(!code||value===null||min===null)return res.status(400).json({error:"Dados do cupom inválidos."});const exp=req.body?.expires_at?new Date(req.body.expires_at):null;if(exp&&Number.isNaN(exp.getTime()))return res.status(400).json({error:"Validade inválida."});const q=await pool.query("INSERT INTO coupons(code,discount_type,discount_value,min_order,max_uses,expires_at) VALUES($1,$2,$3,$4,$5,$6) RETURNING *",[code,type,value,min,max,exp]);res.status(201).json(q.rows[0]);}catch(e){if(e.code==="23505")return res.status(409).json({error:"Já existe um cupom com este código."});res.status(500).json({error:"Erro ao criar cupom."});}
+});
+app.patch("/api/admin/cupons/:id",adminOnly,requireDatabase,async(req,res)=>{try{const r=await pool.query("UPDATE coupons SET active=$1 WHERE id=$2 RETURNING id,active",[Boolean(req.body?.active),req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Cupom não encontrado."});res.json(r.rows[0]);}catch(e){res.status(500).json({error:"Erro ao atualizar cupom."});}});
+
 app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
   const client=await pool.connect();
   try{
@@ -552,12 +575,20 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const byId=new Map(pr.rows.map(r=>[Number(r.id),r]));
     const items=normalized.map(x=>{const p=byId.get(x.id);if(Number(p.stock)<x.q)throw Object.assign(new Error(`Estoque insuficiente para ${p.name}.`),{status:409});return {id:String(p.id),title:p.name,quantity:x.q,unit_price:Number(p.price),currency_id:"BRL"};});
     const productsTotal=items.reduce((s,x)=>s+x.quantity*x.unit_price,0);
+    let coupon=null,discount=0;
+    const couponCode=clean(req.body?.coupon_code,40).toUpperCase();
+    if(couponCode){
+      const cr=await client.query("SELECT * FROM coupons WHERE UPPER(code)=$1 AND active=TRUE AND (expires_at IS NULL OR expires_at>NOW()) AND (max_uses=0 OR uses<max_uses) LIMIT 1",[couponCode]);
+      if(!cr.rows.length)return res.status(409).json({error:"O cupom não está mais disponível."});
+      coupon=cr.rows[0];if(productsTotal<Number(coupon.min_order||0))return res.status(409).json({error:"O valor do carrinho não atende à compra mínima do cupom."});
+      discount=coupon.discount_type==="percent"?productsTotal*Math.min(Number(coupon.discount_value),100)/100:Math.min(Number(coupon.discount_value),productsTotal);discount=Number(discount.toFixed(2));
+    }
     const requestedShippingId=clean(req.body?.shipping_service_id,40);
     if(!requestedShippingId)return res.status(400).json({error:"Escolha uma opção de frete."});
     const shippingQuotes=await quoteShipping(postalCode,normalized,pr.rows);
     const selectedShipping=shippingQuotes.find(q=>q.id===requestedShippingId);
     if(!selectedShipping)return res.status(400).json({error:"A opção de frete escolhida não está mais disponível. Calcule novamente."});
-    const total=productsTotal+selectedShipping.price;
+    const total=Math.max(0.01,productsTotal-discount)+selectedShipping.price;
     let reservationCommitted=false,paymentRequestStarted=false,reservationCompensated=false;
     const publicId="VZ-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(3).toString("hex").toUpperCase();
     await client.query("BEGIN");
@@ -575,12 +606,13 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
       [publicId,total,customerName,customerPhone,postalCode,addressLine,addressNumber,addressExtra,neighborhood,city,state,selectedShipping.id,selectedShipping.name,selectedShipping.company,selectedShipping.price,selectedShipping.delivery_time]);
     for(const it of items)await client.query("INSERT INTO order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,$3,$4,$5)",[or.rows[0].id,Number(it.id),it.title,it.unit_price,it.quantity]);
     await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[or.rows[0].id,"created","Pedido criado e estoque reservado."]);
+    if(coupon)await client.query("UPDATE coupons SET uses=uses+1 WHERE id=$1",[coupon.id]);
     await client.query("COMMIT");
     reservationCommitted=true;
     const root=baseUrl(req);
     const preferenceStart=new Date(),preferenceEnd=new Date(preferenceStart.getTime()+30*60*1000);
     paymentRequestStarted=true;
-    const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",signal:externalSignal(),headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({expires:true,expiration_date_from:preferenceStart.toISOString(),expiration_date_to:preferenceEnd.toISOString(),items:[...items,{id:"frete",title:"Frete - "+(selectedShipping.company?selectedShipping.company+" ":"")+selectedShipping.name,quantity:1,unit_price:selectedShipping.price,currency_id:"BRL"}],external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
+    const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",signal:externalSignal(),headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({expires:true,expiration_date_from:preferenceStart.toISOString(),expiration_date_to:preferenceEnd.toISOString(),items:[...items.map(x=>({...x,unit_price:discount?Number((x.unit_price*(1-discount/productsTotal)).toFixed(2)):x.unit_price})),{id:"frete",title:"Frete - "+(selectedShipping.company?selectedShipping.company+" ":"")+selectedShipping.name,quantity:1,unit_price:selectedShipping.price,currency_id:"BRL"}],external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
     let data;try{data=await mp.json();}catch{data={};}if(!mp.ok){await cancelReservedOrder(publicId);reservationCompensated=true;throw Object.assign(new Error("Mercado Pago recusou a preferência."),{details:data});}
     res.json({order_id:publicId,checkout_url:data.init_point,sandbox_url:data.sandbox_init_point});
   }catch(e){try{await client.query("ROLLBACK")}catch{};if(typeof publicId!=="undefined"&&publicId&&reservationCommitted&&!paymentRequestStarted&&!reservationCompensated){try{await cancelReservedOrder(publicId);}catch(cancelError){console.error("Falha ao compensar reserva:",cancelError);}}console.error(e.details||e);res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
