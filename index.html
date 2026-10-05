@@ -408,13 +408,19 @@
   </div>
 
 
-  <button
-    class="checkout"
-    onclick="checkout()">
+  <div class="deliveryBox">
+    <h3>Dados para entrega</h3>
+    <p>Preencha antes de finalizar o pagamento.</p>
+    <input id="customerName" autocomplete="name" placeholder="Nome completo">
+    <input id="customerPhone" inputmode="tel" autocomplete="tel" placeholder="Telefone / WhatsApp">
+    <div class="deliveryRow"><input id="postalCode" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="CEP"><input id="state" maxlength="2" placeholder="UF"></div>
+    <input id="addressLine" autocomplete="street-address" placeholder="Rua / Avenida">
+    <div class="deliveryRow"><input id="addressNumber" placeholder="Número"><input id="addressExtra" placeholder="Complemento"></div>
+    <input id="neighborhood" placeholder="Bairro">
+    <input id="city" autocomplete="address-level2" placeholder="Cidade">
+  </div>
 
-    Finalizar pagamento
-
-  </button>
+  <button class="checkout" onclick="checkout()">Finalizar pagamento</button>
 
 </div>
 
