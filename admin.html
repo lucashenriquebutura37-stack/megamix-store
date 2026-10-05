@@ -71,9 +71,20 @@ async function loadOrders(){
   box.innerHTML=data.length?data.map(o=>{
     const lines=(o.items||[]).map(i=>i.quantity+"× "+i.name).join("<br>");
     const label=o.status==="paid"?"PAGO":String(o.status).toUpperCase();
-    return '<div class="order"><div class="orderHead"><div><b>'+o.public_id+'</b><br><small>'+new Date(o.created_at).toLocaleString("pt-BR")+'</small></div><div><b>R$ '+Number(o.total).toFixed(2).replace(".",",")+'</b><br><strong class="'+(o.status==="paid"?"paid":"pending")+'">'+label+'</strong></div></div><div class="orderItems">'+lines+'</div>'+(o.payer_email?'<div class="orderItems">Cliente: '+o.payer_email+'</div>':'')+'</div>';
+    const shipLabels={aguardando_pagamento:"Aguardando pagamento",preparando:"Preparando",enviado:"Enviado",entregue:"Entregue",cancelado:"Cancelado"};
+    const address=[o.address_line,o.address_number,o.address_extra,o.neighborhood,o.city,o.state,o.postal_code].filter(Boolean).join(" • ");
+    return '<div class="order"><div class="orderHead"><div><b>'+o.public_id+'</b><br><small>'+new Date(o.created_at).toLocaleString("pt-BR")+'</small></div><div><b>R$ '+Number(o.total).toFixed(2).replace(".",",")+'</b><br><strong class="'+(o.status==="paid"?"paid":"pending")+'">'+label+'</strong></div></div><div class="orderItems">'+lines+'</div>'+(o.customer_name?'<div class="orderItems"><b>'+o.customer_name+'</b> • '+(o.customer_phone||"")+'<br>'+address+'</div>':'')+'<div class="orderItems"><b>Entrega:</b> '+(shipLabels[o.shipping_status]||o.shipping_status||"—")+(o.tracking_code?'<br><b>Rastreio:</b> '+o.tracking_code:'')+'</div><div class="actions"><select id="ship-'+o.public_id+'"><option value="aguardando_pagamento">Aguardando pagamento</option><option value="preparando">Preparando</option><option value="enviado">Enviado</option><option value="entregue">Entregue</option><option value="cancelado">Cancelado</option></select><input id="track-'+o.public_id+'" placeholder="Código de rastreio" value="'+(o.tracking_code||"")+'"><button class="primary" type="button" onclick="updateShipping(\''+o.public_id+'\')">Atualizar envio</button></div></div>';
   }).join(""):'<div class="panel">Nenhum pedido recebido ainda.</div>';
+  data.forEach(o=>{const sel=$("ship-"+o.public_id);if(sel)sel.value=o.shipping_status||"aguardando_pagamento"});
   $("ordersSection").scrollIntoView({behavior:"smooth"});
+ }catch(e){status(e.message,false)}
+}
+async function updateShipping(id){
+ try{
+  const sel=$("ship-"+id), track=$("track-"+id);
+  const r=await fetch("/api/pedidos/"+encodeURIComponent(id)+"/envio",{method:"PATCH",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify({shipping_status:sel.value,tracking_code:track.value})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||"Erro ao atualizar envio.");
+  status("Envio atualizado.");await loadOrders();
  }catch(e){status(e.message,false)}
 }
 function renderList(){
