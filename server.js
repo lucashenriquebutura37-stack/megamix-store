@@ -13,6 +13,9 @@ app.use((req,res,next)=>{
   next();
 });
 
+app.get("/robots.txt",(req,res)=>res.type("text/plain").send("User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /api/\n\nSitemap: https://vorzeli.com.br/sitemap.xml\n"));
+app.get("/sitemap.xml",(req,res)=>res.type("application/xml").send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://vorzeli.com.br/</loc><changefreq>daily</changefreq><priority>1.0</priority></url><url><loc>https://vorzeli.com.br/politicas.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url></urlset>'));
+
 app.use(express.static(__dirname));
 
 const pool = new Pool({
