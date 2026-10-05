@@ -103,3 +103,10 @@ test("reserva de cupom é protegida e liberada em pedidos não pagos",()=>{
   assert.ok(server.includes("SELECT id,coupon_code FROM orders WHERE stock_reserved=TRUE"));
   assert.ok(server.includes("SELECT id,stock_reserved,coupon_code FROM orders WHERE public_id=$1 FOR UPDATE"));
 });
+
+test("desconto do Mercado Pago é reconciliado em centavos",()=>{
+  assert.ok(server.includes("mercadoPagoItemsWithExactDiscount"));
+  assert.ok(server.includes("charged!==targetTotal"));
+  assert.ok(server.includes("Falha ao reconciliar desconto do carrinho."));
+  assert.ok(!server.includes("x.unit_price*(1-discount/productsTotal)"));
+});
