@@ -48,17 +48,27 @@ app.use("/api/criar-preferencia",rateLimit({windowMs:60000,max:15,keyPrefix:"che
 app.get("/robots.txt",(req,res)=>res.type("text/plain").send("User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /api/\n\nSitemap: https://vorzeli.com.br/sitemap.xml\n"));
 const xmlEscape=v=>String(v??"").replace(/[<>&'"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"}[c]));
 app.get("/sitemap.xml",async(req,res)=>{
-  try{
-    const root=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"");
-    let products=[];
-    if(process.env.DATABASE_URL){const r=await pool.query("SELECT id,created_at FROM products ORDER BY id");products=r.rows;}
-    const urls=[
-      `<url><loc>${xmlEscape(root+"/")}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
-      `<url><loc>${xmlEscape(root+"/politicas.html")}</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>`,
-      ...products.map(p=>`<url><loc>${xmlEscape(root+"/produto/"+p.id)}</loc><lastmod>${new Date(p.created_at).toISOString()}</lastmod><changefreq>weekly</changefreq><priority>0.7</priority></url>`)
-    ];
-    res.type("application/xml").send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">'+urls.join("")+"</urlset>");
-  }catch(e){res.status(500).type("text/plain").send("Erro ao gerar sitemap.");}
+  // O sitemap nunca deve depender do banco para as páginas essenciais.
+  // Assim crawlers continuam recebendo XML válido mesmo durante uma falha do PostgreSQL.
+  const root=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"");
+  const urls=[
+    `<url><loc>${xmlEscape(root+"/")}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+    `<url><loc>${xmlEscape(root+"/pedido.html")}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
+    `<url><loc>${xmlEscape(root+"/politicas.html")}</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>`
+  ];
+  if(process.env.DATABASE_URL){
+    try{
+      const r=await pool.query("SELECT id,created_at FROM products ORDER BY id");
+      for(const p of r.rows){
+        const lastmod=p.created_at?new Date(p.created_at).toISOString():"";
+        urls.push(`<url><loc>${xmlEscape(root+"/produto/"+p.id)}</loc>${lastmod?`<lastmod>${lastmod}</lastmod>`:""}<changefreq>weekly</changefreq><priority>0.7</priority></url>`);
+      }
+    }catch(e){console.error("Sitemap: produtos indisponíveis; servindo páginas essenciais.",e);}
+  }
+  res.status(200);
+  res.set("Content-Type","application/xml; charset=utf-8");
+  res.set("Cache-Control","public, max-age=300");
+  res.send('<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'+urls.join("\n")+"\n</urlset>\n");
 });
 
 // Somente páginas e recursos públicos podem ser servidos pelo diretório da aplicação.
