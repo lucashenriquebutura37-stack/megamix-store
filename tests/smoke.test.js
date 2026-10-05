@@ -192,3 +192,10 @@ test("rate limiting usa armazenamento persistente com fallback em memória",()=>
   assert.ok(server.includes("Rate limit persistente indisponível; usando memória"));
   assert.ok(server.includes("cleanupRateLimits"));
 });
+
+test("cabeçalhos de segurança incluem política CSP mais rígida em observação",()=>{
+  assert.ok(server.includes("Content-Security-Policy-Report-Only"));
+  assert.ok(server.includes("script-src 'self'; style-src"));
+  assert.ok(server.includes("X-DNS-Prefetch-Control"));
+  assert.ok(server.includes("includeSubDomains; preload"));
+});
