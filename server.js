@@ -460,6 +460,17 @@ app.get("/api/pedidos",adminOnly,requireDatabase,async(req,res)=>{
     res.json(r.rows.map(o=>({...o,total:Number(o.total)})));
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar pedidos."});}
 });
+app.get("/api/pedidos/:publicId/eventos",adminOnly,requireDatabase,async(req,res)=>{
+  try{
+    const publicId=clean(req.params.publicId,80);
+    const order=await pool.query("SELECT id FROM orders WHERE public_id=$1",[publicId]);
+    if(!order.rows.length)return res.status(404).json({error:"Pedido não encontrado."});
+    const events=await pool.query("SELECT event_type,detail,created_at FROM order_events WHERE order_id=$1 ORDER BY created_at ASC,id ASC",[order.rows[0].id]);
+    res.set("Cache-Control","no-store");
+    res.json(events.rows);
+  }catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar histórico do pedido."});}
+});
+
 app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res)=>{
   try{
     const allowed=["aguardando_pagamento","preparando","enviado","entregue","cancelado"];
