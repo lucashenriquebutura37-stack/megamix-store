@@ -44,6 +44,9 @@ jobs:
         run: |
           mkdir -p performance
           npx --yes lighthouse@13.0.0 https://vorzeli.com.br/ --chrome-flags="--headless --no-sandbox" --only-categories=performance,accessibility,best-practices,seo --output=json --output=html --output-path=performance/vorzeli --quiet
+          for sample in 2 3; do
+            npx --yes lighthouse@13.0.0 https://vorzeli.com.br/ --chrome-flags="--headless --no-sandbox" --only-categories=performance,accessibility,best-practices,seo --output=json --output=html --output-path="performance/vorzeli-$sample" --quiet
+          done
       - name: Summarize laboratory measurements
         run: |
           node - <<'NODE'
@@ -54,6 +57,16 @@ jobs:
           for(const [key,label] of [['largest-contentful-paint','LCP'],['cumulative-layout-shift','CLS'],['total-blocking-time','TBT'],['first-contentful-paint','FCP']])lines.push(`| ${label} | ${report.audits[key]?.displayValue||'não disponível'} |`);
           for(const [key,category] of Object.entries(report.categories))lines.push(`| ${key} | ${Math.round(category.score*100)}/100 |`);
           lines.push('','Uma execução de laboratório não comprova Core Web Vitals de campo. TBT não equivale a INP.');
+          const samples=['vorzeli','vorzeli-2','vorzeli-3'].map(name=>JSON.parse(fs.readFileSync(`performance/${name}.report.json`,'utf8')));
+          for(const sample of samples)if(sample.runtimeError)throw new Error(sample.runtimeError.code);
+          const median=values=>values.sort((a,b)=>a-b)[1];
+          const measurements=samples.map((sample,i)=>({sample:i+1,fetchTime:sample.fetchTime,performance:Math.round(sample.categories.performance.score*100),accessibility:Math.round(sample.categories.accessibility.score*100),bestPractices:Math.round(sample.categories['best-practices'].score*100),seo:Math.round(sample.categories.seo.score*100),lcp:sample.audits['largest-contentful-paint'].numericValue,cls:sample.audits['cumulative-layout-shift'].numericValue,tbt:sample.audits['total-blocking-time'].numericValue}));
+          lines.push('','## Três amostras','', '| Amostra | Desempenho | LCP | TBT |','| --- | --- | --- | --- |');
+          for(const sample of measurements)lines.push(`| ${sample.sample} | ${sample.performance}/100 | ${(sample.lcp/1000).toFixed(2)} s | ${Math.round(sample.tbt)} ms |`);
+          const summary={samples:measurements,median:{performance:median(measurements.map(s=>s.performance)),lcp:median(measurements.map(s=>s.lcp)),cls:median(measurements.map(s=>s.cls)),tbt:median(measurements.map(s=>s.tbt))}};
+          lines.push('',`Mediana: ${summary.median.performance}/100; LCP ${(summary.median.lcp/1000).toFixed(2)} s; TBT ${Math.round(summary.median.tbt)} ms.`);
+          fs.writeFileSync('performance/summary.json',JSON.stringify(summary,null,2));
+          console.log(JSON.stringify(summary));
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join('\n')+'\n');
           NODE
       - uses: actions/upload-artifact@v4
