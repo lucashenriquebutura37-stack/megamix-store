@@ -214,3 +214,14 @@ test("API de produtos ignora rating e reviews enviados manualmente",()=>{
   assert.ok(!validation.includes("b.rating??current.rating"));
   assert.ok(!validation.includes("b.reviews??current.reviews"));
 });
+
+test("moderação de avaliação e recálculo de reputação são atômicos",()=>{
+  const start=server.indexOf('app.put("/api/admin/avaliacoes/:id"');
+  const end=server.indexOf('app.get("/api/produtos/:id/perguntas"',start);
+  const block=server.slice(start,end);
+  assert.ok(block.includes('client.query("BEGIN")'));
+  assert.ok(block.includes('client.query("COMMIT")'));
+  assert.ok(block.includes('client.query("ROLLBACK")'));
+  assert.ok(block.includes("AVG(rating)"));
+  assert.ok(block.includes("client.release()"));
+});
