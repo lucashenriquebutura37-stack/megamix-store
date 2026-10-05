@@ -1,0 +1,47 @@
+name: Desempenho VORZELI
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/performance.yml'
+      - 'index.html'
+      - '*.css'
+      - 'script.js'
+      - 'ui-actions.js'
+      - 'server.js'
+permissions:
+  contents: read
+concurrency:
+  group: performance-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  lighthouse:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Audit mobile storefront
+        run: |
+          mkdir -p performance
+          npx --yes lighthouse@13.0.0 https://vorzeli.com.br/ --chrome-flags="--headless --no-sandbox" --only-categories=performance,accessibility,best-practices,seo --output=json --output=html --output-path=performance/vorzeli --quiet
+      - name: Summarize laboratory measurements
+        run: |
+          node - <<'NODE'
+          const fs=require('node:fs');
+          const report=JSON.parse(fs.readFileSync('performance/vorzeli.report.json','utf8'));
+          if(report.runtimeError)throw new Error(report.runtimeError.code);
+          const lines=['# VORZELI — laboratório móvel',`Consulta: ${report.fetchTime}`,`Endereço final: ${report.finalDisplayedUrl||report.finalUrl}`,'','| Métrica | Resultado |','| --- | --- |'];
+          for(const [key,label] of [['largest-contentful-paint','LCP'],['cumulative-layout-shift','CLS'],['total-blocking-time','TBT'],['first-contentful-paint','FCP']])lines.push(`| ${label} | ${report.audits[key]?.displayValue||'não disponível'} |`);
+          for(const [key,category] of Object.entries(report.categories))lines.push(`| ${key} | ${Math.round(category.score*100)}/100 |`);
+          lines.push('','Uma execução de laboratório não comprova Core Web Vitals de campo. TBT não equivale a INP.');
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY,lines.join('\n')+'\n');
+          NODE
+      - uses: actions/upload-artifact@v4
+        with:
+          name: vorzeli-lighthouse-mobile
+          path: performance/
+          retention-days: 14
