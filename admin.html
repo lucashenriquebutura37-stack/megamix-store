@@ -242,7 +242,7 @@ async function updateShipping(id){
 function safeAdminImage(v){try{const u=new URL(String(v||""));return (u.protocol==="https:"||u.protocol==="http:")?u.href:""}catch{return ""}}
 function renderList(){
  const q=($("productSearch")?.value||"").toLowerCase(),stockFilter=$("stockFilter")?.value||"";
- const products=adminProducts.filter(p=>{const hay=[p.n,p.c,p.sub,p.detail,p.sku,p.brand,...(p.tags||[])].join(" ").toLowerCase(),stock=Number(p.stock)||0;return (!q||hay.includes(q))&&(!stockFilter||(stockFilter==="out"?stock===0:stock<=5));});
+ let products=adminProducts.filter(p=>{const hay=[p.n,p.c,p.sub,p.detail,p.sku,p.brand,...(p.tags||[])].join(" ").toLowerCase(),stock=Number(p.stock)||0;return (!q||hay.includes(q))&&(!stockFilter||(stockFilter==="out"?stock===0:stock<=5));}); const productSort=$("productSort")?.value||"name";products=[...products].sort((a,b)=>productSort==="stockAsc"?Number(a.stock)-Number(b.stock):productSort==="stockDesc"?Number(b.stock)-Number(a.stock):productSort==="priceDesc"?Number(b.p)-Number(a.p):String(a.n).localeCompare(String(b.n),"pt-BR"));
  if($("productSummary"))$("productSummary").textContent=products.length+" exibidos de "+adminProducts.length+" produtos";
  $("list").innerHTML=products.length?products.map(p=>{
   const img=safeAdminImage(p.i);
