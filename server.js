@@ -60,7 +60,8 @@ app.get("/sitemap.xml",async(req,res)=>{
     try{
       const r=await pool.query("SELECT id,created_at FROM products ORDER BY id");
       for(const p of r.rows){
-        const lastmod=p.created_at?new Date(p.created_at).toISOString():"";
+        const d=p.created_at?new Date(p.created_at):null;
+        const lastmod=d&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,10):"";
         urls.push(`<url><loc>${xmlEscape(root+"/produto/"+p.id)}</loc>${lastmod?`<lastmod>${lastmod}</lastmod>`:""}<changefreq>weekly</changefreq><priority>0.7</priority></url>`);
       }
     }catch(e){console.error("Sitemap: produtos indisponíveis; servindo páginas essenciais.",e);}
