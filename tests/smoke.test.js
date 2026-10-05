@@ -288,3 +288,10 @@ test("dashboard inclui indicadores operacionais e financeiros",()=>{
 test("admin renderiza indicadores novos",()=>{
   for(const marker of ['id="mAverageTicket"','id="mDiscounts"','id="mCancelled"','id="catalogQualityMetrics"','id="fulfillmentMetrics"']) assert.ok(admin.includes(marker),marker);
 });
+
+test("endpoints operacionais definem cache apropriado",()=>{
+  assert.ok(server.includes('app.get("/healthz"'));
+  assert.ok(server.includes('res.set("Cache-Control","no-store")'));
+  assert.ok(server.includes('app.get("/robots.txt"'));
+  assert.ok(server.includes('"public, max-age=3600"'));
+});
