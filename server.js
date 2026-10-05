@@ -513,7 +513,7 @@ app.post("/api/admin/pedido-teste",adminOnly,requireDatabase,async(req,res)=>{
 
 function validMercadoPagoSignature(req,paymentId){
   const secret=process.env.MP_WEBHOOK_SECRET;
-  if(!secret)return true;
+  if(!secret)return false;
   const signature=String(req.headers["x-signature"]||""),requestId=String(req.headers["x-request-id"]||"");
   const parts=Object.fromEntries(signature.split(",").map(x=>x.trim().split("=")).filter(x=>x.length===2));
   if(!parts.ts||!parts.v1)return false;
@@ -523,7 +523,7 @@ function validMercadoPagoSignature(req,paymentId){
   try{return crypto.timingSafeEqual(Buffer.from(expected,"hex"),Buffer.from(parts.v1,"hex"));}catch{return false;}
 }
 
-app.post("/api/mercadopago/webhook",async(req,res)=>{
+app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
   try{
     const paymentId=req.query["data.id"]||req.body?.data?.id;
     if(!paymentId||!process.env.MP_ACCESS_TOKEN)return res.sendStatus(200);
