@@ -188,7 +188,9 @@ function validateProductInput(b,current={}){
   if([oldPrice,stock,rating,reviews,installments,weightKg,lengthCm,widthCm,heightCm].some(x=>x===null))return {error:"Há valores numéricos inválidos no produto."};
   const rawImage=clean(b.i??current.i,1000),image=safeImage(rawImage);
   if(rawImage&&!image)return {error:"A URL da imagem deve começar com http:// ou https://."};
-  return {values:[name,category,subcategory,clean(b.detail??current.detail,120),price,oldPrice,Math.floor(stock),image,rating,Math.floor(reviews),clean(b.shipping??current.shipping,120),Math.floor(installments),Boolean(b.featured??current.featured),weightKg,lengthCm,widthCm,heightCm]};
+  const description=clean(b.description??current.description,5000),sku=clean(b.sku??current.sku,100),brand=clean(b.brand??current.brand,120);
+  const rawImages=Array.isArray(b.images)?b.images:(Array.isArray(current.images)?current.images:[]),images=rawImages.slice(0,8).map(x=>safeImage(clean(x,1000))).filter(Boolean);
+  return {values:[name,category,subcategory,clean(b.detail??current.detail,120),price,oldPrice,Math.floor(stock),image,rating,Math.floor(reviews),clean(b.shipping??current.shipping,120),Math.floor(installments),Boolean(b.featured??current.featured),weightKg,lengthCm,widthCm,heightCm],extra:{description,sku,brand,images}};
 }
 
 const ADMIN_LOGIN_WINDOW_MS=15*60*1000;
