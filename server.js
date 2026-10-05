@@ -79,7 +79,7 @@ app.get("/sitemap.xml",async(req,res)=>{
         const lastmod=d&&!Number.isNaN(d.getTime())?d.toISOString().slice(0,10):"";
         urls.push(`<url><loc>${xmlEscape(root+"/produto/"+p.id)}</loc>${lastmod?`<lastmod>${lastmod}</lastmod>`:""}<changefreq>weekly</changefreq><priority>0.7</priority></url>`);
       }
-    }catch(e){console.error("Sitemap: produtos indisponíveis; servindo páginas essenciais.",e);}
+    }catch(e){console.error("Sitemap: produtos indisponíveis; servindo páginas essenciais.",safeError(e));}
   }
   res.status(200);
   res.set("Content-Type","application/xml; charset=utf-8");
@@ -124,7 +124,7 @@ app.get("/produto/:id",async(req,res)=>{
     const canonical=root+"/produto/"+p.id,price=Number(p.price).toFixed(2);
     const schema=JSON.stringify({"@context":"https://schema.org","@type":"Product","@id":canonical+"#product",name:p.name,description:p.description||undefined,image:[image,...images].filter(Boolean),sku:p.sku||undefined,brand:p.brand?{"@type":"Brand",name:p.brand}:undefined,offers:{"@type":"Offer",url:canonical,priceCurrency:"BRL",price,availability:Number(p.stock)>0?"https://schema.org/InStock":"https://schema.org/OutOfStock",itemCondition:"https://schema.org/NewCondition",seller:{"@type":"Organization",name:"VORZELI"}}});
     res.type("html").send(`<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${title}</title><meta name="description" content="${description}"><link rel="canonical" href="${htmlEscape(canonical)}"><meta name="robots" content="index,follow,max-image-preview:large"><meta property="og:locale" content="pt_BR"><meta property="og:site_name" content="VORZELI"><meta property="og:type" content="product"><meta property="og:title" content="${title}"><meta property="og:description" content="${description}"><meta property="og:image" content="${htmlEscape(image)}"><meta property="og:image:alt" content="${htmlEscape(p.name)}"><meta property="og:url" content="${htmlEscape(canonical)}"><meta property="product:price:amount" content="${price}"><meta property="product:price:currency" content="BRL"><meta property="product:availability" content="${Number(p.stock)>0?"in stock":"out of stock"}"><meta property="og:image:secure_url" content="${htmlEscape(image)}"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${title}"><meta name="twitter:description" content="${description}"><meta name="twitter:image" content="${htmlEscape(image)}"><script type="application/ld+json">${schema.replace(/</g,"\\u003c")}</script><style>*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#f5f6f8;color:#171717}.wrap{max-width:900px;margin:auto;padding:24px}.logo{width:150px}.card{margin-top:24px;background:#fff;border:1px solid #e7e8ec;border-radius:22px;padding:24px;display:grid;grid-template-columns:minmax(240px,1fr) 1fr;gap:28px}.pic{width:100%;aspect-ratio:1;object-fit:contain;background:#f7f7f8;border-radius:16px}.price{font-size:28px;font-weight:900}.stock{color:#198754;font-weight:800}.btn{display:inline-block;margin-top:16px;padding:13px 18px;background:#ff5a1f;color:#fff;text-decoration:none;border-radius:12px;font-weight:800}@media(max-width:650px){.card{grid-template-columns:1fr;padding:16px}.wrap{padding:16px}}</style></head><body><main class="wrap"><a href="/"><img class="logo" src="/logo-vorzeli.png" alt="VORZELI"></a><article class="card"><img class="pic" src="${htmlEscape(image)}" alt="${htmlEscape(p.name)}"><div><h1>${htmlEscape(p.name)}</h1>${p.brand?`<p>Marca: <b>${htmlEscape(p.brand)}</b></p>`:""}<p class="price">${Number(p.price).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}</p><p class="stock">${Number(p.stock)>0?"Em estoque":"Indisponível"}</p><p>${htmlEscape(p.description||"Confira este produto na VORZELI.")}</p><a class="btn" href="/?produto=${p.id}">Ver na loja</a></div></article></main></body></html>`);
-  }catch(e){console.error("Página de produto:",e);res.status(500).send("Não foi possível carregar o produto.");}
+  }catch(e){console.error("Página de produto:",safeError(e));res.status(500).send("Não foi possível carregar o produto.");}
 });
 
 async function initDatabase() {
@@ -256,7 +256,7 @@ async function cleanupRateLimits(){
 }
 async function cleanupAdminSessions(){
   if(!process.env.DATABASE_URL)return;
-  try{await pool.query("DELETE FROM admin_sessions WHERE expires_at<=NOW()");}catch(e){console.error("Falha ao limpar sessões administrativas:",e);}
+  try{await pool.query("DELETE FROM admin_sessions WHERE expires_at<=NOW()");}catch(e){console.error("Falha ao limpar sessões administrativas:",safeError(e));}
 }
 async function adminOnly(req,res,next){
   try{
@@ -277,11 +277,16 @@ async function adminOnly(req,res,next){
     const result=await pool.query("UPDATE admin_sessions SET expires_at=$2 WHERE token_hash=$1 AND expires_at>NOW() RETURNING token_hash",[sessionHash(token),expiresAt]);
     if(!result.rows.length)return res.status(401).json({error:"Sessão administrativa inválida ou expirada."});
     next();
-  }catch(e){console.error("Falha ao validar sessão administrativa:",e);res.status(500).json({error:"Não foi possível validar a sessão administrativa."});}
+  }catch(e){console.error("Falha ao validar sessão administrativa:",safeError(e));res.status(500).json({error:"Não foi possível validar a sessão administrativa."});}
 }
 function requireDatabase(req,res,next){
   if(!process.env.DATABASE_URL) return res.status(503).json({error:"Banco de dados indisponível."});
   next();
+}
+function safeError(error){
+  if(!error)return "erro desconhecido";
+  const raw=error instanceof Error?error.message:String(error);
+  return raw.replace(/Bearer\s+[A-Za-z0-9._~+\/-]+/gi,"Bearer [REDACTED]").replace(/(?:password|pass|token|secret|authorization|database_url)\s*[:=]\s*[^\s,;]+/gi,"$1=[REDACTED]").slice(0,500);
 }
 const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
 const cleanUserText=(v,max=300)=>clean(v,max).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,"").replace(/<\/?(?:script|iframe|object|embed|style|svg|math)\b[^>]*>/gi,"");
@@ -341,7 +346,7 @@ async function releaseExpiredReservations(){
       await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[order.id,"reservation_expired","Reserva de estoque expirada; estoque devolvido automaticamente."]);
     }
     await client.query("COMMIT");
-  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error("Erro ao liberar reservas expiradas:",e);}
+  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error("Erro ao liberar reservas expiradas:",safeError(e));}
   finally{client.release();}
 }
 async function cancelReservedOrder(publicId){
@@ -700,7 +705,7 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",signal:externalSignal(),headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({expires:true,expiration_date_from:preferenceStart.toISOString(),expiration_date_to:preferenceEnd.toISOString(),items:[...mercadoPagoItemsWithExactDiscount(items,discount),{id:"frete",title:"Frete - "+(selectedShipping.company?selectedShipping.company+" ":"")+selectedShipping.name,quantity:1,unit_price:selectedShipping.price,currency_id:"BRL"}],external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
     let data;try{data=await mp.json();}catch{data={};}if(!mp.ok){await cancelReservedOrder(publicId);reservationCompensated=true;throw Object.assign(new Error("Mercado Pago recusou a preferência."),{details:data});}
     res.json({order_id:publicId,checkout_url:data.init_point,sandbox_url:data.sandbox_init_point});
-  }catch(e){try{await client.query("ROLLBACK")}catch{};if(typeof publicId!=="undefined"&&publicId&&reservationCommitted&&!paymentRequestStarted&&!reservationCompensated){try{await cancelReservedOrder(publicId);}catch(cancelError){console.error("Falha ao compensar reserva:",cancelError);}}console.error(e.details||e);res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
+  }catch(e){try{await client.query("ROLLBACK")}catch{};if(typeof publicId!=="undefined"&&publicId&&reservationCommitted&&!paymentRequestStarted&&!reservationCompensated){try{await cancelReservedOrder(publicId);}catch(cancelError){console.error("Falha ao compensar reserva:",cancelError);}}console.error("Checkout:",safeError(e));res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
   finally{client.release();}
 });
 
@@ -912,4 +917,4 @@ app.get("/api/status",async(req,res)=>{
 });
 
 const PORT=process.env.PORT||3000;
-initDatabase().then(()=>{releaseExpiredReservations();setInterval(releaseExpiredReservations,60000).unref();app.listen(PORT,()=>console.log(`Servidor iniciado na porta ${PORT}`));}).catch(e=>{console.error("Falha ao inicializar banco:",e);process.exit(1);});
+initDatabase().then(()=>{releaseExpiredReservations();setInterval(releaseExpiredReservations,60000).unref();app.listen(PORT,()=>console.log(`Servidor iniciado na porta ${PORT}`));}).catch(e=>{console.error("Falha ao inicializar banco:",safeError(e));process.exit(1);});
