@@ -353,8 +353,8 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
     res.sendStatus(200);
     const mp=await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,{signal:externalSignal(),headers:{Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`}});
     if(!mp.ok)return;
-    const pay=await mp.json(), publicId=pay.external_reference;
-    if(!publicId)return;
+    const pay=await mp.json(), publicId=clean(pay.external_reference,80);
+    if(!publicId||!publicId.startsWith("VZ-"))return;
     const client=await pool.connect();
     try{
       await client.query("BEGIN");
