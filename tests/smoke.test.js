@@ -146,3 +146,8 @@ test("dashboard inclui produtos mais vendidos, cupons e pedidos pendentes",()=>{
   assert.ok(admin.includes('id="topProducts"'));
   assert.ok(admin.includes('id="topCoupons"'));
 });
+
+test("e-mails de pós-venda usam o parâmetro correto de acompanhamento",()=>{
+  assert.ok(server.includes('pedido.html?pedido='));
+  assert.ok(!server.includes('pedido.html?id='));
+});
