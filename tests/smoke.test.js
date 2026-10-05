@@ -26,7 +26,7 @@ test("SEO básico e produto indexável continuam ativos",()=>{
   assert.ok(server.includes('app.get("/sitemap.xml"'));
 });
 test("checkout, acompanhamento e frete continuam visíveis",()=>{
-  assert.match(index,/Finalizar pagamento/);
+  assert.match(index,/Ir para pagamento seguro/);
   assert.match(index,/Calcular frete/);
   assert.match(pedido,/Consultar pedido/);
 });
