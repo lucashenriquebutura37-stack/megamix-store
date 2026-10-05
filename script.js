@@ -338,6 +338,19 @@ try {
    DINHEIRO
 ========================= */
 
+function escapeHTML(value) {
+  return String(value ?? "").replace(/[&<>"']/g, char => ({
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"
+  }[char]));
+}
+
+function safeImageUrl(value) {
+  const url = String(value || "").trim();
+  if (!url) return "";
+  if (url.startsWith("/") || /^https:\/\//i.test(url) || /^[\w./-]+\.(png|jpe?g|webp|svg)$/i.test(url)) return url;
+  return "";
+}
+
 const money = value =>
   Number(value).toLocaleString(
     "pt-BR",
@@ -947,7 +960,7 @@ function render() {
 
         <p>
           Estamos preparando produtos para
-          <b>${label}</b>.
+          <b>${escapeHTML(label)}</b>.
           <br>
           Em breve você encontrará novidades aqui.
         </p>
@@ -975,12 +988,10 @@ function render() {
         const installments = Number(product.installments || 10);
         const installmentValue = Number(product.p) / installments;
         const shipping = product.shipping || product.frete || "";
-        const imageContent =
-          product.i
-            ? (/^(https?:|\/|data:|[^<>]+\.(png|jpe?g|webp|svg))/i.test(String(product.i))
-                ? `<img src="${product.i}" alt="${product.n}" loading="lazy">`
-                : product.i)
-            : '<span class="productFallback">V</span>';
+        const safeImg = safeImageUrl(product.i);
+        const imageContent = safeImg
+          ? `<img src="${escapeHTML(safeImg)}" alt="${escapeHTML(product.n)}" loading="lazy">`
+          : '<span class="productFallback">V</span>';
 
         return `
 
@@ -994,10 +1005,10 @@ function render() {
           <div class="info">
 
             <span class="badge">
-              ${product.c.toUpperCase()}
+              ${escapeHTML(product.c).toUpperCase()}
             </span>
 
-            <h3>${product.n}</h3>
+            <h3>${escapeHTML(product.n)}</h3>
 
             ${rating > 0 ? `
               <div class="ratingRow" aria-label="Avaliação ${rating} de 5">
@@ -1021,7 +1032,7 @@ function render() {
 
             ${shipping ? `
               <div class="shippingInfo">
-                <span>✓</span> ${shipping}
+                <span>✓</span> ${escapeHTML(shipping)}
               </div>
             ` : ""}
 
@@ -1049,11 +1060,12 @@ function render() {
 ========================= */
 
 function railCard(product) {
-  const image = product.i && /^(https?:|\/)/i.test(String(product.i))
-    ? '<img src="'+product.i+'" alt="'+product.n+'" loading="lazy">'
+  const safeImg = safeImageUrl(product.i);
+  const image = safeImg
+    ? '<img src="'+escapeHTML(safeImg)+'" alt="'+escapeHTML(product.n)+'" loading="lazy">'
     : '<span class="productFallback">V</span>';
   const stock = Number(product.stock || 0);
-  return '<article class="card"><div class="pic">'+image+'</div><div class="info"><span class="badge">'+product.c.toUpperCase()+'</span><h3>'+product.n+'</h3><div class="priceBlock"><div class="price">'+money(product.p)+'</div></div><div class="shippingInfo"><span>✓</span> '+(stock>0?(product.shipping||"Disponível"):"Sem estoque")+'</div><button class="add" '+(stock<=0?'disabled':'onclick="add('+product.id+')"')+'><span>'+(stock>0?"Adicionar ao carrinho":"Indisponível")+'</span><span class="addArrow">→</span></button></div></article>';
+  return '<article class="card"><div class="pic">'+image+'</div><div class="info"><span class="badge">'+escapeHTML(product.c).toUpperCase()+'</span><h3>'+escapeHTML(product.n)+'</h3><div class="priceBlock"><div class="price">'+money(product.p)+'</div></div><div class="shippingInfo"><span>✓</span> '+(stock>0?escapeHTML(product.shipping||"Disponível"):"Sem estoque")+'</div><button class="add" '+(stock<=0?'disabled':'onclick="add('+product.id+')"')+'><span>'+(stock>0?"Adicionar ao carrinho":"Indisponível")+'</span><span class="addArrow">→</span></button></div></article>';
 }
 
 function fillRails() {
@@ -1179,13 +1191,13 @@ function updateCart() {
             <div class="cartItem">
 
               <div class="ciIcon">
-                ${product.i && /^https?:/i.test(product.i) ? '<img src="'+product.i+'" alt="" style="width:44px;height:44px;object-fit:contain">' : "📦"}
+                ${safeImageUrl(product.i) ? '<img src="'+escapeHTML(safeImageUrl(product.i))+'" alt="" style="width:44px;height:44px;object-fit:contain">' : "📦"}
               </div>
 
               <div style="flex:1">
 
                 <b>
-                  ${product.n}
+                  ${escapeHTML(product.n)}
                 </b>
 
                 <div>
@@ -1323,7 +1335,7 @@ async function calculateShipping(){
     if(!d.quotes?.length)throw new Error("Nenhuma opção de entrega disponível para este CEP.");
     if(box)box.innerHTML='<div class="shippingTitle">Escolha a entrega</div>'+d.quotes.map((q,i)=>'<label class="shippingOption"><input type="radio" name="shippingOption" value="'+q.id+'" onchange="chooseShipping('+i+')"><span><b>'+(q.company?q.company+" • ":"")+q.name+'</b><small>'+money(Number(q.price))+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</small></span></label>').join("");
     window.shippingQuotes=d.quotes;
-  }catch(e){if(box)box.innerHTML='<p style="font-size:13px;color:#c0392b">'+e.message+'</p>';}
+  }catch(e){if(box)box.innerHTML='<p style="font-size:13px;color:#c0392b">'+escapeHTML(e.message)+'</p>';}
 }
 function chooseShipping(index){
   selectedShipping=window.shippingQuotes?.[index]||null;
