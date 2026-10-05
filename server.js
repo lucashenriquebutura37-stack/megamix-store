@@ -183,6 +183,12 @@ async function initDatabase() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_order_events_order_id_created_at ON order_events(order_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS product_questions (
+      id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      customer_name TEXT DEFAULT '', question TEXT NOT NULL, answer TEXT DEFAULT '',
+      approved BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW(), answered_at TIMESTAMPTZ
+    );
+    CREATE INDEX IF NOT EXISTS idx_product_questions_product ON product_questions(product_id,approved,created_at DESC);
     CREATE TABLE IF NOT EXISTS admin_sessions (
       token_hash TEXT PRIMARY KEY,
       expires_at TIMESTAMPTZ NOT NULL,
@@ -424,6 +430,29 @@ app.get("/api/produtos",requireDatabase,async(req,res)=>{
   try{const r=await pool.query("SELECT * FROM products ORDER BY created_at DESC");res.json(r.rows.map(toProduct));}
   catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar produtos."});}
 });
+app.get("/api/produtos/:id/perguntas",requireDatabase,async(req,res)=>{
+  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("SELECT id,customer_name,question,answer,created_at,answered_at FROM product_questions WHERE product_id=$1 AND approved=TRUE ORDER BY created_at DESC LIMIT 50",[req.params.id]);res.json(r.rows);}
+  catch(e){console.error("Perguntas:",e);res.status(500).json({error:"Não foi possível carregar as perguntas."});}
+});
+app.post("/api/produtos/:id/perguntas",requireDatabase,async(req,res)=>{
+  try{
+    if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});
+    const name=clean(req.body?.name,80),question=clean(req.body?.question,600);
+    if(question.length<5)return res.status(400).json({error:"Escreva uma pergunta com pelo menos 5 caracteres."});
+    const p=await pool.query("SELECT id FROM products WHERE id=$1",[req.params.id]);if(!p.rows.length)return res.status(404).json({error:"Produto não encontrado."});
+    await pool.query("INSERT INTO product_questions(product_id,customer_name,question) VALUES($1,$2,$3)",[req.params.id,name,question]);
+    res.status(201).json({ok:true,message:"Pergunta enviada. Ela aparecerá após análise da VORZELI."});
+  }catch(e){console.error("Nova pergunta:",e);res.status(500).json({error:"Não foi possível enviar a pergunta."});}
+});
+app.get("/api/admin/perguntas",adminOnly,requireDatabase,async(req,res)=>{
+  try{const r=await pool.query("SELECT q.*,p.name product_name FROM product_questions q JOIN products p ON p.id=q.product_id ORDER BY q.created_at DESC LIMIT 200");res.json(r.rows);}
+  catch(e){console.error(e);res.status(500).json({error:"Não foi possível carregar perguntas."});}
+});
+app.put("/api/admin/perguntas/:id",adminOnly,requireDatabase,async(req,res)=>{
+  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Pergunta inválida."});const answer=clean(req.body?.answer,1200),approved=Boolean(req.body?.approved);const r=await pool.query("UPDATE product_questions SET answer=$1,approved=$2,answered_at=CASE WHEN $1<>'' THEN NOW() ELSE answered_at END WHERE id=$3 RETURNING id",[answer,approved,req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Pergunta não encontrada."});res.json({ok:true});}
+  catch(e){console.error(e);res.status(500).json({error:"Não foi possível atualizar a pergunta."});}
+});
+
 app.post("/api/produtos",adminOnly,requireDatabase,async(req,res)=>{
   try{
     const checked=validateProductInput(req.body||{});
