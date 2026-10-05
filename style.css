@@ -1343,3 +1343,50 @@ header{position:relative;z-index:10}
  .hero h1{font-size:24px!important}
  .marketPlaceholder{min-width:88%}
 }
+
+
+/* =========================================================
+   VORZELI 2026 — GRAPHIC HERO + UNIFIED UI ICONS
+========================================================= */
+.uiIcon{width:20px;height:20px;display:inline-block;vertical-align:middle;fill:currentColor}
+.top{display:flex;align-items:center;justify-content:center;gap:7px}
+.top .uiIcon{width:15px;height:15px;color:#ff7a45}
+.menuBtn,.cartBtn,.search button{display:flex;align-items:center;justify-content:center}
+.menuBtn .uiIcon{width:21px;height:21px}
+.cartBtn .uiIcon{width:21px;height:21px}
+.search button .uiIcon{width:18px;height:18px}
+.hero{isolation:isolate}
+.heroShowcase{position:absolute;z-index:1;right:5%;top:50%;width:360px;height:270px;transform:translateY(-50%);pointer-events:none}
+.showcaseGlow{position:absolute;inset:20px;border-radius:50%;background:radial-gradient(circle,rgba(255,104,45,.32),rgba(255,104,45,0) 68%);filter:blur(8px)}
+.showcaseCard{position:absolute;width:118px;height:118px;border-radius:27px;background:rgba(255,255,255,.96);display:flex;align-items:center;justify-content:center;box-shadow:0 22px 45px rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.65);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.showcaseCard img{width:68px;height:68px;object-fit:contain}
+.showcasePhone{left:20px;top:26px;transform:rotate(-9deg)}
+.showcaseWatch{right:32px;top:10px;transform:rotate(8deg)}
+.showcaseCup{left:108px;bottom:13px;transform:rotate(5deg);z-index:3}
+.showcaseTools{right:3px;bottom:27px;width:96px;height:96px;transform:rotate(-7deg)}
+.showcaseTools img{width:56px;height:56px}
+.showcaseBadge{position:absolute;left:106px;top:86px;z-index:5;padding:10px 14px;border-radius:15px;background:#181818;color:#fff;box-shadow:0 13px 30px rgba(0,0,0,.28);display:flex;flex-direction:column;gap:1px}
+.showcaseBadge b{font-size:13px;letter-spacing:.08em}
+.showcaseBadge span{font-size:8px;color:#cfcfcf;white-space:nowrap}
+.sectionRow h2{display:flex;align-items:center;gap:8px}
+.sectionGlyph{width:27px;height:27px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:#fff0e9;color:var(--vz-accent);font-size:15px;line-height:1}
+.benefitGlyph{width:34px;height:34px;display:flex;align-items:center;justify-content:center;margin:0 auto 7px;border-radius:11px;background:#fff0e9;color:var(--vz-accent);font-size:18px;font-weight:900}
+.drawerSearch .uiIcon{width:18px;height:18px;color:#7b7f87;flex:0 0 18px}
+@media(max-width:900px){
+ .heroShowcase{right:1%;width:290px;height:230px;opacity:.92;transform:translateY(-50%) scale(.86);transform-origin:right center}
+ .hero>div:first-child{max-width:58%}
+}
+@media(max-width:650px){
+ .top{font-size:10px}
+ .hero>div:first-child{max-width:72%}
+ .heroShowcase{right:-54px;width:225px;height:205px;opacity:.62;transform:translateY(-50%) scale(.67)}
+ .showcaseBadge{display:none}
+ .showcaseCard{box-shadow:0 16px 35px rgba(0,0,0,.24)}
+ .heroActions span{position:relative;z-index:2}
+ .sectionGlyph{width:24px;height:24px;border-radius:8px;font-size:13px}
+ .benefitGlyph{width:30px;height:30px;border-radius:10px;font-size:15px}
+}
+@media(max-width:390px){
+ .heroShowcase{right:-72px;opacity:.5}
+ .hero>div:first-child{max-width:78%}
+}
