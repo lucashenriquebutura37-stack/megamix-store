@@ -118,6 +118,29 @@ app.post("/api/frete/cotar",requireDatabase,async(req,res)=>{
   }catch(e){console.error(e);res.status(e.status||500).json({error:e.message||"Erro ao calcular frete."});}
 });
 
+app.post("/api/admin/frete-teste",adminOnly,async(req,res)=>{
+  try{
+    if(!process.env.MELHOR_ENVIO_TOKEN)return res.status(503).json({error:"MELHOR_ENVIO_TOKEN não configurado."});
+    const destination=clean(req.body?.postal_code,12).replace(/\D/g,"");
+    if(destination.length!==8)return res.status(400).json({error:"Informe um CEP de destino válido."});
+    const weight=Math.max(0,Number(req.body?.weight_kg||0)),length=Math.max(0,Number(req.body?.length_cm||0));
+    const width=Math.max(0,Number(req.body?.width_cm||0)),height=Math.max(0,Number(req.body?.height_cm||0));
+    if(!(weight>0&&length>0&&width>0&&height>0))return res.status(400).json({error:"Informe peso e dimensões válidos."});
+    const apiBase=process.env.MELHOR_ENVIO_SANDBOX==="true"?"https://sandbox.melhorenvio.com.br":"https://melhorenvio.com.br";
+    const r=await fetch(apiBase+"/api/v2/me/shipment/calculate",{method:"POST",headers:{
+      "Accept":"application/json","Content-Type":"application/json","Authorization":"Bearer "+process.env.MELHOR_ENVIO_TOKEN,
+      "User-Agent":process.env.MELHOR_ENVIO_USER_AGENT||"VORZELI (loja online)"
+    },body:JSON.stringify({from:{postal_code:SHIPPING_ORIGIN_CEP},to:{postal_code:destination},products:[{id:"teste",width,height,length,weight,insurance_value:10,quantity:1}],options:{receipt:false,own_hand:false}})});
+    const data=await r.json();
+    if(!r.ok)return res.status(r.status).json({error:"Melhor Envio recusou a cotação.",details:data});
+    const quotes=(Array.isArray(data)?data:[]).filter(x=>!x.error&&Number(x.custom_price??x.price)>0).map(x=>({
+      id:String(x.id),name:clean(x.name,120),company:clean(x.company?.name,120),price:Number(x.custom_price??x.price),
+      delivery_time:Number((x.custom_delivery_time??x.delivery_time)||0)
+    })).sort((a,b)=>a.price-b.price);
+    res.json({ok:true,environment:process.env.MELHOR_ENVIO_SANDBOX==="true"?"sandbox":"producao",origin_postal_code:SHIPPING_ORIGIN_CEP,quotes});
+  }catch(e){console.error("Teste Melhor Envio:",e);res.status(500).json({error:"Falha ao testar a integração de frete."});}
+});
+
 app.get("/api/produtos",requireDatabase,async(req,res)=>{
   try{const r=await pool.query("SELECT * FROM products ORDER BY created_at DESC");res.json(r.rows.map(toProduct));}
   catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar produtos."});}
