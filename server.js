@@ -277,10 +277,10 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
       VALUES($1,$2,TRUE,NOW() + INTERVAL '30 minutes',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
       [publicId,total,customerName,customerPhone,postalCode,addressLine,addressNumber,addressExtra,neighborhood,city,state,selectedShipping.id,selectedShipping.name,selectedShipping.company,selectedShipping.price,selectedShipping.delivery_time]);
     for(const it of items)await client.query("INSERT INTO order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,$3,$4,$5)",[or.rows[0].id,Number(it.id),it.title,it.unit_price,it.quantity]);
+    await client.query("COMMIT");
     const root=baseUrl(req);
     const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",signal:externalSignal(),headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({items:[...items,{id:"frete",title:"Frete - "+(selectedShipping.company?selectedShipping.company+" ":"")+selectedShipping.name,quantity:1,unit_price:selectedShipping.price,currency_id:"BRL"}],external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
     const data=await mp.json();if(!mp.ok)throw Object.assign(new Error("Mercado Pago recusou a preferência."),{details:data});
-    await client.query("COMMIT");
     res.json({order_id:publicId,checkout_url:data.init_point,sandbox_url:data.sandbox_init_point});
   }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(e.details||e);res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
   finally{client.release();}
