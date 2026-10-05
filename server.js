@@ -832,7 +832,7 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
 app.get("/api/admin/dashboard",adminOnly,requireDatabase,async(req,res)=>{
   try{
     const [orders,products,pending,topProducts,coupons]=await Promise.all([
-      pool.query(`SELECT COUNT(*)::int total_orders,COUNT(*) FILTER (WHERE status='paid')::int paid_orders,COUNT(*) FILTER (WHERE status='pending')::int pending_orders,COALESCE(SUM(total) FILTER (WHERE status='paid'),0)::numeric revenue,COALESCE(SUM(total) FILTER (WHERE status='paid' AND paid_at>=NOW()-INTERVAL '30 days'),0)::numeric revenue_30d,COUNT(*) FILTER (WHERE status='paid' AND paid_at>=NOW()-INTERVAL '30 days')::int paid_orders_30d FROM orders WHERE is_test=FALSE`),
+      pool.query(`SELECT COUNT(*)::int total_orders,COUNT(*) FILTER (WHERE status='paid')::int paid_orders,COALESCE(AVG(total) FILTER (WHERE status='paid'),0)::numeric average_ticket,COUNT(*) FILTER (WHERE status='pending')::int pending_orders,COALESCE(SUM(total) FILTER (WHERE status='paid'),0)::numeric revenue,COALESCE(SUM(total) FILTER (WHERE status='paid' AND paid_at>=NOW()-INTERVAL '30 days'),0)::numeric revenue_30d,COUNT(*) FILTER (WHERE status='paid' AND paid_at>=NOW()-INTERVAL '30 days')::int paid_orders_30d FROM orders WHERE is_test=FALSE`),
       pool.query(`SELECT COUNT(*)::int total_products,COUNT(*) FILTER (WHERE stock<=3)::int low_stock,COUNT(*) FILTER (WHERE stock=0)::int out_of_stock,COALESCE(SUM(stock),0)::int stock_units FROM products`),
       pool.query(`SELECT (SELECT COUNT(*) FROM product_questions WHERE approved=FALSE)::int pending_questions,(SELECT COUNT(*) FROM product_reviews WHERE approved=FALSE)::int pending_reviews`),
       pool.query(`SELECT oi.product_id,oi.product_name,SUM(oi.quantity)::int units_sold,COUNT(DISTINCT o.id)::int paid_orders,ROUND(SUM(oi.quantity*oi.unit_price)::numeric,2) gross_sales FROM order_items oi JOIN orders o ON o.id=oi.order_id WHERE o.status='paid' AND o.is_test=FALSE GROUP BY oi.product_id,oi.product_name ORDER BY units_sold DESC,gross_sales DESC LIMIT 5`),
@@ -840,7 +840,7 @@ app.get("/api/admin/dashboard",adminOnly,requireDatabase,async(req,res)=>{
     ]);
     res.set("Cache-Control","no-store");
     const lowStockItems=await pool.query("SELECT id,name AS n,sku,stock FROM products WHERE stock<=3 ORDER BY stock ASC,name ASC LIMIT 10");
-    res.json({...orders.rows[0],...products.rows[0],...pending.rows[0],revenue:Number(orders.rows[0].revenue||0),revenue_30d:Number(orders.rows[0].revenue_30d||0),top_products:topProducts.rows.map(x=>({...x,gross_sales:Number(x.gross_sales||0)})),top_coupons:coupons.rows,low_stock_items:lowStockItems.rows});
+    res.json({...orders.rows[0],...products.rows[0],...pending.rows[0],revenue:Number(orders.rows[0].revenue||0),average_ticket:Number(orders.rows[0].average_ticket||0),revenue_30d:Number(orders.rows[0].revenue_30d||0),top_products:topProducts.rows.map(x=>({...x,gross_sales:Number(x.gross_sales||0)})),top_coupons:coupons.rows,low_stock_items:lowStockItems.rows});
   }catch(e){console.error("Dashboard:",safeError(e));res.status(500).json({error:"Não foi possível carregar o resumo da loja."});}
 });
 
