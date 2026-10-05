@@ -25,8 +25,23 @@ async function initDatabase() {
     CREATE TABLE IF NOT EXISTS orders (
       id BIGSERIAL PRIMARY KEY, public_id TEXT UNIQUE NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
       total NUMERIC(12,2) NOT NULL DEFAULT 0, payment_id TEXT, payer_email TEXT,
+      customer_name TEXT DEFAULT '', customer_phone TEXT DEFAULT '', postal_code TEXT DEFAULT '',
+      address_line TEXT DEFAULT '', address_number TEXT DEFAULT '', address_extra TEXT DEFAULT '',
+      neighborhood TEXT DEFAULT '', city TEXT DEFAULT '', state TEXT DEFAULT '',
+      shipping_status TEXT DEFAULT 'aguardando_pagamento', tracking_code TEXT DEFAULT '',
       created_at TIMESTAMPTZ DEFAULT NOW(), paid_at TIMESTAMPTZ
     );
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_name TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS customer_phone TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS postal_code TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS address_line TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS address_number TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS address_extra TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS neighborhood TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS city TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS state TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_status TEXT DEFAULT 'aguardando_pagamento';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_code TEXT DEFAULT '';
     CREATE TABLE IF NOT EXISTS order_items (
       id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
       product_id BIGINT NOT NULL REFERENCES products(id), product_name TEXT NOT NULL,
@@ -90,6 +105,13 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
   try{
     if(!process.env.MP_ACCESS_TOKEN)return res.status(503).json({error:"Pagamento não configurado."});
     const incoming=Array.isArray(req.body?.items)?req.body.items:[];
+    const customer=req.body?.customer||{};
+    const customerName=clean(customer.name,160), customerPhone=clean(customer.phone,40);
+    const postalCode=clean(customer.postalCode,12).replace(/\D/g,""), addressLine=clean(customer.address,220);
+    const addressNumber=clean(customer.number,40), addressExtra=clean(customer.extra,120);
+    const neighborhood=clean(customer.neighborhood,120), city=clean(customer.city,120), state=clean(customer.state,2).toUpperCase();
+    if(!customerName||!customerPhone||postalCode.length!==8||!addressLine||!addressNumber||!neighborhood||!city||state.length!==2)
+      return res.status(400).json({error:"Preencha corretamente os dados de entrega."});
     if(!incoming.length||incoming.length>50)return res.status(400).json({error:"Carrinho inválido."});
     const normalized=incoming.map(x=>({id:Number(x.id),q:Math.max(1,Math.min(99,Math.floor(Number(x.q)||1)))}));
     if(normalized.some(x=>!Number.isInteger(x.id)))return res.status(400).json({error:"Carrinho inválido."});
@@ -101,7 +123,9 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const total=items.reduce((s,x)=>s+x.quantity*x.unit_price,0);
     const publicId="VZ-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(3).toString("hex").toUpperCase();
     await client.query("BEGIN");
-    const or=await client.query("INSERT INTO orders(public_id,total) VALUES($1,$2) RETURNING id",[publicId,total]);
+    const or=await client.query(`INSERT INTO orders(public_id,total,customer_name,customer_phone,postal_code,address_line,address_number,address_extra,neighborhood,city,state)
+      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id`,
+      [publicId,total,customerName,customerPhone,postalCode,addressLine,addressNumber,addressExtra,neighborhood,city,state]);
     for(const it of items)await client.query("INSERT INTO order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,$3,$4,$5)",[or.rows[0].id,Number(it.id),it.title,it.unit_price,it.quantity]);
     const root=baseUrl(req);
     const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({items,external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
@@ -133,7 +157,7 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
           const u=await client.query("UPDATE products SET stock=stock-$1 WHERE id=$2 AND stock >= $1 RETURNING id",[it.quantity,it.product_id]);
           if(!u.rows.length)throw new Error("Estoque insuficiente ao confirmar pedido "+publicId);
         }
-        await client.query("UPDATE orders SET status='paid',payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
+        await client.query("UPDATE orders SET status='paid',shipping_status=CASE WHEN shipping_status='aguardando_pagamento' THEN 'preparando' ELSE shipping_status END,payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
       }else if(["rejected","cancelled","refunded","charged_back"].includes(pay.status)){
         await client.query("UPDATE orders SET status=$1,payment_id=$2,payer_email=$3 WHERE id=$4",[pay.status,String(pay.id),clean(pay.payer?.email,240),current.id]);
       }
@@ -148,8 +172,19 @@ app.get("/api/pedidos",adminOnly,requireDatabase,async(req,res)=>{
     res.json(r.rows.map(o=>({...o,total:Number(o.total)})));
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar pedidos."});}
 });
+app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res)=>{
+  try{
+    const allowed=["aguardando_pagamento","preparando","enviado","entregue","cancelado"];
+    const shippingStatus=clean(req.body?.shipping_status,40), trackingCode=clean(req.body?.tracking_code,120);
+    if(!allowed.includes(shippingStatus))return res.status(400).json({error:"Status de envio inválido."});
+    const r=await pool.query("UPDATE orders SET shipping_status=$1,tracking_code=$2 WHERE public_id=$3 RETURNING public_id,shipping_status,tracking_code",[shippingStatus,trackingCode,clean(req.params.publicId,80)]);
+    if(!r.rows.length)return res.status(404).json({error:"Pedido não encontrado."});
+    res.json(r.rows[0]);
+  }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar envio."});}
+});
+
 app.get("/api/pedido/:publicId",requireDatabase,async(req,res)=>{
-  try{const r=await pool.query("SELECT public_id,status,total,created_at,paid_at FROM orders WHERE public_id=$1",[clean(req.params.publicId,80)]);if(!r.rows.length)return res.status(404).json({error:"Pedido não encontrado."});res.json({...r.rows[0],total:Number(r.rows[0].total)});}
+  try{const r=await pool.query("SELECT public_id,status,total,shipping_status,tracking_code,created_at,paid_at FROM orders WHERE public_id=$1",[clean(req.params.publicId,80)]);if(!r.rows.length)return res.status(404).json({error:"Pedido não encontrado."});res.json({...r.rows[0],total:Number(r.rows[0].total)});}
   catch(e){res.status(500).json({error:"Erro ao consultar pedido."});}
 });
 
