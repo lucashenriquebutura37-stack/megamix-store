@@ -24,6 +24,22 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Wait for the published revision
+        run: |
+          node - <<'NODE'
+          (async()=>{
+            for(let attempt=0;attempt<30;attempt++){
+              try{
+                const response=await fetch('https://vorzeli.com.br/',{cache:'no-store',headers:{'Cache-Control':'no-cache'},signal:AbortSignal.timeout(15000)});
+                const revision=response.headers.get('x-vorzeli-revision');
+                const html=await response.text();
+                if(response.ok&&(revision?revision===process.env.GITHUB_SHA:html.includes('style.css?v=qa2'))){console.log('Versão publicada disponível para medição.');return;}
+              }catch{}
+              await new Promise(resolve=>setTimeout(resolve,10000));
+            }
+            throw new Error('A publicação da versão esperada não foi confirmada.');
+          })().catch(error=>{console.error(error.message);process.exitCode=1;});
+          NODE
       - name: Audit mobile storefront
         run: |
           mkdir -p performance

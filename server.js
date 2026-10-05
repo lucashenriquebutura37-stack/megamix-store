@@ -23,7 +23,8 @@ app.use((req,res,next)=>{
   res.setHeader("X-DNS-Prefetch-Control","off");
   res.setHeader("X-Download-Options","noopen");
   res.setHeader("Document-Policy","force-load-at-top");
-  res.setHeader("Content-Security-Policy-Report-Only","default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://viacep.com.br; font-src 'self' data:; upgrade-insecure-requests");
+  if(/^[a-f0-9]{40}$/.test(process.env.RENDER_GIT_COMMIT||""))res.setHeader("X-Vorzeli-Revision",process.env.RENDER_GIT_COMMIT);
+  res.setHeader("Content-Security-Policy-Report-Only","default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://viacep.com.br; font-src 'self' data:");
   res.setHeader("X-Permitted-Cross-Domain-Policies","none");
   res.setHeader("Origin-Agent-Cluster","?1");
   res.setHeader("Content-Security-Policy","default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://viacep.com.br; font-src 'self' data:; upgrade-insecure-requests");

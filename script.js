@@ -1214,6 +1214,7 @@ function updateCart() {
           total + item.q,
         0
       );
+    count.closest('.cartBtn')?.setAttribute('aria-label',`Abrir carrinho, ${count.textContent} itens`);
   }
 
   const items =
@@ -1676,4 +1677,3 @@ function openProductDetails(id) {
   loadProductQuestions(product.id);
   loadProductReviews(product.id);
 }
-
