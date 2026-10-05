@@ -42,6 +42,7 @@ async function initDatabase() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS state TEXT DEFAULT '';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_status TEXT DEFAULT 'aguardando_pagamento';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS tracking_code TEXT DEFAULT '';
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS is_test BOOLEAN DEFAULT FALSE;
     CREATE TABLE IF NOT EXISTS order_items (
       id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
       product_id BIGINT NOT NULL REFERENCES products(id), product_name TEXT NOT NULL,
@@ -133,6 +134,31 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     await client.query("COMMIT");
     res.json({order_id:publicId,checkout_url:data.init_point,sandbox_url:data.sandbox_init_point});
   }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(e.details||e);res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
+  finally{client.release();}
+});
+
+app.post("/api/admin/pedido-teste",adminOnly,requireDatabase,async(req,res)=>{
+  const client=await pool.connect();
+  try{
+    const customer=req.body?.customer||{};
+    const customerName=clean(customer.name,160),customerPhone=clean(customer.phone,40);
+    const postalCode=clean(customer.postalCode,12).replace(/\D/g,""),addressLine=clean(customer.address,220);
+    const addressNumber=clean(customer.number,40),addressExtra=clean(customer.extra,120);
+    const neighborhood=clean(customer.neighborhood,120),city=clean(customer.city,120),state=clean(customer.state,2).toUpperCase();
+    if(!customerName||!customerPhone||postalCode.length!==8||!addressLine||!addressNumber||!neighborhood||!city||state.length!==2)
+      return res.status(400).json({error:"Preencha corretamente os dados de entrega do teste."});
+    const publicId="TESTE-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(2).toString("hex").toUpperCase();
+    await client.query("BEGIN");
+    const or=await client.query(`INSERT INTO orders(public_id,status,total,customer_name,customer_phone,postal_code,address_line,address_number,address_extra,neighborhood,city,state,shipping_status,is_test)
+      VALUES($1,'test',0,$2,$3,$4,$5,$6,$7,$8,$9,$10,'preparando',TRUE) RETURNING id`,
+      [publicId,customerName,customerPhone,postalCode,addressLine,addressNumber,addressExtra,neighborhood,city,state]);
+    const product=await client.query("SELECT id FROM products ORDER BY id LIMIT 1");
+    if(product.rows.length){
+      await client.query("INSERT INTO order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,'ITEM DE TESTE — sem cobrança',0,1)",[or.rows[0].id,product.rows[0].id]);
+    }
+    await client.query("COMMIT");
+    res.status(201).json({ok:true,order_id:publicId,message:"Pedido de teste criado sem cobrança e sem alteração de estoque."});
+  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(e);res.status(500).json({error:"Não foi possível criar o pedido de teste."});}
   finally{client.release();}
 });
 
