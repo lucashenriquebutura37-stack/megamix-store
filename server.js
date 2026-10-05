@@ -889,11 +889,13 @@ app.get("/api/status",async(req,res)=>{
     admin_password:Boolean(process.env.ADMIN_PASSWORD),
     smtp_email:Boolean(smtpConfig())
   };
-  const required=["database","payments","shipping","public_url","webhook_signature","admin_password"];
+  const required=["database","payments","shipping","public_url","webhook_signature","admin_password","smtp_email"];
   const missing=required.filter(k=>!checks[k]);
+  const warnings=[];
+  if(database&&dbLatencyMs>1000)warnings.push("database_slow");
   const healthy=missing.length===0;
   res.set("Cache-Control","no-store");
-  res.status(healthy?200:503).json({status:healthy?"ok":"degraded",service:"VORZELI",...checks,missing,db_latency_ms:dbLatencyMs,uptime_seconds:Math.floor(process.uptime()),timestamp:new Date().toISOString()});
+  res.status(healthy?200:503).json({status:healthy?(warnings.length?"warning":"ok"):"degraded",service:"VORZELI",checks,missing,warnings,db_latency_ms:dbLatencyMs,uptime_seconds:Math.floor(process.uptime()),timestamp:new Date().toISOString()});
 });
 
 const PORT=process.env.PORT||3000;
