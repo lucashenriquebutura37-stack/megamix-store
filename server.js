@@ -253,7 +253,7 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const normalized=incoming.map(x=>({id:Number(x.id),q:Math.max(1,Math.min(99,Math.floor(Number(x.q)||1)))}));
     if(normalized.some(x=>!Number.isInteger(x.id)))return res.status(400).json({error:"Carrinho inválido."});
     const ids=[...new Set(normalized.map(x=>x.id))];
-    const pr=await client.query("SELECT * FROM products WHERE id = ANY($1::bigint[]) FOR UPDATE",[ids]);
+    const pr=await client.query("SELECT * FROM products WHERE id = ANY($1::bigint[])",[ids]);
     if(pr.rows.length!==ids.length)return res.status(400).json({error:"Um produto não está mais disponível."});
     const byId=new Map(pr.rows.map(r=>[Number(r.id),r]));
     const items=normalized.map(x=>{const p=byId.get(x.id);if(Number(p.stock)<x.q)throw Object.assign(new Error(`Estoque insuficiente para ${p.name}.`),{status:409});return {id:String(p.id),title:p.name,quantity:x.q,unit_price:Number(p.price),currency_id:"BRL"};});
