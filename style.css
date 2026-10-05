@@ -1472,3 +1472,15 @@ html{scroll-behavior:smooth}body{background:var(--vz-bg);-webkit-font-smoothing:
  .quick{margin:0!important;border-top:1px solid #f1f2f4!important}
  .hero{margin-top:12px!important}
 }
+
+
+/* VORZELI — affordance do carrossel de subcategorias */
+.subcatCarousel{position:relative}.swipeHint{display:none}.subcatEdge{display:none}
+@media(max-width:760px){
+ .subcatCarousel{margin:8px -14px 24px;padding-left:14px;overflow:hidden}
+ .swipeHint{display:flex;align-items:center;justify-content:flex-end;gap:7px;padding:0 18px 8px 0;color:#737780;font-size:10px;font-weight:800;letter-spacing:.02em}
+ .swipeHint b{width:25px;height:25px;display:flex;align-items:center;justify-content:center;border-radius:50%;background:#fff0e9;color:#ff5a1f;font-size:16px}
+ .subcategories{margin:0!important;padding:0 62px 10px 0!important;gap:10px!important;overflow-x:auto!important;scroll-snap-type:x mandatory!important;-webkit-overflow-scrolling:touch}
+ .subcat{min-width:132px!important;width:132px!important;flex:0 0 132px!important;scroll-snap-align:start!important}
+ .subcatEdge{display:flex;position:absolute;right:0;top:33px;bottom:10px;width:48px;align-items:center;justify-content:flex-end;padding-right:8px;pointer-events:none;background:linear-gradient(90deg,rgba(246,247,249,0),rgba(246,247,249,.96) 58%);color:#ff5a1f;font-size:34px;font-weight:300}
+}
