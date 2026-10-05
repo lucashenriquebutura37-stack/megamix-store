@@ -54,6 +54,8 @@ function adminOnly(req, res, next) {
   next();
 }
 
+app.post("/api/admin/auth", adminOnly, (req, res) => res.json({ ok: true }));
+
 function requireDatabase(req, res, next) {
   if (!process.env.DATABASE_URL) return res.status(503).json({ error: "Configure DATABASE_URL no Render." });
   next();
