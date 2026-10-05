@@ -178,3 +178,10 @@ test("cupom é travado e revalidado dentro da transação do checkout",()=>{
   assert.ok(checkout.includes("max_uses"));
   assert.ok(checkout.includes("expires_at"));
 });
+
+test("checkout calcula dinheiro em centavos para evitar divergência de arredondamento",()=>{
+  assert.ok(server.includes("function moneyCents(value)"));
+  assert.ok(server.includes("productsTotalCents"));
+  assert.ok(server.includes("moneyCents(selectedShipping.price)"));
+  assert.ok(server.includes("discountCents/100"));
+});
