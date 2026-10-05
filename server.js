@@ -204,7 +204,7 @@ function toProduct(row) {
 const ADMIN_SESSION_TTL_MS=8*60*60*1000;
 function adminSessionToken(req){
   const raw=String(req.headers.cookie||"");
-  const m=raw.match(/(?:^|;\s*)vorzeli_admin=([^;]+)/);
+  const m=raw.match(/(?:^|;\s*)(?:__Host-vorzeli_admin|vorzeli_admin)=([^;]+)/);
   return m?m[1]:"";
 }
 const sessionHash=token=>crypto.createHash("sha256").update(String(token)).digest("hex");
@@ -353,13 +353,13 @@ app.post("/api/admin/auth",async(req,res)=>{
     await cleanupAdminSessions();
     const token=crypto.randomBytes(32).toString("hex");
     await pool.query("INSERT INTO admin_sessions(token_hash,expires_at) VALUES($1,$2)",[sessionHash(token),new Date(Date.now()+ADMIN_SESSION_TTL_MS)]);
-    res.setHeader("Set-Cookie",`vorzeli_admin=${token}; Max-Age=${ADMIN_SESSION_TTL_MS/1000}; Path=/; HttpOnly; Secure; SameSite=Strict`);
+    res.setHeader("Set-Cookie",`__Host-vorzeli_admin=${token}; Max-Age=${ADMIN_SESSION_TTL_MS/1000}; Path=/; HttpOnly; Secure; SameSite=Strict`);
     res.json({ok:true});
   }catch(e){console.error("Falha no login administrativo:",e);res.status(500).json({error:"Não foi possível iniciar a sessão administrativa."});}
 });
 app.post("/api/admin/logout",async(req,res)=>{
   try{const token=adminSessionToken(req);if(token&&process.env.DATABASE_URL)await pool.query("DELETE FROM admin_sessions WHERE token_hash=$1",[sessionHash(token)]);}catch(e){console.error("Falha ao encerrar sessão:",e);}
-  res.setHeader("Set-Cookie","vorzeli_admin=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict");
+  res.setHeader("Set-Cookie",["__Host-vorzeli_admin=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict","vorzeli_admin=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict"]);
   res.json({ok:true});
 });
 app.get("/api/admin/session",adminOnly,(req,res)=>res.json({ok:true}));
