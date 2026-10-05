@@ -510,8 +510,18 @@ app.get("/api/admin/avaliacoes",adminOnly,requireDatabase,async(req,res)=>{
   catch(e){console.error(e);res.status(500).json({error:"Não foi possível carregar avaliações."});}
 });
 app.put("/api/admin/avaliacoes/:id",adminOnly,requireDatabase,async(req,res)=>{
-  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Avaliação inválida."});const r=await pool.query("UPDATE product_reviews SET approved=$1 WHERE id=$2 RETURNING product_id",[Boolean(req.body?.approved),req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Avaliação não encontrada."});const productId=r.rows[0].product_id;await pool.query("UPDATE products SET rating=COALESCE((SELECT ROUND(AVG(rating)::numeric,1) FROM product_reviews WHERE product_id=$1 AND approved=TRUE),0),reviews=(SELECT COUNT(*) FROM product_reviews WHERE product_id=$1 AND approved=TRUE) WHERE id=$1",[productId]);res.json({ok:true});}
-  catch(e){console.error(e);res.status(500).json({error:"Não foi possível atualizar a avaliação."});}
+  const client=await pool.connect();
+  try{
+    if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Avaliação inválida."});
+    await client.query("BEGIN");
+    const r=await client.query("UPDATE product_reviews SET approved=$1 WHERE id=$2 RETURNING product_id",[Boolean(req.body?.approved),req.params.id]);
+    if(!r.rows.length){await client.query("ROLLBACK");return res.status(404).json({error:"Avaliação não encontrada."});}
+    const productId=r.rows[0].product_id;
+    await client.query("UPDATE products SET rating=COALESCE((SELECT ROUND(AVG(rating)::numeric,1) FROM product_reviews WHERE product_id=$1 AND approved=TRUE),0),reviews=(SELECT COUNT(*) FROM product_reviews WHERE product_id=$1 AND approved=TRUE) WHERE id=$1",[productId]);
+    await client.query("COMMIT");
+    res.json({ok:true});
+  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(e);res.status(500).json({error:"Não foi possível atualizar a avaliação."});}
+  finally{client.release();}
 });
 
 app.get("/api/produtos/:id/perguntas",requireDatabase,async(req,res)=>{
