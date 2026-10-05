@@ -1,6 +1,7 @@
 const express = require("express");
 const { Pool } = require("pg");
 const crypto = require("crypto");
+const nodemailer = require("nodemailer");
 
 const app = express();
 app.set("trust proxy", 1);
@@ -229,6 +230,27 @@ const SHIPPING_ORIGIN_CEP="29177297";
 const STOCK_RESERVATION_MINUTES=30;
 const EXTERNAL_TIMEOUT_MS=12000;
 const externalSignal=()=>AbortSignal.timeout(EXTERNAL_TIMEOUT_MS);
+function smtpConfig(){
+  const host=process.env.SMTP_HOST||"smtp-relay.brevo.com";
+  const port=Number(process.env.SMTP_PORT||587);
+  const user=process.env.SMTP_USER||process.env.SMTP_LOGIN||"";
+  const pass=process.env.SMTP_PASS||process.env.SMTP_PASSWORD||process.env.SMTP_KEY||"";
+  const from=process.env.SMTP_FROM||process.env.SMTP_FROM_EMAIL||"contato@vorzeli.com.br";
+  if(!user||!pass)return null;
+  return {host,port,user,pass,from};
+}
+async function sendPaymentConfirmationEmail({to,publicId,total}){
+  const cfg=smtpConfig();
+  if(!cfg||!to)return false;
+  const transporter=nodemailer.createTransport({host:cfg.host,port:cfg.port,secure:cfg.port===465,auth:{user:cfg.user,pass:cfg.pass}});
+  await transporter.sendMail({
+    from:`VORZELI <${cfg.from}>`,
+    to,
+    subject:`Pagamento confirmado — ${publicId}`,
+    text:`Olá! Recebemos o pagamento do pedido ${publicId}. Total: ${Number(total).toLocaleString("pt-BR",{style:"currency",currency:"BRL"})}. Você pode acompanhar o pedido em ${(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"")}/pedido.html?pedido=${encodeURIComponent(publicId)}. Obrigado por comprar na VORZELI.`
+  });
+  return true;
+}
 async function releaseExpiredReservations(){
   if(!process.env.DATABASE_URL)return;
   const client=await pool.connect();
@@ -534,6 +556,7 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
     const pay=await mp.json(), publicId=clean(pay.external_reference,80);
     if(!publicId||!publicId.startsWith("VZ-"))return res.sendStatus(200);
     const client=await pool.connect();
+    let confirmationEmail=null;
     try{
       await client.query("BEGIN");
       const or=await client.query("SELECT * FROM orders WHERE public_id=$1 FOR UPDATE",[publicId]);
@@ -548,6 +571,7 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
           }
         }
         await client.query("UPDATE orders SET status='paid',stock_reduced=TRUE,stock_reserved=FALSE,reservation_expires_at=NULL,shipping_status=CASE WHEN shipping_status='aguardando_pagamento' THEN 'preparando' ELSE shipping_status END,payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
+        confirmationEmail={to:clean(pay.payer?.email,240),publicId,total:Number(current.total)};
         await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[current.id,"payment_approved","Pagamento aprovado pelo Mercado Pago."]);
       }else if(["pending","in_process","authorized"].includes(pay.status)){
         const normalizedStatus=pay.status==="in_process"?"pending":pay.status;
@@ -566,6 +590,7 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
         await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[current.id,"payment_"+pay.status,"Pagamento atualizado para: "+pay.status+"."]);
       }
       await client.query("COMMIT");
+      if(confirmationEmail)sendPaymentConfirmationEmail(confirmationEmail).catch(e=>console.error("Falha ao enviar confirmação por e-mail:",e.message));
       return res.sendStatus(200);
     }catch(e){await client.query("ROLLBACK");console.error(e);if(!res.headersSent)return res.sendStatus(500);}finally{client.release();}
   }catch(e){console.error("Webhook Mercado Pago:",e);if(!res.headersSent)return res.sendStatus(500);}
@@ -627,7 +652,8 @@ app.get("/api/status",async(req,res)=>{
     shipping:Boolean(process.env.MELHOR_ENVIO_TOKEN),
     public_url:Boolean(process.env.PUBLIC_URL),
     webhook_signature:Boolean(process.env.MP_WEBHOOK_SECRET),
-    admin_password:Boolean(process.env.ADMIN_PASSWORD)
+    admin_password:Boolean(process.env.ADMIN_PASSWORD),
+    smtp_email:Boolean(smtpConfig())
   };
   const required=["database","payments","shipping","public_url","webhook_signature","admin_password"];
   const missing=required.filter(k=>!checks[k]);
