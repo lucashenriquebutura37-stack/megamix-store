@@ -11,8 +11,11 @@
 </head>
 <body><main class="wrap">
 <div class="head"><div><h1>Painel de Produtos</h1><small>VORZELI • cadastro e estoque</small></div><div><div class="login" id="loginBox"><div><label>Senha administrativa</label><input id="password" type="password" placeholder="Senha do Render" autocomplete="current-password"></div><button class="secondary" type="button" onclick="loginAdmin()">Entrar</button></div><div class="adminConnected" id="adminConnected"><strong>✓ Administrador conectado</strong><button class="secondary" type="button" onclick="logoutAdmin()">Sair</button></div></div></div>
-<div class="adminTabs"><button class="secondary" type="button" onclick="document.getElementById('productSection').scrollIntoView({behavior:'smooth'})">Produtos</button><button class="secondary" type="button" onclick="loadOrders()">Pedidos</button><button class="secondary" type="button" onclick="document.getElementById('testSection').scrollIntoView({behavior:'smooth'})">Teste</button></div>
-<section class="panel" id="testSection" style="margin-bottom:18px">
+<div class="adminTabs"><button class="secondary" type="button" onclick="document.getElementById('productSection').scrollIntoView({behavior:'smooth'})">Produtos</button><button class="secondary" type="button" onclick="loadOrders()">Pedidos</button><button class="secondary" type="button" onclick="loadQuestions()">Perguntas</button><button class="secondary" type="button" onclick="document.getElementById('testSection').scrollIntoView({behavior:'smooth'})">Teste</button></div>
+<section class="panel" id="questionsSection" style="margin-bottom:18px">
+<h2 style="margin-top:0">Perguntas de clientes</h2><small>Responda e aprove apenas o conteúdo que deve aparecer publicamente.</small>
+<div id="questionsList" class="list" style="margin-top:14px"><div class="panel">Entre como administrador para visualizar perguntas.</div></div>
+</section><section class="panel" id="testSection" style="margin-bottom:18px">
 <h2 style="margin-top:0">Pedido de teste</h2><small>Não abre o Mercado Pago, não cobra e não reduz estoque.</small>
 <div class="grid" style="margin-top:14px">
 <div><label>Nome *</label><input id="tName" placeholder="Cliente de teste"></div><div><label>Telefone *</label><input id="tPhone" placeholder="(00) 00000-0000"></div>
@@ -172,6 +175,22 @@ async function toggleOrderHistory(id){
   const events=await r.json();if(!r.ok)throw new Error(events.error||"Erro ao carregar histórico.");
   box.innerHTML=events.length?'<div style="margin-top:10px"><b>Histórico do pedido</b>'+events.map(e=>'<div style="padding:9px 0;border-bottom:1px solid #eee"><small>'+esc(new Date(e.created_at).toLocaleString("pt-BR"))+'</small><br>'+esc(e.detail||e.event_type)+'</div>').join("")+'</div>':'<small>Nenhum evento registrado ainda.</small>';
  }catch(e){box.innerHTML='<small>'+esc(e.message)+'</small>'}
+}
+async function loadQuestions(){
+ if(!adminConnected){status("Entre como administrador primeiro.",false);return}
+ const box=$("questionsList");box.innerHTML='<div class="panel">Carregando perguntas...</div>';
+ try{
+  const r=await fetch("/api/admin/perguntas"),rows=await r.json();if(!r.ok)throw new Error(rows.error||"Erro ao carregar perguntas.");
+  box.innerHTML=rows.length?rows.map(q=>'<div class="order"><b>'+esc(q.product_name)+'</b><div class="orderItems"><strong>'+(q.customer_name?esc(q.customer_name):"Cliente")+'</strong>: '+esc(q.question)+'</div><div class="grid" style="margin-top:10px"><div class="full"><label>Resposta da VORZELI</label><textarea id="qa-'+q.id+'" rows="3" maxlength="1200">'+esc(q.answer||"")+'</textarea></div></div><div class="actions"><label><input id="approve-'+q.id+'" type="checkbox" '+(q.approved?"checked":"")+'> Publicar pergunta</label><button class="primary" type="button" onclick="saveQuestion('+q.id+')">Salvar resposta</button></div></div>').join(""):'<div class="panel">Nenhuma pergunta recebida.</div>';
+  $("questionsSection").scrollIntoView({behavior:"smooth"});
+ }catch(e){box.innerHTML='<div class="panel">'+esc(e.message)+'</div>'}
+}
+async function saveQuestion(id){
+ try{
+  const r=await fetch("/api/admin/perguntas/"+id,{method:"PUT",headers:{"Content-Type":"application/json"},body:JSON.stringify({answer:$("qa-"+id).value,approved:$("approve-"+id).checked})});
+  const d=await r.json();if(!r.ok)throw new Error(d.error||"Erro ao salvar.");
+  status("Pergunta atualizada.");await loadQuestions();
+ }catch(e){status(e.message,false)}
 }
 async function loadOrders(){
  if(!adminConnected)return;
