@@ -303,7 +303,7 @@ app.post("/api/produtos",adminOnly,requireDatabase,async(req,res)=>{
   try{
     const checked=validateProductInput(req.body||{});
     if(checked.error)return res.status(400).json({error:checked.error});
-    const r=await pool.query(`INSERT INTO products(name,category,subcategory,detail,price,old_price,stock,image,rating,reviews,shipping,installments,featured,weight_kg,length_cm,width_cm,height_cm,description,sku,brand,images) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb) RETURNING *`,[...checked.values,checked.extra.description,checked.extra.sku,checked.extra.brand,JSON.stringify(checked.extra.images)]);
+    const r=await pool.query(`INSERT INTO products(name,category,subcategory,detail,price,old_price,stock,image,rating,reviews,shipping,installments,featured,weight_kg,length_cm,width_cm,height_cm,description,sku,brand,images,variants,tags) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18,$19,$20,$21::jsonb,$22::jsonb,$23::jsonb) RETURNING *`,[...checked.values,checked.extra.description,checked.extra.sku,checked.extra.brand,JSON.stringify(checked.extra.images),JSON.stringify(checked.extra.variants),JSON.stringify(checked.extra.tags)]);
     res.status(201).json(toProduct(r.rows[0]));
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao cadastrar produto."});}
 });
