@@ -5,11 +5,12 @@ O placar histórico 85/100 foi recebido como referência, não como prova de uma
 ## Evidência obtida
 - CI de validação e GitHub Pages verdes no commit de código `fced506e88f9ca41ae869c0e8c77bd0ddc2f1da5`.
 - Instalação por `npm ci`, lockfile atualizado e auditoria sem vulnerabilidades.
-- 63 testes locais no Node 22, incluindo TOTP, repetição de códigos, filtros, ações da interface, compressão, logs, descontos, assinatura de webhook, transições de pagamento, estoque/cupom, indisponibilidade do banco e sitemap.
+- 67 testes locais, incluindo TOTP, repetição de códigos, filtros, ações da interface, compressão, logs, descontos, assinatura de webhook, transições de pagamento, estoque/cupom, indisponibilidade do banco, sitemap e monitoramento.
 - Política de produção sem `unsafe-inline` ou `unsafe-eval`, com scripts e estilos externos.
 - Categoria, detalhes e carrinho verificados no navegador publicado; limite de estoque e subtotal zero após remoção.
 - `/healthz` e `/api/status` respondendo 200; arquivos públicos recebendo gzip; `/server.js` e `/lib/totp.js` retornando 404.
 - Ferramentas de backup e restauração e monitoramento por GitHub Actions adicionados.
+- Monitoramento da página da loja e dos dois endpoints, com timestamps de até 120 segundos, ausência de cache e três tentativas antes de falhar. Consulta direta dos três endereços aprovada nesta retomada. O aviso isolado de 2FA não falha a verificação.
 
 ## Pendências que não podem ser marcadas como concluídas
 | Item | Situação |
