@@ -183,7 +183,7 @@ function safeAdminImage(v){try{const u=new URL(String(v||""));return (u.protocol
   return `
  <div class="item">
   ${img?'<img class="thumb" src="'+esc(img)+'" alt="">':'<div class="thumb"></div>'}
-  <div class="meta"><b>${esc(p.n)}</b><small>${esc(p.c)} › ${esc(p.sub)} • R$ ${Number(p.p).toFixed(2).replace(".",",")} • estoque: ${Number(p.stock)||0}</small></div>
+  <div class="meta"><b>${esc(p.n)}</b><small>${esc(p.c)} › ${esc(p.sub)} • R$ ${Number(p.p).toFixed(2).replace(".",",")} • estoque: ${Number(p.stock)||0}</small>${Number(p.stock)===0?'<small style="display:block;color:#c0392b;font-weight:800">SEM ESTOQUE</small>':Number(p.stock)<=5?'<small style="display:block;color:#b26a00;font-weight:800">ESTOQUE BAIXO</small>':''}</div>
   <div class="itemActions"><button class="secondary" data-edit="${Number(p.id)}">Editar</button><button class="danger" data-remove="${Number(p.id)}">Excluir</button></div>
  </div>`}).join(""):'<div class="panel">Nenhum produto cadastrado ainda.</div>';
  $("list").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>editProduct(b.dataset.edit)));
