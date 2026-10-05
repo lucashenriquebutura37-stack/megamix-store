@@ -37,3 +37,12 @@ test("checkout, acompanhamento e frete continuam visíveis",()=>{
   assert.match(index,/Calcular frete/);
   assert.match(pedido,/Consultar pedido/);
 });
+
+test("experiência moderna de produto permanece ativa",()=>{
+  const script=fs.readFileSync("script.js","utf8");
+  for(const marker of ["buyNow","toggleFavorite","shareProduct","relatedProducts","searchSuggestions"]){
+    assert.ok(script.includes(marker),marker+" ausente");
+  }
+  assert.match(index,/Melhor avaliados/);
+  assert.match(index,/Mais recentes/);
+});
