@@ -1428,3 +1428,7 @@ header{position:relative;z-index:10}
  .discountPill{left:8px;top:8px;padding:5px 7px;font-size:9px}
  .add{min-height:40px;font-size:11px!important;padding:9px!important}
 }
+
+
+/* VORZELI — acabamento operacional */
+footer a{color:inherit;text-decoration:none}footer a:hover{color:#ff5a1f}.add:disabled,.checkout:disabled{opacity:.5;cursor:not-allowed}.marketPlaceholder{min-width:min(420px,90vw)}
