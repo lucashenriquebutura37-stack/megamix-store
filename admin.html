@@ -19,6 +19,7 @@
 <div class="full"><label>Rua / Avenida *</label><input id="tAddress"></div><div><label>Número *</label><input id="tNumber"></div><div><label>Complemento</label><input id="tExtra"></div>
 <div><label>Bairro *</label><input id="tNeighborhood"></div><div><label>Cidade *</label><input id="tCity"></div>
 </div><div class="actions"><button class="primary" type="button" onclick="createTestOrder()">Criar pedido de teste</button></div>
+<div class="status" id="testOrderStatus"></div>
 <hr style="border:0;border-top:1px solid #eee;margin:22px 0">
 <h3>Testar frete real</h3><small>Consulta o Melhor Envio sem criar produto, pedido ou cobrança.</small>
 <div class="grid" style="margin-top:14px">
@@ -99,14 +100,15 @@ async function testShipping(){
  }catch(e){fs.textContent=e.message;fs.style.color="#c0392b";}
 }
 async function createTestOrder(){
- if(!adminPassword){status("Entre como administrador primeiro.",false);return}
+ if(!adminPassword){$("testOrderStatus").textContent="Entre como administrador primeiro.";$("testOrderStatus").style.color="#c0392b";return}
+ const tos=$("testOrderStatus");tos.textContent="Criando pedido de teste...";tos.style.color="#5f636b";
  const cep=$("tCep").value.replace(/\D/g,"");
  const customer={name:$("tName").value,phone:$("tPhone").value,postalCode:cep,address:$("tAddress").value,number:$("tNumber").value,extra:$("tExtra").value,neighborhood:$("tNeighborhood").value,city:$("tCity").value,state:$("tState").value.toUpperCase()};
  try{
   const r=await fetch("/api/admin/pedido-teste",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify({customer})});
   const d=await r.json();if(!r.ok)throw new Error(d.error||"Erro ao criar teste.");
-  status("Pedido de teste criado: "+d.order_id);await loadOrders();
- }catch(e){status(e.message,false)}
+  tos.textContent="Pedido de teste criado: "+d.order_id;tos.style.color="#198754";await loadOrders();
+ }catch(e){tos.textContent=e.message;tos.style.color="#c0392b"}
 }
 (function setupTestCep(){
  const el=$("tCep");if(!el)return;let last="";
