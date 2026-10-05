@@ -289,6 +289,17 @@ async function sendPaymentConfirmationEmail({to,publicId,total}){
   });
   return true;
 }
+async function sendShippingUpdateEmail({to,publicId,status,trackingCode=""}){
+  const cfg=smtpConfig();if(!cfg||!to)return false;
+  const site=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,""),trackingUrl=`${site}/pedido.html?id=${encodeURIComponent(publicId)}`;
+  const labels={preparando:"Pedido em preparação",enviado:"Pedido enviado",entregue:"Pedido entregue"};
+  const title=labels[status];if(!title)return false;
+  const safeId=htmlEscape(publicId),safeTrack=htmlEscape(trackingCode);
+  const extra=status==="enviado"&&safeTrack?`<p><b>Código de rastreio:</b> ${safeTrack}</p>`:status==="entregue"?"<p>Esperamos que você aproveite sua compra. Agora você também pode avaliar os produtos pelo acompanhamento do pedido.</p>":"<p>Seu pedido já está sendo preparado para envio.</p>";
+  const transporter=nodemailer.createTransport({host:cfg.host,port:cfg.port,secure:cfg.port===465,auth:{user:cfg.user,pass:cfg.pass}});
+  await transporter.sendMail({from:`VORZELI <${cfg.from}>`,to,subject:`${title} — ${publicId}`,text:`${title}. Pedido ${publicId}.${trackingCode?" Rastreio: "+trackingCode:""} Acompanhe: ${trackingUrl}`,html:`<!doctype html><html><body style="font-family:Arial,sans-serif;background:#f4f5f7;padding:24px;color:#171717"><div style="max-width:600px;margin:auto;background:#fff;padding:28px;border-radius:16px"><h1 style="margin-top:0">${title}</h1><p>Atualização do pedido <b>${safeId}</b>.</p>${extra}<a href="${trackingUrl}" style="display:inline-block;background:#ff5a1f;color:#fff;text-decoration:none;padding:13px 18px;border-radius:10px;font-weight:700">Acompanhar pedido</a></div></body></html>`});
+  return true;
+}
 async function releaseExpiredReservations(){
   if(!process.env.DATABASE_URL)return;
   const client=await pool.connect();
@@ -759,7 +770,7 @@ app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res
     if(!allowed.includes(shippingStatus))return res.status(400).json({error:"Status de envio inválido."});
     if(shippingStatus==="enviado"&&!trackingCode)return res.status(400).json({error:"Informe o código de rastreio antes de marcar o pedido como enviado."});
     const publicId=clean(req.params.publicId,80);
-    const current=await pool.query("SELECT status,shipping_status,is_test FROM orders WHERE public_id=$1",[publicId]);
+    const current=await pool.query("SELECT status,shipping_status,is_test,payer_email FROM orders WHERE public_id=$1",[publicId]);
     if(!current.rows.length)return res.status(404).json({error:"Pedido não encontrado."});
     if(!current.rows[0].is_test&&["enviado","entregue"].includes(shippingStatus)&&current.rows[0].status!=="paid")return res.status(409).json({error:"Somente pedidos pagos podem ser marcados como enviados ou entregues."});
     if(current.rows[0].shipping_status==="entregue"&&shippingStatus!=="entregue")return res.status(409).json({error:"Pedido já entregue. O status não pode ser retrocedido automaticamente."});
@@ -773,6 +784,7 @@ app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res
       if(previous!==shippingStatus)await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[r.rows[0].id,"shipping_status","Envio: "+previous+" -> "+shippingStatus]);
       await client.query("COMMIT");
       const {id,...result}=r.rows[0];res.json(result);
+      if(previous!==shippingStatus&&current.rows[0].payer_email&&["preparando","enviado","entregue"].includes(shippingStatus))sendShippingUpdateEmail({to:current.rows[0].payer_email,publicId,status:shippingStatus,trackingCode}).catch(e=>console.error("Falha ao enviar atualização de envio:",e.message));
     }catch(e){try{await client.query("ROLLBACK")}catch{};throw e;}finally{client.release();}
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar envio."});}
 });
