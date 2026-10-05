@@ -374,13 +374,13 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
             if(!u.rows.length)throw new Error("Estoque insuficiente ao confirmar pedido "+publicId);
           }
         }
-        await client.query("UPDATE orders SET status='paid',stock_reduced=TRUE,stock_reserved=FALSE,shipping_status=CASE WHEN shipping_status='aguardando_pagamento' THEN 'preparando' ELSE shipping_status END,payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
+        await client.query("UPDATE orders SET status='paid',stock_reduced=TRUE,stock_reserved=FALSE,reservation_expires_at=NULL,shipping_status=CASE WHEN shipping_status='aguardando_pagamento' THEN 'preparando' ELSE shipping_status END,payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
       }else if(["rejected","cancelled","refunded","charged_back"].includes(pay.status)){
         if(["rejected","cancelled"].includes(pay.status)&&current.status==="paid"){await client.query("COMMIT");return;}
         if((["refunded","charged_back"].includes(pay.status)&&current.stock_reduced)||(["rejected","cancelled"].includes(pay.status)&&current.stock_reserved)){
           const its=await client.query("SELECT * FROM order_items WHERE order_id=$1",[current.id]);
           for(const it of its.rows)await client.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[it.quantity,it.product_id]);
-          await client.query("UPDATE orders SET stock_reduced=FALSE,stock_reserved=FALSE WHERE id=$1",[current.id]);
+          await client.query("UPDATE orders SET stock_reduced=FALSE,stock_reserved=FALSE,reservation_expires_at=NULL WHERE id=$1",[current.id]);
         }
         await client.query("UPDATE orders SET status=$1,payment_id=$2,payer_email=$3,shipping_status=CASE WHEN $1 IN ('refunded','charged_back','cancelled') AND shipping_status<>'entregue' THEN 'cancelado' ELSE shipping_status END WHERE id=$4",[pay.status,String(pay.id),clean(pay.payer?.email,240),current.id]);
       }
