@@ -348,6 +348,7 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
   try{
     const paymentId=req.query["data.id"]||req.body?.data?.id;
     if(!paymentId||!process.env.MP_ACCESS_TOKEN)return res.sendStatus(200);
+    if(!/^\d{1,30}$/.test(String(paymentId)))return res.sendStatus(400);
     if(!validMercadoPagoSignature(req,paymentId))return res.sendStatus(401);
     res.sendStatus(200);
     const mp=await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,{signal:externalSignal(),headers:{Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`}});
