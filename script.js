@@ -325,16 +325,13 @@ let selectedDetail = "";
    CARRINHO
 ========================= */
 
-let cart = JSON.parse(
-  localStorage.getItem("cart") || "[]"
-).filter(item =>
-  products.some(product => product.id === item.id)
-);
-
-localStorage.setItem(
-  "cart",
-  JSON.stringify(cart)
-);
+let cart = [];
+try {
+  const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
+  cart = Array.isArray(savedCart) ? savedCart : [];
+} catch {
+  cart = [];
+}
 
 
 /* =========================
@@ -1113,36 +1110,16 @@ function showAll() {
 ========================= */
 
 function add(id) {
-
-  if (
-    !products.some(
-      product =>
-        product.id === id
-    )
-  ) {
-    return;
-  }
-
-  let item =
-    cart.find(
-      product =>
-        product.id === id
-    );
-
+  const product = products.find(product => product.id === id);
+  if (!product || Number(product.stock) <= 0) return alert("Produto sem estoque no momento.");
+  let item = cart.find(product => product.id === id);
   if (item) {
-
+    if (item.q >= Number(product.stock)) return alert("Você já adicionou todo o estoque disponível.");
     item.q++;
-
   } else {
-
-    cart.push({
-      id: id,
-      q: 1
-    });
+    cart.push({ id, q: 1 });
   }
-
   save();
-
   openCart();
 }
 
@@ -1219,7 +1196,7 @@ function updateCart() {
             <div class="cartItem">
 
               <div class="ciIcon">
-                ${product.i || "📦"}
+                ${product.i && /^https?:/i.test(product.i) ? '<img src="'+product.i+'" alt="" style="width:44px;height:44px;object-fit:contain">' : "📦"}
               </div>
 
               <div style="flex:1">
@@ -1302,30 +1279,13 @@ function updateCart() {
    QUANTIDADE
 ========================= */
 
-function change(
-  id,
-  amount
-) {
-
-  const item =
-    cart.find(
-      product =>
-        product.id === id
-    );
-
-  if (!item) return;
-
+function change(id, amount) {
+  const item = cart.find(product => product.id === id);
+  const product = products.find(product => product.id === id);
+  if (!item || !product) return;
+  if (amount > 0 && item.q >= Number(product.stock)) return alert("Limite do estoque atingido.");
   item.q += amount;
-
-  if (item.q <= 0) {
-
-    cart =
-      cart.filter(
-        product =>
-          product.id !== id
-      );
-  }
-
+  if (item.q <= 0) cart = cart.filter(product => product.id !== id);
   save();
 }
 
@@ -1367,108 +1327,26 @@ function openCart() {
 ========================= */
 
 async function checkout() {
-
-  if (!cart.length) {
-
-    return alert(
-      "Adicione produtos ao carrinho."
-    );
-  }
-
-
-  const total =
-    cart.reduce(
-      (value, item) => {
-
-        const product =
-          products.find(
-            product =>
-              product.id === item.id
-          );
-
-        return (
-          value +
-          (
-            product
-              ? product.p * item.q
-              : 0
-          )
-        );
-
-      },
-      0
-    );
-
-
+  if (!cart.length) return alert("Adicione produtos ao carrinho.");
+  const button = document.querySelector(".checkout");
+  if (button) { button.disabled = true; button.textContent = "Preparando pagamento..."; }
   try {
-
-    const response =
-      await fetch(
-        "/api/criar-preferencia",
-        {
-
-          method: "POST",
-
-          headers: {
-            "Content-Type":
-              "application/json"
-          },
-
-          body:
-            JSON.stringify({
-
-              titulo:
-                "Pedido VORZELI",
-
-              preco:
-                Number(
-                  total.toFixed(2)
-                ),
-
-              quantidade: 1
-
-            })
-        }
-      );
-
-
-    const data =
-      await response.json();
-
-
-    if (!response.ok) {
-
-      console.error(data);
-
-      return alert(
-        "Não foi possível iniciar o pagamento."
-      );
-    }
-
-
-    const url =
-      data.sandbox_url ||
-      data.checkout_url;
-
-
-    if (!url) {
-
-      return alert(
-        "Link de pagamento não recebido."
-      );
-    }
-
-
+    const response = await fetch("/api/criar-preferencia", {
+      method: "POST",
+      headers: {"Content-Type":"application/json"},
+      body: JSON.stringify({ items: cart.map(item => ({ id:item.id, q:item.q })) })
+    });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || "Não foi possível iniciar o pagamento.");
+    if (data.order_id) localStorage.setItem("lastOrderId", data.order_id);
+    const url = data.checkout_url || data.sandbox_url;
+    if (!url) throw new Error("Link de pagamento não recebido.");
     window.location.href = url;
-
-
   } catch (error) {
-
-    console.error(error);
-
-    alert(
-      "Erro ao conectar com o Mercado Pago."
-    );
+    alert(error.message || "Erro ao conectar com o Mercado Pago.");
+    await loadCatalog();
+  } finally {
+    if (button) { button.disabled = false; button.textContent = "Finalizar pagamento"; }
   }
 }
 
@@ -1517,6 +1395,8 @@ async function loadCatalog() {
 
     localStorage.setItem("cart", JSON.stringify(cart));
     updateCart();
+    fillRails();
+    if (selectedSub && (!specializedSubs[selectedSub] || selectedDetail)) render();
   } catch (error) {
     console.error("Catálogo:", error);
   }
