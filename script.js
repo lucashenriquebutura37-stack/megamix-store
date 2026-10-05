@@ -1330,12 +1330,15 @@ async function calculateShipping(){
   if(box)box.innerHTML='<p style="font-size:13px">Calculando opções de entrega...</p>';
   selectedShipping=null;
   try{
-    const r=await fetch("/api/frete/cotar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({postal_code:cep,items:cart.map(i=>({id:i.id,q:i.q}))})});
+    const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
+    let r;
+    try{r=await fetch("/api/frete/cotar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({postal_code:cep,items:cart.map(i=>({id:i.id,q:i.q}))}),signal:controller.signal});}
+    finally{clearTimeout(timer);}
     const d=await r.json();if(!r.ok)throw new Error(d.error||"Não foi possível calcular o frete.");
     if(!d.quotes?.length)throw new Error("Nenhuma opção de entrega disponível para este CEP.");
     if(box)box.innerHTML='<div class="shippingTitle">Escolha a entrega</div>'+d.quotes.map((q,i)=>'<label class="shippingOption"><input type="radio" name="shippingOption" value="'+q.id+'" onchange="chooseShipping('+i+')"><span><b>'+(q.company?q.company+" • ":"")+q.name+'</b><small>'+money(Number(q.price))+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</small></span></label>').join("");
     window.shippingQuotes=d.quotes;
-  }catch(e){if(box)box.innerHTML='<p style="font-size:13px;color:#c0392b">'+escapeHTML(e.message)+'</p>';}
+  }catch(e){const msg=e?.name==="AbortError"?"A cotação demorou para responder. Tente novamente.":(e.message||"Não foi possível calcular o frete.");if(box)box.innerHTML='<p class="shippingError">'+escapeHTML(msg)+'</p><button type="button" class="shippingRetry" onclick="calculateShipping()">Tentar novamente</button>';}
 }
 function chooseShipping(index){
   selectedShipping=window.shippingQuotes?.[index]||null;
