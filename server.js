@@ -170,6 +170,7 @@ async function initDatabase() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS delivered_at TIMESTAMPTZ;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code TEXT DEFAULT '';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount NUMERIC(12,2) DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_released BOOLEAN DEFAULT FALSE;
     CREATE TABLE IF NOT EXISTS order_items (
       id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
       product_id BIGINT NOT NULL REFERENCES products(id), product_name TEXT NOT NULL,
@@ -309,12 +310,12 @@ async function releaseExpiredReservations(){
   const client=await pool.connect();
   try{
     await client.query("BEGIN");
-    const expired=await client.query("SELECT id,coupon_code FROM orders WHERE stock_reserved=TRUE AND stock_reduced=FALSE AND status='pending' AND reservation_expires_at<=NOW() ORDER BY reservation_expires_at LIMIT 100 FOR UPDATE SKIP LOCKED");
+    const expired=await client.query("SELECT id,coupon_code,coupon_released FROM orders WHERE stock_reserved=TRUE AND stock_reduced=FALSE AND status='pending' AND reservation_expires_at<=NOW() ORDER BY reservation_expires_at LIMIT 100 FOR UPDATE SKIP LOCKED");
     for(const order of expired.rows){
       const items=await client.query("SELECT product_id,quantity FROM order_items WHERE order_id=$1",[order.id]);
       for(const item of items.rows)await client.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[item.quantity,item.product_id]);
       await client.query("UPDATE orders SET stock_reserved=FALSE,reservation_expires_at=NULL,status='expired',shipping_status='cancelado' WHERE id=$1",[order.id]);
-      if(order.coupon_code)await client.query("UPDATE coupons SET uses=GREATEST(uses-1,0) WHERE UPPER(code)=UPPER($1)",[order.coupon_code]);
+      if(order.coupon_code&&!order.coupon_released){await client.query("UPDATE coupons SET uses=GREATEST(uses-1,0) WHERE UPPER(code)=UPPER($1)",[order.coupon_code]);await client.query("UPDATE orders SET coupon_released=TRUE WHERE id=$1",[order.id]);}
       await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[order.id,"reservation_expired","Reserva de estoque expirada; estoque devolvido automaticamente."]);
     }
     await client.query("COMMIT");
@@ -325,12 +326,12 @@ async function cancelReservedOrder(publicId){
   const c=await pool.connect();
   try{
     await c.query("BEGIN");
-    const r=await c.query("SELECT id,stock_reserved,coupon_code FROM orders WHERE public_id=$1 FOR UPDATE",[publicId]);
+    const r=await c.query("SELECT id,stock_reserved,coupon_code,coupon_released FROM orders WHERE public_id=$1 FOR UPDATE",[publicId]);
     if(r.rows[0]?.stock_reserved){
       const items=await c.query("SELECT product_id,quantity FROM order_items WHERE order_id=$1",[r.rows[0].id]);
       for(const item of items.rows)await c.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[item.quantity,item.product_id]);
       await c.query("UPDATE orders SET stock_reserved=FALSE,reservation_expires_at=NULL,status='cancelled',shipping_status='cancelado' WHERE id=$1",[r.rows[0].id]);
-      if(r.rows[0].coupon_code)await c.query("UPDATE coupons SET uses=GREATEST(uses-1,0) WHERE UPPER(code)=UPPER($1)",[r.rows[0].coupon_code]);
+      if(r.rows[0].coupon_code&&!r.rows[0].coupon_released){await c.query("UPDATE coupons SET uses=GREATEST(uses-1,0) WHERE UPPER(code)=UPPER($1)",[r.rows[0].coupon_code]);await c.query("UPDATE orders SET coupon_released=TRUE WHERE id=$1",[r.rows[0].id]);}
       await c.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[r.rows[0].id,"reservation_cancelled","Reserva cancelada; estoque devolvido automaticamente."]);
     }
     await c.query("COMMIT");
