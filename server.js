@@ -508,6 +508,12 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
         }
         await client.query("UPDATE orders SET status='paid',stock_reduced=TRUE,stock_reserved=FALSE,reservation_expires_at=NULL,shipping_status=CASE WHEN shipping_status='aguardando_pagamento' THEN 'preparando' ELSE shipping_status END,payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
         await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[current.id,"payment_approved","Pagamento aprovado pelo Mercado Pago."]);
+      }else if(["pending","in_process","authorized"].includes(pay.status)){
+        const normalizedStatus=pay.status==="in_process"?"pending":pay.status;
+        if(!["paid","refunded","charged_back"].includes(current.status)){
+          await client.query("UPDATE orders SET status=$1,payment_id=$2,payer_email=$3 WHERE id=$4",[normalizedStatus,String(pay.id),clean(pay.payer?.email,240),current.id]);
+          if(current.status!==normalizedStatus)await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[current.id,"payment_"+normalizedStatus,"Pagamento aguardando confirmação: "+pay.status+"."]);
+        }
       }else if(["rejected","cancelled","refunded","charged_back"].includes(pay.status)){
         if(["rejected","cancelled"].includes(pay.status)&&current.status==="paid"){await client.query("COMMIT");return;}
         if((["refunded","charged_back"].includes(pay.status)&&current.stock_reduced)||(["rejected","cancelled"].includes(pay.status)&&current.stock_reserved)){
