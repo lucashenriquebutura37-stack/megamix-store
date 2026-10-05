@@ -1138,6 +1138,24 @@ function save() {
    ATUALIZAR CARRINHO
 ========================= */
 
+function checkoutMessage(message,type="info"){
+  const box=document.getElementById("checkoutNotice");
+  if(!box)return;
+  box.textContent=message||"";
+  box.className="checkoutNotice"+(message?" show "+type:"");
+}
+function focusCheckoutField(id){
+  const el=document.getElementById(id);if(el){el.focus({preventScroll:true});el.scrollIntoView({behavior:"smooth",block:"center"});}
+}
+function updateCheckoutSteps(){
+  const steps=document.querySelectorAll(".checkoutSteps span");
+  if(!steps.length)return;
+  steps.forEach(x=>x.classList.remove("active","done"));
+  if(cart.length)steps[0].classList.add("done");else steps[0].classList.add("active");
+  if(cart.length&&!selectedShipping)steps[1].classList.add("active");
+  if(selectedShipping){steps[1].classList.add("done");steps[2].classList.add("active");}
+}
+
 function updateCart() {
 
   cart =
@@ -1259,14 +1277,14 @@ function updateCart() {
     );
 
 
-  const totalElement =
-    document.getElementById("total");
-
-  if (totalElement) {
-
-    totalElement.textContent =
-      money(total + Number(selectedShipping?.price||0));
-  }
+  const shippingValue=Number(selectedShipping?.price||0);
+  const subtotalElement=document.getElementById("subtotal");
+  const shippingElement=document.getElementById("shippingTotal");
+  const totalElement=document.getElementById("total");
+  if(subtotalElement)subtotalElement.textContent=money(total);
+  if(shippingElement)shippingElement.textContent=selectedShipping?money(shippingValue):"A calcular";
+  if(totalElement)totalElement.textContent=money(total+shippingValue);
+  updateCheckoutSteps();
 }
 
 
@@ -1278,7 +1296,7 @@ function change(id, amount) {
   const item = cart.find(product => product.id === id);
   const product = products.find(product => product.id === id);
   if (!item || !product) return;
-  if (amount > 0 && item.q >= Number(product.stock)) return alert("Limite do estoque atingido.");
+  if (amount > 0 && item.q >= Number(product.stock)){checkoutMessage("Você atingiu a quantidade disponível deste produto.","warning");return;}
   item.q += amount;
   if (item.q <= 0) cart = cart.filter(product => product.id !== id);
   save();
@@ -1323,11 +1341,11 @@ function openCart() {
 let selectedShipping=null;
 
 async function calculateShipping(){
-  if(!cart.length)return alert("Adicione produtos ao carrinho.");
+  if(!cart.length){checkoutMessage("Adicione pelo menos um produto ao carrinho.","warning");return;}
   const cep=(document.getElementById("postalCode")?.value||"").replace(/\D/g,"");
-  if(cep.length!==8)return alert("Digite um CEP válido.");
+  if(cep.length!==8){checkoutMessage("Digite um CEP válido com 8 números.","warning");focusCheckoutField("postalCode");return;}
   const box=document.getElementById("shippingOptions");
-  if(box)box.innerHTML='<p style="font-size:13px">Calculando opções de entrega...</p>';
+  checkoutMessage("Consultando as melhores opções de entrega...");if(box)box.innerHTML='<p style="font-size:13px">Calculando opções de entrega...</p>';
   selectedShipping=null;
   try{
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
@@ -1337,12 +1355,13 @@ async function calculateShipping(){
     const d=await r.json();if(!r.ok)throw new Error(d.error||"Não foi possível calcular o frete.");
     if(!d.quotes?.length)throw new Error("Nenhuma opção de entrega disponível para este CEP.");
     if(box)box.innerHTML='<div class="shippingTitle">Escolha a entrega</div>'+d.quotes.map((q,i)=>'<label class="shippingOption"><input type="radio" name="shippingOption" value="'+q.id+'" onchange="chooseShipping('+i+')"><span><b>'+(q.company?q.company+" • ":"")+q.name+'</b><small>'+money(Number(q.price))+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</small></span></label>').join("");
-    window.shippingQuotes=d.quotes;
-  }catch(e){const msg=e?.name==="AbortError"?"A cotação demorou para responder. Tente novamente.":(e.message||"Não foi possível calcular o frete.");if(box)box.innerHTML='<p class="shippingError">'+escapeHTML(msg)+'</p><button type="button" class="shippingRetry" onclick="calculateShipping()">Tentar novamente</button>';}
+    window.shippingQuotes=d.quotes;checkoutMessage("Fretes encontrados. Escolha a opção que preferir.","success");
+  }catch(e){const msg=e?.name==="AbortError"?"A cotação demorou para responder. Tente novamente.":(e.message||"Não foi possível calcular o frete.");checkoutMessage(msg,"error");if(box)box.innerHTML='<p class="shippingError">'+escapeHTML(msg)+'</p><button type="button" class="shippingRetry" onclick="calculateShipping()">Tentar novamente</button>';}
 }
 function chooseShipping(index){
   selectedShipping=window.shippingQuotes?.[index]||null;
   document.querySelectorAll(".shippingOption").forEach((el,i)=>el.classList.toggle("selected",i===index));
+  checkoutMessage("Frete selecionado. Confira o total e siga para o pagamento.","success");
   updateCart();
 }
 
@@ -1353,7 +1372,7 @@ function chooseShipping(index){
 let checkoutInProgress=false;
 async function checkout() {
   if(checkoutInProgress)return;
-  if (!cart.length) return alert("Adicione produtos ao carrinho.");
+  if (!cart.length){checkoutMessage("Adicione pelo menos um produto ao carrinho.","warning");return;}
   const val=id=>(document.getElementById(id)?.value||"").trim();
   const customer={
     name:val("customerName"), phone:val("customerPhone"), postalCode:val("postalCode"),
@@ -1361,14 +1380,20 @@ async function checkout() {
     neighborhood:val("neighborhood"), city:val("city"), state:val("state").toUpperCase()
   };
   const cep=customer.postalCode.replace(/\D/g,"");
-  if(!customer.name||!customer.phone||cep.length!==8||!customer.address||!customer.number||!customer.neighborhood||!customer.city||customer.state.length!==2)
-    return alert("Preencha todos os dados obrigatórios de entrega.");
+  if(!customer.name){checkoutMessage("Informe seu nome completo.","warning");focusCheckoutField("customerName");return;}
+  if(!customer.phone){checkoutMessage("Informe um telefone ou WhatsApp para contato.","warning");focusCheckoutField("customerPhone");return;}
+  if(cep.length!==8){checkoutMessage("Informe um CEP válido.","warning");focusCheckoutField("postalCode");return;}
+  if(!customer.address){checkoutMessage("Informe a rua ou avenida.","warning");focusCheckoutField("addressLine");return;}
+  if(!customer.number){checkoutMessage("Informe o número do endereço.","warning");focusCheckoutField("addressNumber");return;}
+  if(!customer.neighborhood){checkoutMessage("Informe o bairro.","warning");focusCheckoutField("neighborhood");return;}
+  if(!customer.city){checkoutMessage("Informe a cidade.","warning");focusCheckoutField("city");return;}
+  if(customer.state.length!==2){checkoutMessage("Informe a UF com 2 letras.","warning");focusCheckoutField("state");return;}
   customer.postalCode=cep;
-  if(!selectedShipping)return alert("Calcule e escolha uma opção de frete antes de finalizar.");
+  if(!selectedShipping){checkoutMessage("Calcule e escolha uma opção de frete antes de continuar.","warning");focusCheckoutField("postalCode");return;}
   localStorage.setItem("deliveryData",JSON.stringify(customer));
   const button = document.querySelector(".checkout");
   checkoutInProgress=true;
-  if (button) { button.disabled = true; button.setAttribute("aria-busy","true"); button.textContent = "Preparando pagamento..."; }
+  checkoutMessage("Preparando seu pagamento seguro...");if (button) { button.disabled = true; button.setAttribute("aria-busy","true"); button.textContent = "Preparando pagamento..."; }
   try {
     const controller=new AbortController();
     const timer=setTimeout(()=>controller.abort(),20000);
@@ -1387,11 +1412,11 @@ async function checkout() {
     window.location.href = url;
   } catch (error) {
     const message=error?.name==="AbortError"?"O pagamento demorou para responder. Verifique sua conexão e tente novamente.":(error.message || "Erro ao conectar com o Mercado Pago.");
-    alert(message);
+    checkoutMessage(message,"error");
     await loadCatalog();
   } finally {
     checkoutInProgress=false;
-    if (button) { button.disabled = false; button.removeAttribute("aria-busy"); button.textContent = "Finalizar pagamento"; }
+    if (button) { button.disabled = false; button.removeAttribute("aria-busy"); button.textContent = "Ir para pagamento seguro"; }
   }
 }
 
