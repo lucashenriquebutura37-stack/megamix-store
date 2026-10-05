@@ -85,3 +85,8 @@ test("cupom é invalidado quando o carrinho muda",()=>{
   assert.ok(saveBlock.includes("appliedCoupon=null"));
   assert.ok(saveBlock.includes("Aplique o cupom novamente"));
 });
+
+test("cupom percentual não aceita desconto acima de 100%",()=>{
+  assert.ok(server.includes('type==="percent"&&value>100'));
+  assert.ok(server.includes("Cupom percentual não pode ultrapassar 100%."));
+});
