@@ -288,8 +288,10 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     let reservationCommitted=false,paymentRequestStarted=false,reservationCompensated=false;
     const publicId="VZ-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(3).toString("hex").toUpperCase();
     await client.query("BEGIN");
-    const locked=await client.query("SELECT id,stock FROM products WHERE id = ANY($1::bigint[]) ORDER BY id FOR UPDATE",[ids]);
+    const locked=await client.query("SELECT id,name,price,stock FROM products WHERE id = ANY($1::bigint[]) ORDER BY id FOR UPDATE",[ids]);
     const lockedStock=new Map(locked.rows.map(r=>[Number(r.id),Number(r.stock)]));
+    const lockedById=new Map(locked.rows.map(r=>[Number(r.id),r]));
+    for(const it of items){const current=lockedById.get(Number(it.id));if(!current||Number(current.price)!==Number(it.unit_price))throw Object.assign(new Error("O preço de um produto mudou. Atualize o carrinho e tente novamente."),{status:409});}
     for(const x of normalized)if((lockedStock.get(x.id)??0)<x.q)throw Object.assign(new Error("O estoque mudou. Atualize o carrinho e tente novamente."),{status:409});
     for(const x of normalized){
       const reserved=await client.query("UPDATE products SET stock=stock-$1 WHERE id=$2 AND stock >= $1 RETURNING id",[x.q,x.id]);
