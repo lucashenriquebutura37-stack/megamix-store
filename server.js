@@ -23,25 +23,31 @@ app.use((req,res,next)=>{
 
 const rateBuckets=new Map();
 function rateLimit({windowMs=60000,max=120,keyPrefix="global"}={}){
-  return (req,res,next)=>{
-    const now=Date.now(), key=keyPrefix+":"+(req.ip||req.socket?.remoteAddress||"unknown");
+  return async(req,res,next)=>{
+    const now=Date.now(), ip=req.ip||req.socket?.remoteAddress||"unknown",key=keyPrefix+":"+ip;
+    if(process.env.DATABASE_URL){
+      try{
+        const windowSeconds=Math.max(1,Math.ceil(windowMs/1000));
+        const hit=await pool.query(`INSERT INTO rate_limits(key,count,reset_at) VALUES($1,1,NOW()+($2::text||' seconds')::interval)
+          ON CONFLICT(key) DO UPDATE SET count=CASE WHEN rate_limits.reset_at<=NOW() THEN 1 ELSE rate_limits.count+1 END,
+          reset_at=CASE WHEN rate_limits.reset_at<=NOW() THEN NOW()+($2::text||' seconds')::interval ELSE rate_limits.reset_at END
+          RETURNING count,reset_at`,[key,windowSeconds]);
+        const row=hit.rows[0];
+        if(Number(row.count)>max){
+          res.setHeader("Retry-After",String(Math.max(1,Math.ceil((new Date(row.reset_at).getTime()-now)/1000))));
+          return res.status(429).json({error:"Muitas solicitações. Tente novamente em instantes."});
+        }
+        return next();
+      }catch(e){console.error("Rate limit persistente indisponível; usando memória:",e.message);}
+    }
     const current=rateBuckets.get(key);
-    if(!current||current.reset<=now){
-      rateBuckets.set(key,{count:1,reset:now+windowMs});
-      return next();
-    }
+    if(!current||current.reset<=now){rateBuckets.set(key,{count:1,reset:now+windowMs});return next();}
     current.count++;
-    if(current.count>max){
-      res.setHeader("Retry-After",String(Math.max(1,Math.ceil((current.reset-now)/1000))));
-      return res.status(429).json({error:"Muitas solicitações. Tente novamente em instantes."});
-    }
+    if(current.count>max){res.setHeader("Retry-After",String(Math.max(1,Math.ceil((current.reset-now)/1000))));return res.status(429).json({error:"Muitas solicitações. Tente novamente em instantes."});}
     next();
   };
 }
-setInterval(()=>{
-  const now=Date.now();
-  for(const [key,value] of rateBuckets)if(value.reset<=now)rateBuckets.delete(key);
-},60000).unref();
+setInterval(()=>{const now=Date.now();for(const [key,value] of rateBuckets)if(value.reset<=now)rateBuckets.delete(key);},60000).unref();
 app.use("/api/",rateLimit({windowMs:60000,max:180,keyPrefix:"api"}));
 app.use("/api/admin/auth",rateLimit({windowMs:15*60*1000,max:12,keyPrefix:"admin-login"}));
 app.use("/api/frete/cotar",rateLimit({windowMs:60000,max:30,keyPrefix:"shipping"}));
@@ -208,6 +214,12 @@ async function initDatabase() {
       approved BOOLEAN DEFAULT FALSE, created_at TIMESTAMPTZ DEFAULT NOW(), answered_at TIMESTAMPTZ
     );
     CREATE INDEX IF NOT EXISTS idx_product_questions_product ON product_questions(product_id,approved,created_at DESC);
+    CREATE TABLE IF NOT EXISTS rate_limits (
+      key TEXT PRIMARY KEY,
+      count INTEGER NOT NULL DEFAULT 0,
+      reset_at TIMESTAMPTZ NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_rate_limits_reset_at ON rate_limits(reset_at);
     CREATE TABLE IF NOT EXISTS admin_sessions (
       token_hash TEXT PRIMARY KEY,
       expires_at TIMESTAMPTZ NOT NULL,
