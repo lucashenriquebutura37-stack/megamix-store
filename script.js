@@ -54,7 +54,9 @@ const areas = [
       ["Personalizados", "✨"],
       ["Canecas", "☕"],
       ["Garrafas térmicas", "🧴"],
-      ["Squeezes", "💧"],
+      ["Copo térmico com mix", "🥤"],
+["Caixa térmica", "🧊"],
+["Garrafas e Squeezes", "💧"],
       ["Acessórios", "➕"]
     ]
   },
