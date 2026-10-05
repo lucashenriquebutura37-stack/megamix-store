@@ -1122,8 +1122,13 @@ function add(id) {
 function save() {
   selectedShipping=null;
   window.shippingQuotes=[];
+  appliedCoupon=null;
   const shippingOptions=document.getElementById("shippingOptions");
   if(shippingOptions)shippingOptions.innerHTML='<p class="shippingHint">Carrinho alterado. Calcule o frete novamente.</p>';
+  const couponStatus=document.getElementById("couponStatus");
+  if(couponStatus)couponStatus.textContent="Carrinho alterado. Aplique o cupom novamente.";
+  const discountRow=document.getElementById("discountRow");
+  if(discountRow)discountRow.hidden=true;
 
   localStorage.setItem(
     "cart",
