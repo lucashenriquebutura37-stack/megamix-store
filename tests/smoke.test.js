@@ -225,3 +225,10 @@ test("moderação de avaliação e recálculo de reputação são atômicos",()=
   assert.ok(block.includes("AVG(rating)"));
   assert.ok(block.includes("client.release()"));
 });
+
+test("textos públicos passam por sanitização antes de serem persistidos",()=>{
+  assert.ok(server.includes("const cleanUserText="));
+  assert.ok(server.includes("cleanUserText(req.body?.comment,1200)"));
+  assert.ok(server.includes("cleanUserText(req.body?.question,600)"));
+  assert.ok(server.includes("cleanUserText(req.body?.answer,1200)"));
+});
