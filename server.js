@@ -183,6 +183,14 @@ async function initDatabase() {
       created_at TIMESTAMPTZ DEFAULT NOW()
     );
     CREATE INDEX IF NOT EXISTS idx_order_events_order_id_created_at ON order_events(order_id,created_at DESC);
+    CREATE TABLE IF NOT EXISTS product_reviews (
+      id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
+      order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
+      customer_name TEXT DEFAULT '', rating INTEGER NOT NULL CHECK(rating BETWEEN 1 AND 5),
+      comment TEXT DEFAULT '', approved BOOLEAN DEFAULT FALSE, verified_purchase BOOLEAN DEFAULT TRUE,
+      created_at TIMESTAMPTZ DEFAULT NOW(), UNIQUE(product_id,order_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_product_reviews_product ON product_reviews(product_id,approved,created_at DESC);
     CREATE TABLE IF NOT EXISTS product_questions (
       id BIGSERIAL PRIMARY KEY, product_id BIGINT NOT NULL REFERENCES products(id) ON DELETE CASCADE,
       customer_name TEXT DEFAULT '', question TEXT NOT NULL, answer TEXT DEFAULT '',
@@ -430,6 +438,31 @@ app.get("/api/produtos",requireDatabase,async(req,res)=>{
   try{const r=await pool.query("SELECT * FROM products ORDER BY created_at DESC");res.json(r.rows.map(toProduct));}
   catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar produtos."});}
 });
+app.get("/api/produtos/:id/avaliacoes",requireDatabase,async(req,res)=>{
+  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("SELECT customer_name,rating,comment,verified_purchase,created_at FROM product_reviews WHERE product_id=$1 AND approved=TRUE ORDER BY created_at DESC LIMIT 100",[req.params.id]);const summary=await pool.query("SELECT COALESCE(ROUND(AVG(rating)::numeric,1),0) rating,COUNT(*)::int reviews FROM product_reviews WHERE product_id=$1 AND approved=TRUE",[req.params.id]);res.json({summary:summary.rows[0],items:r.rows});}
+  catch(e){console.error("Avaliações:",e);res.status(500).json({error:"Não foi possível carregar avaliações."});}
+});
+app.post("/api/produtos/:id/avaliacoes",requireDatabase,async(req,res)=>{
+  try{
+    if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});
+    const publicId=clean(req.body?.order_id,80),rating=Number(req.body?.rating),comment=clean(req.body?.comment,1200);
+    if(!publicId||!Number.isInteger(rating)||rating<1||rating>5)return res.status(400).json({error:"Informe o pedido e uma nota de 1 a 5."});
+    const o=await pool.query("SELECT o.id,o.customer_name,o.shipping_status FROM orders o JOIN order_items oi ON oi.order_id=o.id WHERE o.public_id=$1 AND oi.product_id=$2 AND o.status='paid' LIMIT 1",[publicId,req.params.id]);
+    if(!o.rows.length)return res.status(403).json({error:"Não foi possível confirmar a compra deste produto."});
+    if(o.rows[0].shipping_status!=="entregue")return res.status(409).json({error:"A avaliação fica disponível após o pedido ser marcado como entregue."});
+    await pool.query("INSERT INTO product_reviews(product_id,order_id,customer_name,rating,comment) VALUES($1,$2,$3,$4,$5) ON CONFLICT(product_id,order_id) DO UPDATE SET rating=EXCLUDED.rating,comment=EXCLUDED.comment,approved=FALSE,created_at=NOW()",[req.params.id,o.rows[0].id,clean(o.rows[0].customer_name,80),rating,comment]);
+    res.status(201).json({ok:true,message:"Avaliação recebida e aguardando moderação."});
+  }catch(e){console.error("Nova avaliação:",e);res.status(500).json({error:"Não foi possível enviar a avaliação."});}
+});
+app.get("/api/admin/avaliacoes",adminOnly,requireDatabase,async(req,res)=>{
+  try{const r=await pool.query("SELECT r.*,p.name product_name,o.public_id FROM product_reviews r JOIN products p ON p.id=r.product_id JOIN orders o ON o.id=r.order_id ORDER BY r.created_at DESC LIMIT 200");res.json(r.rows);}
+  catch(e){console.error(e);res.status(500).json({error:"Não foi possível carregar avaliações."});}
+});
+app.put("/api/admin/avaliacoes/:id",adminOnly,requireDatabase,async(req,res)=>{
+  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Avaliação inválida."});const r=await pool.query("UPDATE product_reviews SET approved=$1 WHERE id=$2 RETURNING product_id",[Boolean(req.body?.approved),req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Avaliação não encontrada."});const productId=r.rows[0].product_id;await pool.query("UPDATE products SET rating=COALESCE((SELECT ROUND(AVG(rating)::numeric,1) FROM product_reviews WHERE product_id=$1 AND approved=TRUE),0),reviews=(SELECT COUNT(*) FROM product_reviews WHERE product_id=$1 AND approved=TRUE) WHERE id=$1",[productId]);res.json({ok:true});}
+  catch(e){console.error(e);res.status(500).json({error:"Não foi possível atualizar a avaliação."});}
+});
+
 app.get("/api/produtos/:id/perguntas",requireDatabase,async(req,res)=>{
   try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("SELECT id,customer_name,question,answer,created_at,answered_at FROM product_questions WHERE product_id=$1 AND approved=TRUE ORDER BY created_at DESC LIMIT 50",[req.params.id]);res.json(r.rows);}
   catch(e){console.error("Perguntas:",e);res.status(500).json({error:"Não foi possível carregar as perguntas."});}
