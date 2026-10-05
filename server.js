@@ -569,6 +569,31 @@ app.post("/api/admin/cupons",adminOnly,requireDatabase,async(req,res)=>{
 });
 app.patch("/api/admin/cupons/:id",adminOnly,requireDatabase,async(req,res)=>{try{const r=await pool.query("UPDATE coupons SET active=$1 WHERE id=$2 RETURNING id,active",[Boolean(req.body?.active),req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Cupom não encontrado."});res.json(r.rows[0]);}catch(e){res.status(500).json({error:"Erro ao atualizar cupom."});}});
 
+function mercadoPagoItemsWithExactDiscount(items,discount){
+  const totalUnits=items.reduce((sum,item)=>sum+item.quantity,0);
+  const originalCents=items.map(item=>Math.round(item.unit_price*100)*item.quantity);
+  const originalTotal=originalCents.reduce((a,b)=>a+b,0);
+  const discountCents=Math.round(Number(discount||0)*100);
+  const targetTotal=originalTotal-discountCents;
+  if(targetTotal<totalUnits)throw Object.assign(new Error("O desconto é alto demais para processar este carrinho. Ajuste o cupom e tente novamente."),{status:409});
+  if(!discountCents)return items.map(item=>({...item}));
+  const raw=originalCents.map(c=>c*targetTotal/originalTotal);
+  const targets=raw.map(Math.floor);
+  let missing=targetTotal-targets.reduce((a,b)=>a+b,0);
+  const order=raw.map((v,i)=>({i,f:v-Math.floor(v)})).sort((a,b)=>b.f-a.f);
+  for(let k=0;k<missing;k++)targets[order[k%order.length].i]++;
+  const out=[];
+  items.forEach((item,i)=>{
+    const base=Math.floor(targets[i]/item.quantity),remainder=targets[i]%item.quantity;
+    if(base<1)throw Object.assign(new Error("O desconto é alto demais para processar este carrinho. Ajuste o cupom e tente novamente."),{status:409});
+    if(item.quantity-remainder>0)out.push({...item,quantity:item.quantity-remainder,unit_price:base/100});
+    if(remainder>0)out.push({...item,id:item.id+"-d",quantity:remainder,unit_price:(base+1)/100});
+  });
+  const charged=out.reduce((sum,item)=>sum+Math.round(item.unit_price*100)*item.quantity,0);
+  if(charged!==targetTotal)throw new Error("Falha ao reconciliar desconto do carrinho.");
+  return out;
+}
+
 app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
   const client=await pool.connect();
   try{
@@ -627,7 +652,7 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const root=baseUrl(req);
     const preferenceStart=new Date(),preferenceEnd=new Date(preferenceStart.getTime()+30*60*1000);
     paymentRequestStarted=true;
-    const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",signal:externalSignal(),headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({expires:true,expiration_date_from:preferenceStart.toISOString(),expiration_date_to:preferenceEnd.toISOString(),items:[...items.map(x=>({...x,unit_price:discount?Number((x.unit_price*(1-discount/productsTotal)).toFixed(2)):x.unit_price})),{id:"frete",title:"Frete - "+(selectedShipping.company?selectedShipping.company+" ":"")+selectedShipping.name,quantity:1,unit_price:selectedShipping.price,currency_id:"BRL"}],external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
+    const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",signal:externalSignal(),headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({expires:true,expiration_date_from:preferenceStart.toISOString(),expiration_date_to:preferenceEnd.toISOString(),items:[...mercadoPagoItemsWithExactDiscount(items,discount),{id:"frete",title:"Frete - "+(selectedShipping.company?selectedShipping.company+" ":"")+selectedShipping.name,quantity:1,unit_price:selectedShipping.price,currency_id:"BRL"}],external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
     let data;try{data=await mp.json();}catch{data={};}if(!mp.ok){await cancelReservedOrder(publicId);reservationCompensated=true;throw Object.assign(new Error("Mercado Pago recusou a preferência."),{details:data});}
     res.json({order_id:publicId,checkout_url:data.init_point,sandbox_url:data.sandbox_init_point});
   }catch(e){try{await client.query("ROLLBACK")}catch{};if(typeof publicId!=="undefined"&&publicId&&reservationCommitted&&!paymentRequestStarted&&!reservationCompensated){try{await cancelReservedOrder(publicId);}catch(cancelError){console.error("Falha ao compensar reserva:",cancelError);}}console.error(e.details||e);res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
