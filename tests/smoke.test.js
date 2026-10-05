@@ -280,3 +280,7 @@ test("gestão de pedidos destaca enviados sem código de rastreio",()=>{
   assert.ok(admin.includes('missingTracking=paid.filter'));
   assert.ok(admin.includes('" sem rastreio • "'));
 });
+
+test("dashboard inclui indicadores operacionais e financeiros",()=>{
+  for(const marker of ["average_ticket","cancelled_orders","preparing_orders","shipped_orders","delivered_orders","discounts_total","missing_image","missing_sku","missing_shipping_dimensions"]) assert.ok(server.includes(marker),marker);
+});
