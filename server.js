@@ -686,6 +686,8 @@ app.get("/api/pedido/:publicId",requireDatabase,async(req,res)=>{
   catch(e){res.status(500).json({error:"Erro ao consultar pedido."});}
 });
 
+app.get("/healthz",(req,res)=>{res.set("Cache-Control","no-store");res.status(200).json({status:"ok",service:"VORZELI",uptime_seconds:Math.floor(process.uptime()),timestamp:new Date().toISOString()});});
+
 app.get("/api/status",async(req,res)=>{
   let database=false,dbLatencyMs=null;
   try{if(process.env.DATABASE_URL){const started=Date.now();await pool.query("SELECT 1");dbLatencyMs=Date.now()-started;database=true;}}catch{}
