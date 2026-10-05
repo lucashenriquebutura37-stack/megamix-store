@@ -71,3 +71,9 @@ test("avaliações verificadas exigem compra paga e entregue",()=>{
     assert.ok(server.includes(marker),marker+" ausente");
   }
 });
+
+test("pós-venda envia atualizações por e-mail",()=>{
+  for(const marker of ["sendShippingUpdateEmail","Pedido em preparação","Pedido enviado","Pedido entregue","payer_email"]){
+    assert.ok(server.includes(marker),marker+" ausente");
+  }
+});
