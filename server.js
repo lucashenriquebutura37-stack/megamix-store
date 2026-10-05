@@ -78,6 +78,7 @@ async function initDatabase() {
       unit_price NUMERIC(12,2) NOT NULL, quantity INTEGER NOT NULL
     );
     CREATE INDEX IF NOT EXISTS idx_orders_reservation_expiry ON orders(reservation_expires_at) WHERE stock_reserved=TRUE;
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_orders_payment_id_unique ON orders(payment_id) WHERE payment_id IS NOT NULL;
     CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
   `);
