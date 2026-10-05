@@ -77,18 +77,6 @@ async function initDatabase() {
       product_id BIGINT NOT NULL REFERENCES products(id), product_name TEXT NOT NULL,
       unit_price NUMERIC(12,2) NOT NULL, quantity INTEGER NOT NULL
     );
-    DO $ BEGIN
-      ALTER TABLE products ADD CONSTRAINT products_stock_nonnegative CHECK (stock >= 0);
-    EXCEPTION WHEN duplicate_object THEN NULL; END $;
-    DO $ BEGIN
-      ALTER TABLE products ADD CONSTRAINT products_price_nonnegative CHECK (price >= 0);
-    EXCEPTION WHEN duplicate_object THEN NULL; END $;
-    DO $ BEGIN
-      ALTER TABLE order_items ADD CONSTRAINT order_items_quantity_positive CHECK (quantity > 0);
-    EXCEPTION WHEN duplicate_object THEN NULL; END $;
-    DO $ BEGIN
-      ALTER TABLE order_items ADD CONSTRAINT order_items_price_nonnegative CHECK (unit_price >= 0);
-    EXCEPTION WHEN duplicate_object THEN NULL; END $;
     CREATE INDEX IF NOT EXISTS idx_orders_reservation_expiry ON orders(reservation_expires_at) WHERE stock_reserved=TRUE;
     CREATE INDEX IF NOT EXISTS idx_orders_created_at ON orders(created_at DESC);
     CREATE INDEX IF NOT EXISTS idx_order_items_order_id ON order_items(order_id);
