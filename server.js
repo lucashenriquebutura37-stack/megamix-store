@@ -14,7 +14,11 @@ app.use((req,res,next)=>{
   res.setHeader("Permissions-Policy","camera=(), microphone=(), geolocation=(), payment=(self)");
   res.setHeader("Cross-Origin-Opener-Policy","same-origin-allow-popups");
   res.setHeader("Cross-Origin-Resource-Policy","same-origin");
-  res.setHeader("Strict-Transport-Security","max-age=31536000; includeSubDomains");
+  res.setHeader("Strict-Transport-Security","max-age=31536000; includeSubDomains; preload");
+  res.setHeader("X-DNS-Prefetch-Control","off");
+  res.setHeader("X-Download-Options","noopen");
+  res.setHeader("Document-Policy","force-load-at-top");
+  res.setHeader("Content-Security-Policy-Report-Only","default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://viacep.com.br; font-src 'self' data:; upgrade-insecure-requests");
   res.setHeader("X-Permitted-Cross-Domain-Policies","none");
   res.setHeader("Origin-Agent-Cluster","?1");
   res.setHeader("Content-Security-Policy","default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://viacep.com.br; font-src 'self' data:; upgrade-insecure-requests");
