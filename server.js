@@ -114,6 +114,19 @@ async function releaseExpiredReservations(){
   }catch(e){try{await client.query("ROLLBACK")}catch{};console.error("Erro ao liberar reservas expiradas:",e);}
   finally{client.release();}
 }
+async function cancelReservedOrder(publicId){
+  const c=await pool.connect();
+  try{
+    await c.query("BEGIN");
+    const r=await c.query("SELECT id,stock_reserved FROM orders WHERE public_id=$1 FOR UPDATE",[publicId]);
+    if(r.rows[0]?.stock_reserved){
+      const items=await c.query("SELECT product_id,quantity FROM order_items WHERE order_id=$1",[r.rows[0].id]);
+      for(const item of items.rows)await c.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[item.quantity,item.product_id]);
+      await c.query("UPDATE orders SET stock_reserved=FALSE,status='cancelled',shipping_status='cancelado' WHERE id=$1",[r.rows[0].id]);
+    }
+    await c.query("COMMIT");
+  }catch(e){try{await c.query("ROLLBACK")}catch{};throw e;}finally{c.release();}
+}
 const finite=(v,min=0,max=Number.MAX_SAFE_INTEGER)=>{const n=Number(v);return Number.isFinite(n)&&n>=min&&n<=max?n:null};
 const safeImage=(v)=>{const x=clean(v,1000);if(!x)return "";try{const u=new URL(x);return (u.protocol==="https:"||u.protocol==="http:")?x:""}catch{return ""}};
 function validateProductInput(b,current={}){
