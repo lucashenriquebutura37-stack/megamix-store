@@ -90,3 +90,9 @@ test("cupom percentual não aceita desconto acima de 100%",()=>{
   assert.ok(server.includes('type==="percent"&&value>100'));
   assert.ok(server.includes("Cupom percentual não pode ultrapassar 100%."));
 });
+
+test("pedido registra cupom e desconto para auditoria",()=>{
+  assert.ok(server.includes("ADD COLUMN IF NOT EXISTS coupon_code"));
+  assert.ok(server.includes("ADD COLUMN IF NOT EXISTS discount_amount"));
+  assert.ok(server.includes("shipping_delivery_time,coupon_code,discount_amount"));
+});
