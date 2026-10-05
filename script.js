@@ -1307,13 +1307,24 @@ function openCart() {
 
 async function checkout() {
   if (!cart.length) return alert("Adicione produtos ao carrinho.");
+  const val=id=>(document.getElementById(id)?.value||"").trim();
+  const customer={
+    name:val("customerName"), phone:val("customerPhone"), postalCode:val("postalCode"),
+    address:val("addressLine"), number:val("addressNumber"), extra:val("addressExtra"),
+    neighborhood:val("neighborhood"), city:val("city"), state:val("state").toUpperCase()
+  };
+  const cep=customer.postalCode.replace(/\D/g,"");
+  if(!customer.name||!customer.phone||cep.length!==8||!customer.address||!customer.number||!customer.neighborhood||!customer.city||customer.state.length!==2)
+    return alert("Preencha todos os dados obrigatórios de entrega.");
+  customer.postalCode=cep;
+  localStorage.setItem("deliveryData",JSON.stringify(customer));
   const button = document.querySelector(".checkout");
   if (button) { button.disabled = true; button.textContent = "Preparando pagamento..."; }
   try {
     const response = await fetch("/api/criar-preferencia", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ items: cart.map(item => ({ id:item.id, q:item.q })) })
+      body: JSON.stringify({ items: cart.map(item => ({ id:item.id, q:item.q })), customer })
     });
     const data = await response.json();
     if (!response.ok) throw new Error(data.error || "Não foi possível iniciar o pagamento.");
@@ -1390,3 +1401,15 @@ fillRails();
 hideProductArea();
 
 loadCatalog();
+
+
+/* =========================
+   DADOS DE ENTREGA
+========================= */
+(function restoreDelivery(){
+  try{
+    const d=JSON.parse(localStorage.getItem("deliveryData")||"null"); if(!d)return;
+    const map={customerName:"name",customerPhone:"phone",postalCode:"postalCode",addressLine:"address",addressNumber:"number",addressExtra:"extra",neighborhood:"neighborhood",city:"city",state:"state"};
+    Object.entries(map).forEach(([id,key])=>{const el=document.getElementById(id);if(el)el.value=d[key]||""});
+  }catch{}
+})();
