@@ -130,3 +130,11 @@ test("painel não permite editar manualmente nota e quantidade de avaliações",
   assert.ok(!admin.includes('rating:$("rating").value'));
   assert.ok(!admin.includes('reviews:$("reviews").value'));
 });
+
+test("dashboard administrativo resume operação da loja",()=>{
+  assert.ok(server.includes('/api/admin/dashboard'));
+  assert.ok(server.includes("paid_orders"));
+  assert.ok(server.includes("low_stock"));
+  assert.ok(admin.includes('id="dashboard"'));
+  assert.ok(admin.includes("loadDashboard"));
+});
