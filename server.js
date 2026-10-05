@@ -4,6 +4,7 @@ const crypto = require("crypto");
 
 const app = express();
 app.set("trust proxy", 1);
+app.disable("x-powered-by");
 app.use(express.json({ limit: "256kb" }));
 app.use((req,res,next)=>{
   res.setHeader("X-Content-Type-Options","nosniff");
