@@ -151,3 +151,8 @@ test("e-mails de pós-venda usam o parâmetro correto de acompanhamento",()=>{
   assert.ok(server.includes('pedido.html?pedido='));
   assert.ok(pedido.includes('params.get("pedido")||params.get("id")'));
 });
+
+test("painel mostra cupom e desconto aplicados em cada pedido",()=>{
+  assert.ok(admin.includes("<b>Cupom:</b>"));
+  assert.ok(admin.includes("o.discount_amount"));
+});
