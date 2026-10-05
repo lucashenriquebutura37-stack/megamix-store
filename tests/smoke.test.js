@@ -199,3 +199,10 @@ test("cabeçalhos de segurança incluem política CSP mais rígida em observaç�
   assert.ok(server.includes("X-DNS-Prefetch-Control"));
   assert.ok(server.includes("includeSubDomains; preload"));
 });
+
+test("status operacional exige SMTP e sinaliza banco lento sem expor segredos",()=>{
+  assert.ok(server.includes('"smtp_email"'));
+  assert.ok(server.includes('warnings.push("database_slow")'));
+  assert.ok(server.includes('status:healthy?(warnings.length?"warning":"ok"):"degraded"'));
+  assert.ok(!server.includes("MP_ACCESS_TOKEN:process.env.MP_ACCESS_TOKEN"));
+});
