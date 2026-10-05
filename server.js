@@ -295,7 +295,7 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const mp=await fetch("https://api.mercadopago.com/checkout/preferences",{method:"POST",signal:externalSignal(),headers:{"Content-Type":"application/json",Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`},body:JSON.stringify({items:[...items,{id:"frete",title:"Frete - "+(selectedShipping.company?selectedShipping.company+" ":"")+selectedShipping.name,quantity:1,unit_price:selectedShipping.price,currency_id:"BRL"}],external_reference:publicId,back_urls:{success:`${root}/sucesso.html`,failure:`${root}/pagamento.html?status=failure`,pending:`${root}/pagamento.html?status=pending`},auto_return:"approved",notification_url:`${root}/api/mercadopago/webhook`})});
     let data;try{data=await mp.json();}catch{data={};}if(!mp.ok){await cancelReservedOrder(publicId);throw Object.assign(new Error("Mercado Pago recusou a preferência."),{details:data});}
     res.json({order_id:publicId,checkout_url:data.init_point,sandbox_url:data.sandbox_init_point});
-  }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(e.details||e);res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
+  }catch(e){try{await client.query("ROLLBACK")}catch{};if(typeof publicId!=="undefined"&&publicId){try{await cancelReservedOrder(publicId);}catch(cancelError){console.error("Falha ao compensar reserva:",cancelError);}}console.error(e.details||e);res.status(e.status||500).json({error:e.status?e.message:"Não foi possível iniciar o pagamento."});}
   finally{client.release();}
 });
 
