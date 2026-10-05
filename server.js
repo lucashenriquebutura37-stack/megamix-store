@@ -395,7 +395,12 @@ app.patch("/api/pedidos/:publicId/envio",adminOnly,requireDatabase,async(req,res
     const allowed=["aguardando_pagamento","preparando","enviado","entregue","cancelado"];
     const shippingStatus=clean(req.body?.shipping_status,40), trackingCode=clean(req.body?.tracking_code,120);
     if(!allowed.includes(shippingStatus))return res.status(400).json({error:"Status de envio inválido."});
-    const r=await pool.query("UPDATE orders SET shipping_status=$1,tracking_code=$2 WHERE public_id=$3 RETURNING public_id,shipping_status,tracking_code",[shippingStatus,trackingCode,clean(req.params.publicId,80)]);
+    if(shippingStatus==="enviado"&&!trackingCode)return res.status(400).json({error:"Informe o código de rastreio antes de marcar o pedido como enviado."});
+    const publicId=clean(req.params.publicId,80);
+    const current=await pool.query("SELECT status,shipping_status,is_test FROM orders WHERE public_id=$1",[publicId]);
+    if(!current.rows.length)return res.status(404).json({error:"Pedido não encontrado."});
+    if(!current.rows[0].is_test&&["enviado","entregue"].includes(shippingStatus)&&current.rows[0].status!=="paid")return res.status(409).json({error:"Somente pedidos pagos podem ser marcados como enviados ou entregues."});
+    const r=await pool.query("UPDATE orders SET shipping_status=$1,tracking_code=$2 WHERE public_id=$3 RETURNING public_id,shipping_status,tracking_code",[shippingStatus,trackingCode,publicId]);
     if(!r.rows.length)return res.status(404).json({error:"Pedido não encontrado."});
     res.json(r.rows[0]);
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar envio."});}
