@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Painel de Produtos — VORZELI</title>
+<style>
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial;background:#f5f6f8;color:#171717}.wrap{max-width:1100px;margin:auto;padding:22px}.head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.head h1{margin:0;font-size:24px}.panel{background:#fff;border:1px solid #e7e8ec;border-radius:20px;padding:18px;box-shadow:0 8px 30px #1111}.grid{display:grid;grid-template-columns:repeat(2,1fr);gap:12px}.full{grid-column:1/-1}label{font-size:11px;font-weight:800;color:#5f636b;display:block;margin-bottom:5px}input,select{width:100%;height:44px;border:1px solid #dfe1e6;border-radius:12px;padding:0 12px;background:#fff;font:inherit}input:focus,select:focus{outline:3px solid #ff5a1f18;border-color:#ff5a1f}.actions{display:flex;gap:8px;margin-top:14px}button{border:0;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer}.primary{background:#ff5a1f;color:#fff}.secondary{background:#eee}.danger{background:#fff0ec;color:#d43d0c}.status{font-size:12px;margin:12px 0;min-height:18px}.list{display:grid;gap:10px;margin-top:18px}.item{background:#fff;border:1px solid #e7e8ec;border-radius:16px;padding:13px;display:grid;grid-template-columns:58px 1fr auto;gap:12px;align-items:center}.thumb{width:58px;height:58px;border-radius:12px;background:#f3f4f6;object-fit:contain}.meta b{display:block}.meta small{color:#747982}.itemActions{display:flex;gap:6px}.itemActions button{padding:8px 10px}.login{display:flex;gap:8px;align-items:end}.login>div{flex:1}@media(max-width:650px){.wrap{padding:12px}.grid{grid-template-columns:1fr}.full{grid-column:auto}.item{grid-template-columns:48px 1fr}.thumb{width:48px;height:48px}.itemActions{grid-column:1/-1}.head{align-items:flex-start;flex-direction:column}.login{width:100%}}
+</style>
+</head>
+<body><main class="wrap">
+<div class="head"><div><h1>Painel de Produtos</h1><small>VORZELI • cadastro e estoque</small></div><div class="login"><div><label>Senha administrativa</label><input id="password" type="password" placeholder="Senha do Render"></div><button class="secondary" onclick="loadProducts()">Entrar</button></div></div>
+<section class="panel">
+<form id="form">
+<input type="hidden" id="id">
+<div class="grid">
+<div><label>Nome *</label><input id="n" required></div>
+<div><label>URL da foto</label><input id="i" placeholder="https://..."></div>
+<div><label>Categoria *</label><select id="c" required></select></div>
+<div><label>Subcategoria *</label><select id="sub" required></select></div>
+<div><label>Detalhe (Audiologia/Medicina)</label><input id="detail"></div>
+<div><label>Estoque</label><input id="stock" type="number" min="0" value="0"></div>
+<div><label>Preço *</label><input id="p" type="number" min=".01" step=".01" required></div>
+<div><label>Preço antigo</label><input id="oldPrice" type="number" min="0" step=".01"></div>
+<div><label>Avaliação (0–5)</label><input id="rating" type="number" min="0" max="5" step=".1"></div>
+<div><label>Nº de avaliações</label><input id="reviews" type="number" min="0"></div>
+<div><label>Parcelas</label><input id="installments" type="number" min="1" value="10"></div>
+<div><label>Frete</label><input id="shipping" placeholder="Frete grátis"></div>
+</div>
+<div class="actions"><button class="primary" type="submit">Salvar produto</button><button class="secondary" type="button" onclick="clearForm()">Limpar</button></div>
+<div class="status" id="status"></div>
+</form>
+</section>
+<div class="list" id="list"></div>
+</main>
+<script src="script.js"></script>
+<script>
+const $=id=>document.getElementById(id);
+let adminProducts=[];
+function pass(){return $("password").value}
+function status(t,ok=true){$("status").textContent=t;$("status").style.color=ok?"#198754":"#c0392b"}
+function setupCategories(){
+ $("c").innerHTML='<option value="">Selecione</option>'+areas.map(a=>'<option>'+a.name+'</option>').join("");
+ $("c").addEventListener("change",()=>{
+   const a=areas.find(x=>x.name===$("c").value);
+   $("sub").innerHTML='<option value="">Selecione</option>'+(a?a.subs.map(x=>'<option>'+x[0]+'</option>').join(""):"");
+ });
+}
+async function loadProducts(){
+ try{const r=await fetch("/api/produtos");adminProducts=await r.json();renderList();status("Catálogo carregado.");}
+ catch(e){status("Erro ao carregar catálogo.",false)}
+}
+function renderList(){
+ $("list").innerHTML=adminProducts.length?adminProducts.map(p=>`
+ <div class="item">
+  ${p.i&&/^https?:/i.test(p.i)?'<img class="thumb" src="'+p.i+'" alt="">':'<div class="thumb"></div>'}
+  <div class="meta"><b>${p.n}</b><small>${p.c} › ${p.sub} • R$ ${Number(p.p).toFixed(2).replace(".",",")} • estoque: ${p.stock||0}</small></div>
+  <div class="itemActions"><button class="secondary" onclick="editProduct('${p.id}')">Editar</button><button class="danger" onclick="removeProduct('${p.id}')">Excluir</button></div>
+ </div>`).join(""):'<div class="panel">Nenhum produto cadastrado ainda.</div>';
+}
+function editProduct(id){
+ const p=adminProducts.find(x=>String(x.id)===String(id));if(!p)return;
+ ["id","n","i","c","detail","stock","p","oldPrice","rating","reviews","installments","shipping"].forEach(k=>{if($(k))$(k).value=p[k]??""});
+ $("c").dispatchEvent(new Event("change"));$("sub").value=p.sub||"";scrollTo({top:0,behavior:"smooth"});
+}
+function clearForm(){$("form").reset();$("id").value="";$("installments").value=10;$("stock").value=0;$("sub").innerHTML='<option value="">Selecione</option>'}
+$("form").addEventListener("submit",async e=>{
+ e.preventDefault();
+ const id=$("id").value;
+ const body={n:$("n").value,i:$("i").value,c:$("c").value,sub:$("sub").value,detail:$("detail").value,stock:$("stock").value,p:$("p").value,oldPrice:$("oldPrice").value,rating:$("rating").value,reviews:$("reviews").value,installments:$("installments").value,shipping:$("shipping").value};
+ try{
+  const r=await fetch(id?"/api/produtos/"+id:"/api/produtos",{method:id?"PUT":"POST",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify(body)});
+  const data=await r.json();if(!r.ok)throw new Error(data.error||"Erro");
+  status(id?"Produto atualizado.":"Produto cadastrado.");clearForm();await loadProducts();
+ }catch(e){status(e.message,false)}
+});
+async function removeProduct(id){
+ if(!confirm("Excluir este produto?"))return;
+ try{const r=await fetch("/api/produtos/"+id,{method:"DELETE",headers:{"x-admin-password":pass()}});const data=await r.json();if(!r.ok)throw new Error(data.error||"Erro");await loadProducts();status("Produto excluído.");}catch(e){status(e.message,false)}
+}
+setupCategories();loadProducts();
+</script></body></html>
