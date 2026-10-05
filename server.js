@@ -839,9 +839,9 @@ app.get("/api/admin/dashboard",adminOnly,requireDatabase,async(req,res)=>{
       pool.query(`SELECT code,uses,discount_type,discount_value,active,expires_at FROM coupons ORDER BY uses DESC,created_at DESC LIMIT 5`)
     ]);
     res.set("Cache-Control","no-store");
-    const lowStockItems=await pool.query("SELECT id,n,sku,stock FROM products WHERE stock<=3 ORDER BY stock ASC,n ASC LIMIT 10");
+    const lowStockItems=await pool.query("SELECT id,name AS n,sku,stock FROM products WHERE stock<=3 ORDER BY stock ASC,name ASC LIMIT 10");
     res.json({...orders.rows[0],...products.rows[0],...pending.rows[0],revenue:Number(orders.rows[0].revenue||0),top_products:topProducts.rows.map(x=>({...x,gross_sales:Number(x.gross_sales||0)})),top_coupons:coupons.rows,low_stock_items:lowStockItems.rows});
-  }catch(e){console.error("Dashboard:",e);res.status(500).json({error:"Não foi possível carregar o resumo da loja."});}
+  }catch(e){console.error("Dashboard:",safeError(e));res.status(500).json({error:"Não foi possível carregar o resumo da loja."});}
 });
 
 app.get("/api/pedidos",adminOnly,requireDatabase,async(req,res)=>{
