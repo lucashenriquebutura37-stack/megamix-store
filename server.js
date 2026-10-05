@@ -45,6 +45,8 @@ async function initDatabase() {
     ALTER TABLE products ADD COLUMN IF NOT EXISTS sku TEXT DEFAULT '';
     ALTER TABLE products ADD COLUMN IF NOT EXISTS brand TEXT DEFAULT '';
     ALTER TABLE products ADD COLUMN IF NOT EXISTS images JSONB DEFAULT '[]'::jsonb;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS variants JSONB DEFAULT '[]'::jsonb;
+    ALTER TABLE products ADD COLUMN IF NOT EXISTS tags JSONB DEFAULT '[]'::jsonb;
     CREATE TABLE IF NOT EXISTS orders (
       id BIGSERIAL PRIMARY KEY, public_id TEXT UNIQUE NOT NULL, status TEXT NOT NULL DEFAULT 'pending',
       total NUMERIC(12,2) NOT NULL DEFAULT 0, payment_id TEXT, payer_email TEXT,
