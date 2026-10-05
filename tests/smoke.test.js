@@ -4,6 +4,8 @@ const fs=require("node:fs");
 
 const server=fs.readFileSync("server.js","utf8");
 const index=fs.readFileSync("index.html","utf8");
+const script=fs.readFileSync("script.js","utf8");
+const admin=fs.readFileSync("admin.html","utf8");
 const pedido=fs.readFileSync("pedido.html","utf8");
 
 test("rotas críticas da loja continuam presentes",()=>{
@@ -98,10 +100,10 @@ test("pedido registra cupom e desconto para auditoria",()=>{
 });
 
 test("reserva de cupom é protegida e liberada em pedidos não pagos",()=>{
-  assert.ok(server.includes("LIMIT 1 FOR UPDATE"));
+  assert.ok(server.includes("SELECT * FROM coupons WHERE UPPER(code)=$1 FOR UPDATE"));
   assert.ok(server.includes("GREATEST(uses-1,0)"));
-  assert.ok(server.includes("SELECT id,coupon_code FROM orders WHERE stock_reserved=TRUE"));
-  assert.ok(server.includes("SELECT id,stock_reserved,coupon_code FROM orders WHERE public_id=$1 FOR UPDATE"));
+  assert.ok(server.includes("SELECT id,coupon_code,coupon_released FROM orders WHERE stock_reserved=TRUE"));
+  assert.ok(server.includes("SELECT id,stock_reserved,coupon_code,coupon_released FROM orders WHERE public_id=$1 FOR UPDATE"));
 });
 
 test("desconto do Mercado Pago é reconciliado em centavos",()=>{

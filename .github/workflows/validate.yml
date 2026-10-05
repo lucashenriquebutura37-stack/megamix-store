@@ -1,7 +1,14 @@
 name: Validar VORZELI
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
   pull_request:
+permissions:
+  contents: read
+concurrency:
+  group: validate-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   validar:
     runs-on: ubuntu-latest
@@ -11,6 +18,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm install --ignore-scripts --no-audit --no-fund
+          cache: npm
+      - run: npm ci --ignore-scripts --no-audit --no-fund
       - run: npm audit --omit=dev --audit-level=high
       - run: npm run validate
