@@ -1725,3 +1725,49 @@ footer a:hover{color:#fff}
   .benefits{border-radius:12px}
   footer{gap:22px}
 }
+
+
+/* =========================================================
+   VORZELI — MOBILE QA FIXES (2026-10)
+   Corrige estouro de textos e cards observado no iPhone.
+========================================================= */
+.card,.info,.productRail,.grid{min-width:0}
+.badge{
+  max-width:100%;
+  white-space:normal;
+  overflow-wrap:anywhere;
+  line-height:1.25;
+  vertical-align:top;
+}
+.card h3,.card h2,.info h3,.info h2{
+  overflow-wrap:anywhere;
+  word-break:normal;
+}
+.pic img{
+  max-width:100%;
+  max-height:100%;
+  object-fit:contain;
+}
+footer a{
+  overflow-wrap:anywhere;
+}
+@media(max-width:760px){
+  .productRail .card{
+    min-width:min(82vw,320px);
+    max-width:min(82vw,320px);
+  }
+  .card .badge{
+    display:flex;
+    width:fit-content;
+    max-width:100%;
+    font-size:11px;
+  }
+  .info{overflow:hidden}
+  footer{gap:24px 18px}
+}
+@media(max-width:390px){
+  .productRail .card{
+    min-width:86vw;
+    max-width:86vw;
+  }
+}
