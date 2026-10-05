@@ -5,6 +5,7 @@ const nodemailer = require("nodemailer");
 const {decodeSecret,matchingCounter}=require("./lib/totp");
 if(process.env.ADMIN_TOTP_SECRET)decodeSecret(process.env.ADMIN_TOTP_SECRET);
 
+const PUBLIC_URL=process.env.PUBLIC_URL||"https://vorzeli.com.br";
 const app = express();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
@@ -67,7 +68,7 @@ const xmlEscape=v=>String(v??"").replace(/[<>&'"]/g,c=>({"<":"&lt;",">":"&gt;","
 app.get("/sitemap.xml",async(req,res)=>{
   // O sitemap nunca deve depender do banco para as páginas essenciais.
   // Assim crawlers continuam recebendo XML válido mesmo durante uma falha do PostgreSQL.
-  const root=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"");
+  const root=(PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"");
   const urls=[
     `<url><loc>${xmlEscape(root+"/")}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
     `<url><loc>${xmlEscape(root+"/pedido.html")}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
@@ -120,7 +121,7 @@ app.get("/produto/:id",async(req,res)=>{
     if(!Number.isInteger(id)||id<=0)return res.status(404).send("Produto não encontrado.");
     const r=await pool.query("SELECT id,name,description,brand,sku,price,image,images,stock FROM products WHERE id=$1",[id]);
     if(!r.rows.length)return res.status(404).send("Produto não encontrado.");
-    const p=r.rows[0],root=(process.env.PUBLIC_URL||`${req.protocol}://${req.get("host")}`).replace(/\/$/,"");
+    const p=r.rows[0],root=(PUBLIC_URL||`${req.protocol}://${req.get("host")}`).replace(/\/$/,"");
     const images=Array.isArray(p.images)?p.images:[],image=p.image||images[0]||root+"/logo-vorzeli.png";
     const title=htmlEscape(p.name+" — VORZELI"),description=htmlEscape((p.description||("Compre "+p.name+" na VORZELI.")).slice(0,160));
     const canonical=root+"/produto/"+p.id,price=Number(p.price).toFixed(2);
@@ -293,7 +294,7 @@ function safeError(error){
 }
 const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
 const cleanUserText=(v,max=300)=>clean(v,max).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,"").replace(/<\/?(?:script|iframe|object|embed|style|svg|math)\b[^>]*>/gi,"");
-const baseUrl=req=>process.env.PUBLIC_URL ? String(process.env.PUBLIC_URL).replace(/\/$/,"") : `${req.protocol}://${req.get("host")}`;
+const baseUrl=req=>PUBLIC_URL ? String(PUBLIC_URL).replace(/\/$/,"") : `${req.protocol}://${req.get("host")}`;
 const SHIPPING_ORIGIN_CEP="29177297";
 const STOCK_RESERVATION_MINUTES=30;
 const EXTERNAL_TIMEOUT_MS=12000;
@@ -310,7 +311,7 @@ function smtpConfig(){
 async function sendPaymentConfirmationEmail({to,publicId,total}){
   const cfg=smtpConfig();
   if(!cfg||!to)return false;
-  const site=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"");
+  const site=(PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"");
   const trackingUrl=`${site}/pedido.html?pedido=${encodeURIComponent(publicId)}`;
   const totalFormatted=Number(total).toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
   const safeId=String(publicId).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -326,7 +327,7 @@ async function sendPaymentConfirmationEmail({to,publicId,total}){
 }
 async function sendShippingUpdateEmail({to,publicId,status,trackingCode=""}){
   const cfg=smtpConfig();if(!cfg||!to)return false;
-  const site=(process.env.PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,""),trackingUrl=`${site}/pedido.html?pedido=${encodeURIComponent(publicId)}`;
+  const site=(PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,""),trackingUrl=`${site}/pedido.html?pedido=${encodeURIComponent(publicId)}`;
   const labels={preparando:"Pedido em preparação",enviado:"Pedido enviado",entregue:"Pedido entregue"};
   const title=labels[status];if(!title)return false;
   const safeId=htmlEscape(publicId),safeTrack=htmlEscape(trackingCode);
@@ -920,7 +921,7 @@ app.get("/api/status",async(req,res)=>{
     database,
     payments:Boolean(process.env.MP_ACCESS_TOKEN),
     shipping:Boolean(process.env.MELHOR_ENVIO_TOKEN),
-    public_url:Boolean(process.env.PUBLIC_URL),
+    public_url:Boolean(PUBLIC_URL),
     webhook_signature:Boolean(process.env.MP_WEBHOOK_SECRET),
     admin_password:Boolean(process.env.ADMIN_PASSWORD),
     admin_2fa:Boolean(process.env.ADMIN_TOTP_SECRET),
