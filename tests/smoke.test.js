@@ -273,3 +273,10 @@ test("dashboard destaca produtos sem estoque",()=>{
   assert.ok(admin.includes('id="mOutStock"'));
   assert.ok(admin.includes('"mOutStock").textContent=d.out_of_stock??0'));
 });
+
+test("gestão de pedidos destaca enviados sem código de rastreio",()=>{
+  assert.ok(admin.includes('value="needs_tracking"'));
+  assert.ok(admin.includes('filter==="needs_tracking"'));
+  assert.ok(admin.includes('missingTracking=paid.filter'));
+  assert.ok(admin.includes('" sem rastreio • "'));
+});
