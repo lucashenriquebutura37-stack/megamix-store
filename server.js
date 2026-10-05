@@ -576,6 +576,13 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
     if(!paymentId||!process.env.MP_ACCESS_TOKEN)return res.sendStatus(200);
     if(!/^\d{1,30}$/.test(String(paymentId)))return res.sendStatus(400);
     if(!validMercadoPagoSignature(req,paymentId))return res.sendStatus(401);
+    // O simulador oficial de Webhooks do Mercado Pago envia um ID fictício
+    // (ex.: 123456) com live_mode=false. A assinatura já foi validada acima,
+    // então confirmamos o recebimento sem consultar a API de pagamentos.
+    if(req.body?.live_mode===false){
+      console.log("Webhook Mercado Pago: notificação de teste recebida.",{type:req.body?.type,action:req.body?.action});
+      return res.sendStatus(200);
+    }
     const mp=await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,{signal:externalSignal(),headers:{Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`}});
     if(!mp.ok)return res.sendStatus(503);
     const pay=await mp.json(), publicId=clean(pay.external_reference,80);
