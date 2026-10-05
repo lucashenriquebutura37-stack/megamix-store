@@ -94,6 +94,8 @@ const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
 const baseUrl=req=>process.env.PUBLIC_URL ? String(process.env.PUBLIC_URL).replace(/\/$/,"") : `${req.protocol}://${req.get("host")}`;
 const SHIPPING_ORIGIN_CEP="29177297";
 const STOCK_RESERVATION_MINUTES=30;
+const EXTERNAL_TIMEOUT_MS=12000;
+const externalSignal=()=>AbortSignal.timeout(EXTERNAL_TIMEOUT_MS);
 async function releaseExpiredReservations(){
   if(!process.env.DATABASE_URL)return;
   const client=await pool.connect();
