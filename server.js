@@ -371,6 +371,7 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
         }
         await client.query("UPDATE orders SET status='paid',stock_reduced=TRUE,stock_reserved=FALSE,shipping_status=CASE WHEN shipping_status='aguardando_pagamento' THEN 'preparando' ELSE shipping_status END,payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
       }else if(["rejected","cancelled","refunded","charged_back"].includes(pay.status)){
+        if(["rejected","cancelled"].includes(pay.status)&&current.status==="paid"){await client.query("COMMIT");return;}
         if((["refunded","charged_back"].includes(pay.status)&&current.stock_reduced)||(["rejected","cancelled"].includes(pay.status)&&current.stock_reserved)){
           const its=await client.query("SELECT * FROM order_items WHERE order_id=$1",[current.id]);
           for(const it of its.rows)await client.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[it.quantity,it.product_id]);
