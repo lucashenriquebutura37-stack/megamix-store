@@ -156,3 +156,9 @@ test("painel mostra cupom e desconto aplicados em cada pedido",()=>{
   assert.ok(admin.includes("<b>Cupom:</b>"));
   assert.ok(admin.includes("o.discount_amount"));
 });
+
+test("dashboard alerta quais produtos estão com estoque baixo",()=>{
+  assert.ok(server.includes("low_stock_items"));
+  assert.ok(server.includes("WHERE stock<=3 ORDER BY stock ASC"));
+  assert.ok(admin.includes('id="lowStockItems"'));
+});
