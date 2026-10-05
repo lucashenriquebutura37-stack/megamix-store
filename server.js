@@ -115,6 +115,13 @@ function adminOnly(req,res,next){
   const configured=process.env.ADMIN_PASSWORD;
   if(!configured)return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
   if(!["GET","HEAD","OPTIONS"].includes(req.method)&&String(req.get("sec-fetch-site")||"").toLowerCase()==="cross-site")return res.status(403).json({error:"Origem não autorizada."});
+  if(!["GET","HEAD","OPTIONS"].includes(req.method)){
+    const origin=String(req.get("origin")||"");
+    if(origin){
+      try{if(new URL(origin).host!==req.get("host"))return res.status(403).json({error:"Origem não autorizada."});}
+      catch{return res.status(403).json({error:"Origem não autorizada."});}
+    }
+  }
   const token=adminSessionToken(req),expires=adminSessions.get(token);
   if(!token||!expires||expires<=Date.now()){
     if(token)adminSessions.delete(token);
