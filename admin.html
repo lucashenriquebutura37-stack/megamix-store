@@ -63,9 +63,8 @@
 <script>
 const $=id=>document.getElementById(id);
 let adminProducts=[];
-let adminPassword="";
+let adminConnected=false;
 let adminOrders=[];
-function pass(){return adminPassword}
 function status(t,ok=true){$("status").textContent=t;$("status").style.color=ok?"#198754":"#c0392b"}
 function setupCategories(){
  $("c").innerHTML='<option value="">Selecione</option>'+areas.map(a=>'<option>'+a.name+'</option>').join("");
@@ -80,34 +79,34 @@ async function loginAdmin(){
  try{
   const r=await fetch("/api/admin/auth",{method:"POST",headers:{"x-admin-password":typed}});
   const data=await r.json();if(!r.ok)throw new Error(data.error||"Senha administrativa inválida.");
-  adminPassword=typed;$("password").value="";$("loginBox").style.display="none";$("adminConnected").style.display="flex";
+  adminConnected=true;$("password").value="";$("loginBox").style.display="none";$("adminConnected").style.display="flex";
   status("Administrador conectado.");await loadProducts();await loadOrders();
  }catch(e){$("password").value="";status(e.message,false)}
 }
-function logoutAdmin(){$("ordersList").innerHTML='<div class="panel">Entre como administrador para visualizar pedidos.</div>';adminPassword="";$("password").value="";$("loginBox").style.display="flex";$("adminConnected").style.display="none";status("Sessão administrativa encerrada.");}
+async function logoutAdmin(){try{await fetch("/api/admin/logout",{method:"POST"});}catch{}$("ordersList").innerHTML='<div class="panel">Entre como administrador para visualizar pedidos.</div>';adminConnected=false;$("password").value="";$("loginBox").style.display="flex";$("adminConnected").style.display="none";status("Sessão administrativa encerrada.");}
 async function loadProducts(){
  try{const r=await fetch("/api/produtos");adminProducts=await r.json();renderList();status("Catálogo carregado.");}
  catch(e){status("Erro ao carregar catálogo.",false)}
 }
 
 async function testShipping(){
- if(!adminPassword){status("Entre como administrador primeiro.",false);return}
+ if(!adminConnected){status("Entre como administrador primeiro.",false);return}
  const fs=$("freightStatus"),box=$("freightResults"),cep=$("fCep").value.replace(/\D/g,"");
  fs.textContent="Consultando Melhor Envio...";fs.style.color="#5f636b";box.innerHTML="";
  try{
-  const r=await fetch("/api/admin/frete-teste",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify({postal_code:cep,weight_kg:$("fWeight").value,length_cm:$("fLength").value,width_cm:$("fWidth").value,height_cm:$("fHeight").value})});
+  const r=await fetch("/api/admin/frete-teste",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({postal_code:cep,weight_kg:$("fWeight").value,length_cm:$("fLength").value,width_cm:$("fWidth").value,height_cm:$("fHeight").value})});
   const d=await r.json();if(!r.ok)throw new Error(d.error||"Erro na cotação.");
   fs.textContent="Integração funcionando • ambiente: "+d.environment;fs.style.color="#198754";
   box.innerHTML=d.quotes?.length?d.quotes.map(q=>'<div class="order"><b>'+esc(q.company?q.company+" • ":"")+esc(q.name)+'</b><div class="orderItems">R$ '+Number(q.price).toFixed(2).replace(".",",")+(q.delivery_time?" • até "+Number(q.delivery_time)+" dias úteis":"")+'</div></div>').join(""):'<div class="order">A API respondeu, mas não retornou opções para esse CEP.</div>';
  }catch(e){fs.textContent=e.message;fs.style.color="#c0392b";}
 }
 async function createTestOrder(){
- if(!adminPassword){$("testOrderStatus").textContent="Entre como administrador primeiro.";$("testOrderStatus").style.color="#c0392b";return}
+ if(!adminConnected){$("testOrderStatus").textContent="Entre como administrador primeiro.";$("testOrderStatus").style.color="#c0392b";return}
  const tos=$("testOrderStatus");tos.textContent="Criando pedido de teste...";tos.style.color="#5f636b";
  const cep=$("tCep").value.replace(/\D/g,"");
  const customer={name:$("tName").value,phone:$("tPhone").value,postalCode:cep,address:$("tAddress").value,number:$("tNumber").value,extra:$("tExtra").value,neighborhood:$("tNeighborhood").value,city:$("tCity").value,state:$("tState").value.toUpperCase()};
  try{
-  const r=await fetch("/api/admin/pedido-teste",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify({customer})});
+  const r=await fetch("/api/admin/pedido-teste",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({customer})});
   const d=await r.json();if(!r.ok)throw new Error(d.error||"Erro ao criar teste.");
   tos.textContent="Pedido de teste criado: "+d.order_id;tos.style.color="#198754";await loadOrders();
  }catch(e){tos.textContent=e.message;tos.style.color="#c0392b"}
@@ -146,9 +145,9 @@ function renderOrders(){
  data.forEach(o=>{const sel=$("ship-"+o.public_id);if(sel)sel.value=o.shipping_status||"aguardando_pagamento"});
 }
 async function loadOrders(){
- if(!adminPassword)return;
+ if(!adminConnected)return;
  try{
-  const r=await fetch("/api/pedidos",{headers:{"x-admin-password":pass()}});
+  const r=await fetch("/api/pedidos",{headers:{}});
   const data=await r.json();if(!r.ok)throw new Error(data.error||"Erro ao carregar pedidos.");
   adminOrders=data;$("orderTools").style.display="block";renderOrders();
   $("ordersSection").scrollIntoView({behavior:"smooth"});
@@ -157,7 +156,7 @@ async function loadOrders(){
 async function updateShipping(id){
  try{
   const sel=$("ship-"+id), track=$("track-"+id);
-  const r=await fetch("/api/pedidos/"+encodeURIComponent(id)+"/envio",{method:"PATCH",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify({shipping_status:sel.value,tracking_code:track.value})});
+  const r=await fetch("/api/pedidos/"+encodeURIComponent(id)+"/envio",{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({shipping_status:sel.value,tracking_code:track.value})});
   const d=await r.json();if(!r.ok)throw new Error(d.error||"Erro ao atualizar envio.");
   status("Envio atualizado.");await loadOrders();
  }catch(e){status(e.message,false)}
@@ -185,14 +184,14 @@ $("form").addEventListener("submit",async e=>{
  const id=$("id").value;
  const body={n:$("n").value,i:$("i").value,c:$("c").value,sub:$("sub").value,detail:$("detail").value,stock:$("stock").value,p:$("p").value,oldPrice:$("oldPrice").value,rating:$("rating").value,reviews:$("reviews").value,installments:$("installments").value,shipping:$("shipping").value,weightKg:$("weightKg").value,lengthCm:$("lengthCm").value,widthCm:$("widthCm").value,heightCm:$("heightCm").value};
  try{
-  const r=await fetch(id?"/api/produtos/"+id:"/api/produtos",{method:id?"PUT":"POST",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify(body)});
+  const r=await fetch(id?"/api/produtos/"+id:"/api/produtos",{method:id?"PUT":"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)});
   const data=await r.json();if(!r.ok)throw new Error(data.error||"Erro");
   status(id?"Produto atualizado.":"Produto cadastrado.");clearForm();await loadProducts();
  }catch(e){status(e.message,false)}
 });
 async function removeProduct(id){
  if(!confirm("Excluir este produto?"))return;
- try{const r=await fetch("/api/produtos/"+id,{method:"DELETE",headers:{"x-admin-password":pass()}});const data=await r.json();if(!r.ok)throw new Error(data.error||"Erro");await loadProducts();status("Produto excluído.");}catch(e){status(e.message,false)}
+ try{const r=await fetch("/api/produtos/"+id,{method:"DELETE",headers:{}});const data=await r.json();if(!r.ok)throw new Error(data.error||"Erro");await loadProducts();status("Produto excluído.");}catch(e){status(e.message,false)}
 }
 setupCategories();loadProducts();
 </script></body></html>
