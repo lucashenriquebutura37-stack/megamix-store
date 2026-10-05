@@ -326,6 +326,8 @@ let selectedDetail = "";
 ========================= */
 
 let cart = [];
+let favorites = new Set();
+try { favorites = new Set(JSON.parse(localStorage.getItem("vorzeli_favorites") || "[]").map(Number)); } catch { favorites = new Set(); }
 try {
   const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
   cart = Array.isArray(savedCart) ? savedCart : [];
@@ -930,12 +932,9 @@ function render() {
   }
 
 
-  if (sort === "high") {
-
-    filtered.sort(
-      (a, b) => b.p - a.p
-    );
-  }
+  if (sort === "high") filtered.sort((a,b)=>b.p-a.p);
+  if (sort === "rating") filtered.sort((a,b)=>Number(b.rating||0)-Number(a.rating||0));
+  if (sort === "new") filtered.sort((a,b)=>Number(b.id||0)-Number(a.id||0));
 
 
   if (!filtered.length) {
@@ -1458,6 +1457,7 @@ async function loadCatalog() {
     const response = await fetch("/api/produtos", { cache: "no-store" });
     if (!response.ok) throw new Error("Falha ao carregar catálogo");
     products = await response.json();
+    const suggestions=document.getElementById("searchSuggestions"); if(suggestions)suggestions.innerHTML=products.slice(0,100).map(p=>`<option value="${escapeHTML(p.n)}"></option>`).join("");
 
     cart = cart.filter(item =>
       products.some(product => product.id === item.id)
@@ -1554,6 +1554,33 @@ loadCatalog();
 })();
 
 
+function isFavorite(id){return favorites.has(Number(id));}
+function toggleFavorite(id){
+  id=Number(id);
+  if(favorites.has(id))favorites.delete(id);else favorites.add(id);
+  localStorage.setItem("vorzeli_favorites",JSON.stringify([...favorites]));
+  const b=document.getElementById("favoriteProductButton");
+  if(b)b.textContent=isFavorite(id)?"♥ Salvo nos favoritos":"♡ Adicionar aos favoritos";
+}
+async function shareProduct(id){
+  const p=products.find(x=>String(x.id)===String(id)); if(!p)return;
+  const url=location.origin+"/produto/"+p.id;
+  try{
+    if(navigator.share)await navigator.share({title:p.n,text:"Confira este produto na VORZELI",url});
+    else{await navigator.clipboard.writeText(url);alert("Link do produto copiado.");}
+  }catch(e){if(e?.name!=="AbortError")alert("Não foi possível compartilhar agora.");}
+}
+function buyNow(id){
+  const p=products.find(x=>String(x.id)===String(id));
+  if(!p||Number(p.stock)<=0)return;
+  cart=[{id:p.id,q:1}]; save();
+  const d=document.getElementById("productDetailsDialog");if(d?.open)d.close();
+  openCart();
+}
+function openRelatedProduct(id){
+  const d=document.getElementById("productDetailsDialog");if(d?.open)d.close();
+  setTimeout(()=>openProductDetails(id),80);
+}
 function openProductDetails(id) {
   const product=products.find(p=>String(p.id)===String(id));
   if(!product)return;
@@ -1561,16 +1588,31 @@ function openProductDetails(id) {
   if(!dialog)return;
   const images=[...new Set([product.i,...(product.images||[])].map(safeImageUrl).filter(Boolean))];
   const stock=Number(product.stock)||0;
+  const oldPrice=Number(product.oldPrice||0),discount=oldPrice>Number(product.p)?Math.round((1-Number(product.p)/oldPrice)*100):0;
+  const installments=Math.max(1,Number(product.installments||10));
+  const related=products.filter(p=>p.id!==product.id&&(p.c===product.c||p.sub===product.sub)).slice(0,4);
   document.getElementById("productDetailsContent").innerHTML=`
+    <nav class="productBreadcrumb" aria-label="Navegação"><button type="button" onclick="document.getElementById('productDetailsDialog').close()">Início</button><span>›</span><span>${escapeHTML(product.c||"Produto")}</span></nav>
     <h2 id="productDetailsTitle">${escapeHTML(product.n)}</h2>
-    ${images.length?`<div class="productGallery">${images.map(src=>`<img src="${escapeHTML(src)}" alt="${escapeHTML(product.n)}" loading="lazy">`).join("")}</div>`:""}
-    <div class="price">${money(product.p)}</div>
-    ${product.brand?`<p>Marca: ${escapeHTML(product.brand)}</p>`:""}
-    ${product.sku?`<p>Código: ${escapeHTML(product.sku)}</p>`:""}
-    ${product.description?`<p class="productDescription">${escapeHTML(product.description)}</p>`:""}
-    ${(product.variants||[]).length?`<dl class="productCharacteristics">${product.variants.map(v=>`<div><dt>${escapeHTML(v.name)}</dt><dd>${escapeHTML(v.value)}</dd></div>`).join("")}</dl>`:""}
-    <p>${stock>0?"Disponível em estoque":"Sem estoque"}</p>
-    <button type="button" class="add" id="productDetailsAdd" ${stock<=0?"disabled":""}>${stock>0?"Adicionar ao carrinho":"Indisponível"}</button>`;
-  document.getElementById("productDetailsAdd").addEventListener("click",()=>{dialog.close();add(product.id)});
+    ${images.length?`<div class="productGallery">${images.map((src,i)=>`<img src="${escapeHTML(src)}" alt="${escapeHTML(product.n)} - foto ${i+1}" loading="${i?"lazy":"eager"}">`).join("")}</div>`:""}
+    <div class="productBuyPanel">
+      ${oldPrice>Number(product.p)?`<div class="oldPrice">${money(oldPrice)} <b class="discountPillInline">-${discount}%</b></div>`:""}
+      <div class="price">${money(product.p)}</div>
+      <div class="install">ou em até ${installments}x de ${money(Number(product.p)/installments)}</div>
+      ${Number(product.rating)>0?`<div class="ratingRow"><span class="ratingStar">★</span><b>${Number(product.rating).toFixed(1)}</b><small> (${Number(product.reviews||0)} avaliações)</small></div>`:""}
+      <p class="stockState">${stock>0?"✓ Disponível em estoque":"Sem estoque"}</p>
+      <div class="productPrimaryActions"><button type="button" class="buyNow" onclick="buyNow(${Number(product.id)})" ${stock<=0?"disabled":""}>Comprar agora</button><button type="button" class="add" id="productDetailsAdd" ${stock<=0?"disabled":""}>${stock>0?"Adicionar ao carrinho":"Indisponível"}</button></div>
+      <div class="productSecondaryActions"><button type="button" id="favoriteProductButton" onclick="toggleFavorite(${Number(product.id)})">${isFavorite(product.id)?"♥ Salvo nos favoritos":"♡ Adicionar aos favoritos"}</button><button type="button" onclick="shareProduct(${Number(product.id)})">Compartilhar</button></div>
+      <div class="productTrustMini"><span>✓ Pagamento seguro</span><span>↗ Frete calculado pelo CEP no carrinho</span><span>↺ Consulte trocas e devoluções</span></div>
+    </div>
+    ${product.brand?`<p><b>Marca:</b> ${escapeHTML(product.brand)}</p>`:""}
+    ${product.sku?`<p><b>Código:</b> ${escapeHTML(product.sku)}</p>`:""}
+    ${product.description?`<section class="productDescription"><h3>Descrição do produto</h3><p>${escapeHTML(product.description)}</p></section>`:""}
+    ${(product.variants||[]).length?`<section><h3>Características</h3><dl class="productCharacteristics">${product.variants.map(v=>`<div><dt>${escapeHTML(v.name)}</dt><dd>${escapeHTML(v.value)}</dd></div>`).join("")}</dl></section>`:""}
+    ${related.length?`<section class="relatedProducts"><h3>Você também pode gostar</h3><div>${related.map(p=>`<button type="button" onclick="openRelatedProduct(${Number(p.id)})">${safeImageUrl(p.i)?`<img src="${escapeHTML(safeImageUrl(p.i))}" alt="">`:""}<span>${escapeHTML(p.n)}</span><b>${money(p.p)}</b></button>`).join("")}</div></section>`:""}
+    <p class="productPolicyLink"><a href="/politicas.html#trocas">Trocas e devoluções</a> • <a href="/politicas.html#atendimento">Precisa de ajuda?</a></p>`;
+  const addBtn=document.getElementById("productDetailsAdd");
+  if(addBtn)addBtn.addEventListener("click",()=>{dialog.close();add(product.id)});
   if(!dialog.open)dialog.showModal();
 }
+
