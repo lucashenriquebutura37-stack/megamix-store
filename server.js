@@ -3,12 +3,14 @@ const { Pool } = require("pg");
 const crypto = require("crypto");
 const nodemailer = require("nodemailer");
 const {decodeSecret,matchingCounter}=require("./lib/totp");
+const {sanitizeError}=require("./lib/safe-error");
 if(process.env.ADMIN_TOTP_SECRET)decodeSecret(process.env.ADMIN_TOTP_SECRET);
 
 const PUBLIC_URL=process.env.PUBLIC_URL||"https://vorzeli.com.br";
 const app = express();
 app.set("trust proxy", 1);
 app.disable("x-powered-by");
+app.use(require("./lib/http-compression"));
 app.use(express.json({ limit: "256kb" }));
 app.use((req,res,next)=>{
   res.setHeader("X-Content-Type-Options","nosniff");
@@ -24,7 +26,7 @@ app.use((req,res,next)=>{
   res.setHeader("Content-Security-Policy-Report-Only","default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://viacep.com.br; font-src 'self' data:; upgrade-insecure-requests");
   res.setHeader("X-Permitted-Cross-Domain-Policies","none");
   res.setHeader("Origin-Agent-Cluster","?1");
-  res.setHeader("Content-Security-Policy","default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://viacep.com.br; font-src 'self' data:; upgrade-insecure-requests");
+  res.setHeader("Content-Security-Policy","default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: https:; connect-src 'self' https://viacep.com.br; font-src 'self' data:; upgrade-insecure-requests");
   next();
 });
 
@@ -287,11 +289,8 @@ function requireDatabase(req,res,next){
   if(!process.env.DATABASE_URL) return res.status(503).json({error:"Banco de dados indisponível."});
   next();
 }
-function safeError(error){
-  if(!error)return "erro desconhecido";
-  const raw=error instanceof Error?error.message:String(error);
-  return raw.replace(/Bearer\s+[A-Za-z0-9._~+\/-]+/gi,"Bearer [REDACTED]").replace(/(?:password|pass|token|secret|authorization|database_url)\s*[:=]\s*[^\s,;]+/gi,"$1=[REDACTED]").slice(0,500);
-}
+function safeError(error){return sanitizeError(error);}
+
 const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
 const cleanUserText=(v,max=300)=>clean(v,max).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,"").replace(/<\/?(?:script|iframe|object|embed|style|svg|math)\b[^>]*>/gi,"");
 const baseUrl=req=>PUBLIC_URL ? String(PUBLIC_URL).replace(/\/$/,"") : `${req.protocol}://${req.get("host")}`;
@@ -792,7 +791,7 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
     // (ex.: 123456) com live_mode=false. A assinatura já foi validada acima,
     // então confirmamos o recebimento sem consultar a API de pagamentos.
     if(req.body?.live_mode===false){
-      console.log("Webhook Mercado Pago: notificação de teste recebida.",{type:req.body?.type,action:req.body?.action});
+      console.log("Webhook Mercado Pago: notificação de teste recebida.");
       return res.sendStatus(200);
     }
     const mp=await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,{signal:externalSignal(),headers:{Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`}});

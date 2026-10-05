@@ -18,3 +18,8 @@ Antes de considerar a ativação concluída: configure a variável, valide um lo
 
 ## Monitoramento
 `Disponibilidade VORZELI` verifica `/healthz` e `/api/status` a cada 15 minutos, com três tentativas e limite de tempo. Uma falha gera uma execução vermelha no Actions. Habilite as notificações de falhas do Actions na conta responsável e valide a entrega antes de considerar os alertas homologados. O agendador do GitHub pode atrasar execuções; isso não representa um SLA de 15 minutos.
+
+## CSP e registros operacionais
+As páginas usam arquivos externos para JavaScript e CSS. Ações em elementos dinâmicos são descritas por atributos de dados e interpretadas por uma lista explícita de funções e argumentos literais; não há `eval` nem compilação dinâmica de código.
+A CSP aplicada aceita scripts e estilos somente da própria origem, sem `unsafe-inline` ou `unsafe-eval`. Estilos necessários a componentes dinâmicos são atribuídos pela API do DOM pelo script da aplicação.
+Os registros de erros usam somente nomes, códigos e status HTTP permitidos. A mensagem original do erro e os valores recebidos em notificações de teste do webhook não são registrados.
