@@ -110,7 +110,7 @@ async function releaseExpiredReservations(){
   const client=await pool.connect();
   try{
     await client.query("BEGIN");
-    const expired=await client.query("SELECT id FROM orders WHERE stock_reserved=TRUE AND stock_reduced=FALSE AND reservation_expires_at<=NOW() FOR UPDATE SKIP LOCKED");
+    const expired=await client.query("SELECT id FROM orders WHERE stock_reserved=TRUE AND stock_reduced=FALSE AND status='pending' AND reservation_expires_at<=NOW() ORDER BY reservation_expires_at LIMIT 100 FOR UPDATE SKIP LOCKED");
     for(const order of expired.rows){
       const items=await client.query("SELECT product_id,quantity FROM order_items WHERE order_id=$1",[order.id]);
       for(const item of items.rows)await client.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[item.quantity,item.product_id]);
