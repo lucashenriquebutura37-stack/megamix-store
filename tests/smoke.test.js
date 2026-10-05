@@ -256,3 +256,8 @@ test("admin limita sessões simultâneas e preserva as mais recentes",()=>{
   assert.ok(server.includes("ORDER BY created_at DESC OFFSET $1"));
   assert.ok(server.includes("[ADMIN_MAX_ACTIVE_SESSIONS]"));
 });
+
+test("dashboard consulta nome real dos produtos com estoque baixo",()=>{
+  assert.ok(server.includes("SELECT id,name AS n,sku,stock FROM products WHERE stock<=3 ORDER BY stock ASC,name ASC LIMIT 10"));
+  assert.ok(!server.includes("SELECT id,n,sku,stock FROM products"));
+});
