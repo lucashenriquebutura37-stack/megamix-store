@@ -266,6 +266,9 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const total=productsTotal+selectedShipping.price;
     const publicId="VZ-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(3).toString("hex").toUpperCase();
     await client.query("BEGIN");
+    const locked=await client.query("SELECT id,stock FROM products WHERE id = ANY($1::bigint[]) FOR UPDATE",[ids]);
+    const lockedStock=new Map(locked.rows.map(r=>[Number(r.id),Number(r.stock)]));
+    for(const x of normalized)if((lockedStock.get(x.id)??0)<x.q)throw Object.assign(new Error("O estoque mudou. Atualize o carrinho e tente novamente."),{status:409});
     for(const x of normalized){
       const reserved=await client.query("UPDATE products SET stock=stock-$1 WHERE id=$2 AND stock >= $1 RETURNING id",[x.q,x.id]);
       if(!reserved.rows.length)throw Object.assign(new Error("O estoque mudou enquanto você finalizava a compra. Atualize o carrinho e tente novamente."),{status:409});
