@@ -1458,3 +1458,17 @@ html{scroll-behavior:smooth}body{background:var(--vz-bg);-webkit-font-smoothing:
  .areaModalHead{height:62px;padding:0 14px}.areaModalHead h2{font-size:15px;max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.areaModalBody{padding:16px 14px}.subcategories{display:flex;overflow-x:auto;scroll-snap-type:x mandatory;gap:9px;margin:14px 0 25px;scrollbar-width:none}.subcat{min-width:125px;min-height:90px;scroll-snap-align:start}.grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.grid .info{padding:11px}.grid .pic{min-height:145px;height:145px}
 }
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important;animation:none!important}}
+
+
+/* VORZELI — iPhone header hotfix */
+@media(max-width:760px){
+ header{background:#fff}
+ .nav{height:auto!important;min-height:0!important;margin-bottom:0!important;padding:10px 14px 9px!important;display:grid!important;grid-template-columns:42px 1fr 42px!important;grid-template-rows:48px 46px!important;column-gap:10px!important;row-gap:8px!important;position:relative!important;top:auto!important}
+ .menuBtn{grid-column:1;grid-row:1;align-self:center}
+ .logo{grid-column:2;grid-row:1;align-self:center;justify-self:center}
+ .cartBtn{grid-column:3;grid-row:1;align-self:center;justify-self:end}
+ .search{position:static!important;inset:auto!important;transform:none!important;grid-column:1/-1!important;grid-row:2!important;margin:0!important;width:100%!important;height:46px!important}
+ .trustStrip{margin:0!important}
+ .quick{margin:0!important;border-top:1px solid #f1f2f4!important}
+ .hero{margin-top:12px!important}
+}
