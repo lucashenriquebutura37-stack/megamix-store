@@ -359,6 +359,7 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
       VALUES($1,$2,TRUE,NOW() + INTERVAL '30 minutes',$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
       [publicId,total,customerName,customerPhone,postalCode,addressLine,addressNumber,addressExtra,neighborhood,city,state,selectedShipping.id,selectedShipping.name,selectedShipping.company,selectedShipping.price,selectedShipping.delivery_time]);
     for(const it of items)await client.query("INSERT INTO order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,$3,$4,$5)",[or.rows[0].id,Number(it.id),it.title,it.unit_price,it.quantity]);
+    await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[or.rows[0].id,"created","Pedido criado e estoque reservado."]);
     await client.query("COMMIT");
     reservationCommitted=true;
     const root=baseUrl(req);
@@ -390,6 +391,7 @@ app.post("/api/admin/pedido-teste",adminOnly,requireDatabase,async(req,res)=>{
     if(product.rows.length){
       await client.query("INSERT INTO order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,'ITEM DE TESTE — sem cobrança',0,1)",[or.rows[0].id,product.rows[0].id]);
     }
+    await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[or.rows[0].id,"test_created","Pedido de teste criado pelo administrador."]);
     await client.query("COMMIT");
     res.status(201).json({ok:true,order_id:publicId,message:"Pedido de teste criado sem cobrança e sem alteração de estoque."});
   }catch(e){try{await client.query("ROLLBACK")}catch{};console.error(e);res.status(500).json({error:"Não foi possível criar o pedido de teste."});}
