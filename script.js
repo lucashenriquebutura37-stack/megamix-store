@@ -475,7 +475,7 @@ function menuButton(area) {
       class="menuItem"
       onclick='openArea(${JSON.stringify(area.name)})'>
 
-      <span>${area.icon}</span>
+      <span class="menuGraphic">${vorzeliAreaIconHTML(area)}</span>
 
       <b>${area.name}</b>
 
