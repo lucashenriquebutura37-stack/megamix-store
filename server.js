@@ -459,8 +459,12 @@ app.get("/api/produtos",requireDatabase,async(req,res)=>{
   try{const r=await pool.query("SELECT * FROM products ORDER BY created_at DESC");res.json(r.rows.map(toProduct));}
   catch(e){console.error(e);res.status(500).json({error:"Erro ao carregar produtos."});}
 });
+function publicReviewerName(name){
+  const first=clean(name,80).split(/\s+/).filter(Boolean)[0]||"Cliente";
+  return first.length>1?first[0].toUpperCase()+first.slice(1):first;
+}
 app.get("/api/produtos/:id/avaliacoes",requireDatabase,async(req,res)=>{
-  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("SELECT customer_name,rating,comment,verified_purchase,created_at FROM product_reviews WHERE product_id=$1 AND approved=TRUE ORDER BY created_at DESC LIMIT 100",[req.params.id]);const summary=await pool.query("SELECT COALESCE(ROUND(AVG(rating)::numeric,1),0) rating,COUNT(*)::int reviews FROM product_reviews WHERE product_id=$1 AND approved=TRUE",[req.params.id]);res.json({summary:summary.rows[0],items:r.rows});}
+  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("SELECT customer_name,rating,comment,verified_purchase,created_at FROM product_reviews WHERE product_id=$1 AND approved=TRUE ORDER BY created_at DESC LIMIT 100",[req.params.id]);const publicItems=r.rows.map(x=>({...x,customer_name:publicReviewerName(x.customer_name)}));const summary=await pool.query("SELECT COALESCE(ROUND(AVG(rating)::numeric,1),0) rating,COUNT(*)::int reviews FROM product_reviews WHERE product_id=$1 AND approved=TRUE",[req.params.id]);res.json({summary:summary.rows[0],items:publicItems});}
   catch(e){console.error("Avaliações:",e);res.status(500).json({error:"Não foi possível carregar avaliações."});}
 });
 app.post("/api/produtos/:id/avaliacoes",requireDatabase,async(req,res)=>{
