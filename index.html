@@ -405,20 +405,18 @@
   <div id="items" aria-live="polite"></div>
 
 
-  <div class="total">
-
-    <span>Total</span>
-
-    <strong id="total" aria-live="polite">
-      R$ 0,00
-    </strong>
-
+  <div class="checkoutSteps" aria-label="Etapas da compra">
+    <span class="active">1 Carrinho</span><span>2 Entrega</span><span>3 Pagamento</span>
   </div>
 
+  <div class="orderSummary" aria-label="Resumo do pedido">
+    <div><span>Subtotal</span><strong id="subtotal">R$ 0,00</strong></div>
+    <div><span>Frete</span><strong id="shippingTotal">A calcular</strong></div>
+    <div class="grandTotal"><span>Total</span><strong id="total" aria-live="polite">R$ 0,00</strong></div>
+  </div>
 
   <div class="deliveryBox">
-    <h3>Dados para entrega</h3>
-    <p>Preencha antes de finalizar o pagamento.</p>
+    <div class="checkoutSectionTitle"><span>2</span><div><h3>Entrega</h3><p>Informe onde você quer receber o pedido.</p></div></div>
     <input id="customerName" autocomplete="name" placeholder="Nome completo">
     <input id="customerPhone" inputmode="tel" autocomplete="tel" placeholder="Telefone / WhatsApp">
     <div class="deliveryRow"><input id="postalCode" inputmode="numeric" autocomplete="postal-code" maxlength="9" placeholder="CEP"><input id="state" maxlength="2" placeholder="UF"></div>
@@ -432,7 +430,9 @@
     </div>
   </div>
 
-  <button class="checkout" onclick="checkout()" aria-label="Finalizar pagamento do pedido">Finalizar pagamento</button>
+  <div id="checkoutNotice" class="checkoutNotice" role="status" aria-live="polite"></div>
+  <div class="paymentTrust"><b>Pagamento seguro</b><span>Você será direcionado ao Mercado Pago para concluir a compra.</span><a href="/politicas.html">Trocas, devoluções e privacidade</a></div>
+  <button class="checkout" onclick="checkout()" aria-label="Ir para o pagamento seguro">Ir para pagamento seguro</button>
 
 </div>
 
