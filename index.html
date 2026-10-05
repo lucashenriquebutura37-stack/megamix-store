@@ -52,12 +52,15 @@
 
     <p>
       Tecnologia, utilidades, acessórios, ferramentas
-      e áreas especializadas.
+      e áreas especializadas com praticidade e segurança.
     </p>
 
-    <button onclick="document.getElementById('areas').scrollIntoView({behavior:'smooth'})">
-      Explorar a loja
-    </button>
+    <div class="heroActions">
+      <button onclick="document.getElementById('areas').scrollIntoView({behavior:'smooth'})">
+        Explorar a loja
+      </button>
+      <span>✓ Compra segura &nbsp; ✓ Envio para todo o Brasil</span>
+    </div>
   </div>
 
   <div class="heroIcon">🛍️</div>
@@ -72,6 +75,11 @@
     <span>ENCONTRE MAIS RÁPIDO</span>
     <h2>Escolha uma área</h2>
     <p>Toque em uma categoria para encontrar o que procura.</p>
+  </div>
+
+  <div class="categoryHint">
+    <b>⚡ Acesso rápido</b>
+    <span>Escolha uma categoria e encontre as opções disponíveis.</span>
   </div>
 
   <div id="areaGrid" class="areaGrid"></div>
