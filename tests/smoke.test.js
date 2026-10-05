@@ -123,3 +123,10 @@ test("perguntas e avaliações têm proteção anti-spam",()=>{
   assert.ok(server.includes('max:8'));
   assert.ok(server.includes('max:6'));
 });
+
+test("painel não permite editar manualmente nota e quantidade de avaliações",()=>{
+  assert.ok(!admin.includes('id="rating"'));
+  assert.ok(!admin.includes('id="reviews"'));
+  assert.ok(!admin.includes('rating:$("rating").value'));
+  assert.ok(!admin.includes('reviews:$("reviews").value'));
+});
