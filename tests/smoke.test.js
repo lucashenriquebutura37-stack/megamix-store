@@ -206,3 +206,11 @@ test("status operacional exige SMTP e sinaliza banco lento sem expor segredos",(
   assert.ok(server.includes('status:healthy?(warnings.length?"warning":"ok"):"degraded"'));
   assert.ok(!server.includes("MP_ACCESS_TOKEN:process.env.MP_ACCESS_TOKEN"));
 });
+
+test("API de produtos ignora rating e reviews enviados manualmente",()=>{
+  const validation=server.slice(server.indexOf("function validateProductInput"),server.indexOf("const ADMIN_LOGIN_WINDOW_MS"));
+  assert.ok(validation.includes("const rating=finite(current.rating??0"));
+  assert.ok(validation.includes("reviews=finite(current.reviews??0"));
+  assert.ok(!validation.includes("b.rating??current.rating"));
+  assert.ok(!validation.includes("b.reviews??current.reviews"));
+});
