@@ -419,12 +419,12 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
     const mp=await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,{signal:externalSignal(),headers:{Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`}});
     if(!mp.ok)return res.sendStatus(503);
     const pay=await mp.json(), publicId=clean(pay.external_reference,80);
-    if(!publicId||!publicId.startsWith("VZ-"))return;
+    if(!publicId||!publicId.startsWith("VZ-"))return res.sendStatus(200);
     const client=await pool.connect();
     try{
       await client.query("BEGIN");
       const or=await client.query("SELECT * FROM orders WHERE public_id=$1 FOR UPDATE",[publicId]);
-      if(!or.rows.length){await client.query("ROLLBACK");return;}
+      if(!or.rows.length){await client.query("ROLLBACK");return res.sendStatus(200);}
       const current=or.rows[0];
       if(pay.status==="approved"&&!["paid","refunded","charged_back"].includes(current.status)){
         const its=await client.query("SELECT * FROM order_items WHERE order_id=$1",[current.id]);
