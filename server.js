@@ -48,6 +48,7 @@ function rateLimit({windowMs=60000,max=120,keyPrefix="global"}={}){
   };
 }
 setInterval(()=>{const now=Date.now();for(const [key,value] of rateBuckets)if(value.reset<=now)rateBuckets.delete(key);},60000).unref();
+setInterval(()=>cleanupRateLimits(),10*60*1000).unref();
 app.use("/api/",rateLimit({windowMs:60000,max:180,keyPrefix:"api"}));
 app.use("/api/admin/auth",rateLimit({windowMs:15*60*1000,max:12,keyPrefix:"admin-login"}));
 app.use("/api/frete/cotar",rateLimit({windowMs:60000,max:30,keyPrefix:"shipping"}));
@@ -245,6 +246,10 @@ function adminSessionToken(req){
   return m?m[1]:"";
 }
 const sessionHash=token=>crypto.createHash("sha256").update(String(token)).digest("hex");
+async function cleanupRateLimits(){
+  if(!process.env.DATABASE_URL)return;
+  try{await pool.query("DELETE FROM rate_limits WHERE reset_at<=NOW()");}catch(e){console.error("Falha ao limpar limites expirados:",e.message);}
+}
 async function cleanupAdminSessions(){
   if(!process.env.DATABASE_URL)return;
   try{await pool.query("DELETE FROM admin_sessions WHERE expires_at<=NOW()");}catch(e){console.error("Falha ao limpar sessões administrativas:",e);}
