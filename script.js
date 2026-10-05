@@ -1581,6 +1581,15 @@ function openRelatedProduct(id){
   const d=document.getElementById("productDetailsDialog");if(d?.open)d.close();
   setTimeout(()=>openProductDetails(id),80);
 }
+async function loadProductQuestions(id){
+  const box=document.getElementById("productQuestionsList");if(!box)return;
+  try{const r=await fetch("/api/produtos/"+encodeURIComponent(id)+"/perguntas");const rows=await r.json();if(!r.ok)throw new Error();box.innerHTML=rows.length?rows.map(q=>'<article class="productQuestion"><b>'+(q.customer_name?escapeHTML(q.customer_name):"Cliente")+'</b><p>'+escapeHTML(q.question)+'</p>'+(q.answer?'<div><strong>VORZELI respondeu:</strong> '+escapeHTML(q.answer)+'</div>':'')+'</article>').join(""):'<p>Ainda não há perguntas publicadas para este produto.</p>';}catch{box.innerHTML='<p>Não foi possível carregar as perguntas agora.</p>';}
+}
+async function sendProductQuestion(id){
+  const name=(document.getElementById("questionName")?.value||"").trim(),question=(document.getElementById("questionText")?.value||"").trim(),status=document.getElementById("questionStatus");
+  if(question.length<5){if(status)status.textContent="Escreva uma pergunta um pouco mais completa.";return;}
+  try{const r=await fetch("/api/produtos/"+encodeURIComponent(id)+"/perguntas",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({name,question})});const d=await r.json();if(!r.ok)throw new Error(d.error||"Não foi possível enviar.");if(status)status.textContent=d.message;const t=document.getElementById("questionText");if(t)t.value="";}catch(e){if(status)status.textContent=e.message;}
+}
 function openProductDetails(id) {
   const product=products.find(p=>String(p.id)===String(id));
   if(!product)return;
@@ -1609,10 +1618,11 @@ function openProductDetails(id) {
     ${product.sku?`<p><b>Código:</b> ${escapeHTML(product.sku)}</p>`:""}
     ${product.description?`<section class="productDescription"><h3>Descrição do produto</h3><p>${escapeHTML(product.description)}</p></section>`:""}
     ${(product.variants||[]).length?`<section><h3>Características</h3><dl class="productCharacteristics">${product.variants.map(v=>`<div><dt>${escapeHTML(v.name)}</dt><dd>${escapeHTML(v.value)}</dd></div>`).join("")}</dl></section>`:""}
-    ${related.length?`<section class="relatedProducts"><h3>Você também pode gostar</h3><div>${related.map(p=>`<button type="button" onclick="openRelatedProduct(${Number(p.id)})">${safeImageUrl(p.i)?`<img src="${escapeHTML(safeImageUrl(p.i))}" alt="">`:""}<span>${escapeHTML(p.n)}</span><b>${money(p.p)}</b></button>`).join("")}</div></section>`:""}
+    <section class="productQuestions"><h3>Perguntas sobre o produto</h3><div id="productQuestionsList"><p>Carregando perguntas...</p></div><div class="askProduct"><input id="questionName" maxlength="80" placeholder="Seu nome (opcional)"><textarea id="questionText" maxlength="600" placeholder="Tire sua dúvida sobre este produto"></textarea><button type="button" onclick="sendProductQuestion(${Number(product.id)})">Enviar pergunta</button><small id="questionStatus" aria-live="polite">As perguntas são analisadas antes da publicação.</small></div></section>\n    ${related.length?`<section class="relatedProducts"><h3>Você também pode gostar</h3><div>${related.map(p=>`<button type="button" onclick="openRelatedProduct(${Number(p.id)})">${safeImageUrl(p.i)?`<img src="${escapeHTML(safeImageUrl(p.i))}" alt="">`:""}<span>${escapeHTML(p.n)}</span><b>${money(p.p)}</b></button>`).join("")}</div></section>`:""}
     <p class="productPolicyLink"><a href="/politicas.html#trocas">Trocas e devoluções</a> • <a href="/politicas.html#atendimento">Precisa de ajuda?</a></p>`;
   const addBtn=document.getElementById("productDetailsAdd");
   if(addBtn)addBtn.addEventListener("click",()=>{dialog.close();add(product.id)});
   if(!dialog.open)dialog.showModal();
+  loadProductQuestions(product.id);
 }
 
