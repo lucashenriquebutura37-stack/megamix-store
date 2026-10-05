@@ -175,7 +175,10 @@ async function updateShipping(id){
  }catch(e){status(e.message,false)}
 }
 function safeAdminImage(v){try{const u=new URL(String(v||""));return (u.protocol==="https:"||u.protocol==="http:")?u.href:""}catch{return ""}}\nfunction renderList(){
- $("list").innerHTML=adminProducts.length?adminProducts.map(p=>{
+ const q=($("productSearch")?.value||"").toLowerCase(),stockFilter=$("stockFilter")?.value||"";
+ const products=adminProducts.filter(p=>{const hay=[p.n,p.c,p.sub,p.detail].join(" ").toLowerCase(),stock=Number(p.stock)||0;return (!q||hay.includes(q))&&(!stockFilter||(stockFilter==="out"?stock===0:stock<=5));});
+ if($("productSummary"))$("productSummary").textContent=products.length+" exibidos de "+adminProducts.length+" produtos";
+ $("list").innerHTML=products.length?products.map(p=>{
   const img=safeAdminImage(p.i);
   return `
  <div class="item">
