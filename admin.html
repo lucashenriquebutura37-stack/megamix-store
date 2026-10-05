@@ -257,7 +257,7 @@ function renderList(){
 }
 function editProduct(id){
  const p=adminProducts.find(x=>String(x.id)===String(id));if(!p)return;
- ["id","n","i","c","detail","stock","p","oldPrice","rating","reviews","installments","shipping","weightKg","lengthCm","widthCm","heightCm","sku","brand","description"].forEach(k=>{if($(k))$(k).value=p[k]??""});if($("images"))$("images").value=(p.images||[]).join("\n");if($("featured"))$("featured").value=p.featured?"true":"false";$("variants").value=(p.variants||[]).map(v=>v.name+": "+v.value).join("\n");$("tags").value=(p.tags||[]).join(", ");
+ ["id","n","i","c","detail","stock","p","oldPrice","installments","shipping","weightKg","lengthCm","widthCm","heightCm","sku","brand","description"].forEach(k=>{if($(k))$(k).value=p[k]??""});if($("images"))$("images").value=(p.images||[]).join("\n");if($("featured"))$("featured").value=p.featured?"true":"false";$("variants").value=(p.variants||[]).map(v=>v.name+": "+v.value).join("\n");$("tags").value=(p.tags||[]).join(", ");
  $("c").dispatchEvent(new Event("change"));$("sub").value=p.sub||"";scrollTo({top:0,behavior:"smooth"});
 }
 function clearForm(){$("form").reset();$("id").value="";$("installments").value=10;$("stock").value=0;$("sub").innerHTML='<option value="">Selecione</option>'}
