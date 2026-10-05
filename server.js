@@ -19,7 +19,12 @@ app.use((req,res,next)=>{
 app.get("/robots.txt",(req,res)=>res.type("text/plain").send("User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /api/\n\nSitemap: https://vorzeli.com.br/sitemap.xml\n"));
 app.get("/sitemap.xml",(req,res)=>res.type("application/xml").send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://vorzeli.com.br/</loc><changefreq>daily</changefreq><priority>1.0</priority></url><url><loc>https://vorzeli.com.br/politicas.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url></urlset>'));
 
-app.use(express.static(__dirname));
+// Somente páginas e recursos públicos podem ser servidos pelo diretório da aplicação.
+app.use((req,res,next)=>{
+  const publicFile=/^\/(?:[a-z0-9_-]+\.(?:html|css|svg|png|jpg|jpeg|webp|ico)|(?:script|vorzeli-icons)\.js)$/i;
+  if(req.path!=="/"&&!publicFile.test(req.path))return next();
+  return express.static(__dirname,{dotfiles:"deny",index:"index.html"})(req,res,next);
+});
 
 const pool = new Pool({
   connectionString: process.env.DATABASE_URL,

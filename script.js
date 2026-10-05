@@ -909,8 +909,8 @@ function render() {
 
       const searchOK =
         !q ||
-        product.n
-          .toLowerCase()
+        [product.n,product.sku,product.brand,...(product.tags||[])]
+          .join(" ").toLowerCase()
           .includes(q);
 
       return (
@@ -1008,7 +1008,7 @@ function render() {
               ${escapeHTML(product.c).toUpperCase()}
             </span>
 
-            <h3>${escapeHTML(product.n)}</h3>
+            <h3>${escapeHTML(product.n)}</h3><button type="button" class="productDetailsButton" onclick="openProductDetails(${Number(product.id)})">Ver detalhes</button>
 
             ${rating > 0 ? `
               <div class="ratingRow" aria-label="Avaliação ${rating} de 5">
@@ -1065,7 +1065,7 @@ function railCard(product) {
     ? '<img src="'+escapeHTML(safeImg)+'" alt="'+escapeHTML(product.n)+'" loading="lazy">'
     : '<span class="productFallback">V</span>';
   const stock = Number(product.stock || 0);
-  return '<article class="card"><div class="pic">'+image+'</div><div class="info"><span class="badge">'+escapeHTML(product.c).toUpperCase()+'</span><h3>'+escapeHTML(product.n)+'</h3><div class="priceBlock"><div class="price">'+money(product.p)+'</div></div><div class="shippingInfo"><span>✓</span> '+(stock>0?escapeHTML(product.shipping||"Disponível"):"Sem estoque")+'</div><button class="add" '+(stock<=0?'disabled':'onclick="add('+product.id+')"')+'><span>'+(stock>0?"Adicionar ao carrinho":"Indisponível")+'</span><span class="addArrow">→</span></button></div></article>';
+  return '<article class="card"><div class="pic">'+image+'</div><div class="info"><span class="badge">'+escapeHTML(product.c).toUpperCase()+'</span><h3>'+escapeHTML(product.n)+'</h3><button type="button" class="productDetailsButton" onclick="openProductDetails('+Number(product.id)+')">Ver detalhes</button><div class="priceBlock"><div class="price">'+money(product.p)+'</div></div><div class="shippingInfo"><span>✓</span> '+(stock>0?escapeHTML(product.shipping||"Disponível"):"Sem estoque")+'</div><button class="add" '+(stock<=0?'disabled':'onclick="add('+product.id+')"')+'><span>'+(stock>0?"Adicionar ao carrinho":"Indisponível")+'</span><span class="addArrow">→</span></button></div></article>';
 }
 
 function fillRails() {
@@ -1527,3 +1527,25 @@ loadCatalog();
   });
   cepInput.addEventListener("blur",lookupCep);
 })();
+
+
+function openProductDetails(id) {
+  const product=products.find(p=>String(p.id)===String(id));
+  if(!product)return;
+  const dialog=document.getElementById("productDetailsDialog");
+  if(!dialog)return;
+  const images=[...new Set([product.i,...(product.images||[])].map(safeImageUrl).filter(Boolean))];
+  const stock=Number(product.stock)||0;
+  document.getElementById("productDetailsContent").innerHTML=`
+    <h2 id="productDetailsTitle">${escapeHTML(product.n)}</h2>
+    ${images.length?`<div class="productGallery">${images.map(src=>`<img src="${escapeHTML(src)}" alt="${escapeHTML(product.n)}" loading="lazy">`).join("")}</div>`:""}
+    <div class="price">${money(product.p)}</div>
+    ${product.brand?`<p>Marca: ${escapeHTML(product.brand)}</p>`:""}
+    ${product.sku?`<p>Código: ${escapeHTML(product.sku)}</p>`:""}
+    ${product.description?`<p class="productDescription">${escapeHTML(product.description)}</p>`:""}
+    ${(product.variants||[]).length?`<dl class="productCharacteristics">${product.variants.map(v=>`<div><dt>${escapeHTML(v.name)}</dt><dd>${escapeHTML(v.value)}</dd></div>`).join("")}</dl>`:""}
+    <p>${stock>0?"Disponível em estoque":"Sem estoque"}</p>
+    <button type="button" class="add" id="productDetailsAdd" ${stock<=0?"disabled":""}>${stock>0?"Adicionar ao carrinho":"Indisponível"}</button>`;
+  document.getElementById("productDetailsAdd").addEventListener("click",()=>{dialog.close();add(product.id)});
+  if(!dialog.open)dialog.showModal();
+}
