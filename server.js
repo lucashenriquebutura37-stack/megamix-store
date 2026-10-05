@@ -234,7 +234,7 @@ app.put("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar produto."});}
 });
 app.delete("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
-  try{const r=await pool.query("DELETE FROM products WHERE id=$1 RETURNING id",[req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Produto não encontrado."});res.json({ok:true});}
+  try{if(!/^\\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});const r=await pool.query("DELETE FROM products WHERE id=$1 RETURNING id",[req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Produto não encontrado."});res.json({ok:true});}
   catch(e){if(e.code==="23503")return res.status(409).json({error:"Este produto já faz parte de um pedido e não pode ser excluído. Zere o estoque em vez disso."});console.error(e);res.status(500).json({error:"Erro ao excluir produto."});}
 });
 
