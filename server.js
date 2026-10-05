@@ -92,10 +92,26 @@ function toProduct(row) {
     weightKg:Number(row.weight_kg||0), lengthCm:Number(row.length_cm||0), widthCm:Number(row.width_cm||0), heightCm:Number(row.height_cm||0),
     createdAt:row.created_at };
 }
+const ADMIN_SESSION_TTL_MS=8*60*60*1000;
+const adminSessions=new Map();
+function adminSessionToken(req){
+  const raw=String(req.headers.cookie||"");
+  const m=raw.match(/(?:^|;\\s*)vorzeli_admin=([^;]+)/);
+  return m?decodeURIComponent(m[1]):"";
+}
+function cleanupAdminSessions(){
+  const now=Date.now();
+  for(const [token,expires] of adminSessions)if(expires<=now)adminSessions.delete(token);
+}
 function adminOnly(req,res,next){
   const configured=process.env.ADMIN_PASSWORD;
-  if(!configured) return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
-  if(req.headers["x-admin-password"]!==configured) return res.status(401).json({error:"Senha administrativa inválida."});
+  if(!configured)return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
+  const token=adminSessionToken(req),expires=adminSessions.get(token);
+  if(!token||!expires||expires<=Date.now()){
+    if(token)adminSessions.delete(token);
+    return res.status(401).json({error:"Sessão administrativa inválida ou expirada."});
+  }
+  adminSessions.set(token,Date.now()+ADMIN_SESSION_TTL_MS);
   next();
 }
 function requireDatabase(req,res,next){
@@ -152,7 +168,23 @@ function validateProductInput(b,current={}){
   return {values:[name,category,subcategory,clean(b.detail??current.detail,120),price,oldPrice,Math.floor(stock),image,rating,Math.floor(reviews),clean(b.shipping??current.shipping,120),Math.floor(installments),Boolean(b.featured??current.featured),weightKg,lengthCm,widthCm,heightCm]};
 }
 
-app.post("/api/admin/auth",adminOnly,(req,res)=>res.json({ok:true}));
+app.post("/api/admin/auth",(req,res)=>{
+  const configured=process.env.ADMIN_PASSWORD,provided=String(req.headers["x-admin-password"]||"");
+  if(!configured)return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
+  const a=Buffer.from(provided),b=Buffer.from(configured);
+  if(a.length!==b.length||!crypto.timingSafeEqual(a,b))return res.status(401).json({error:"Senha administrativa inválida."});
+  cleanupAdminSessions();
+  const token=crypto.randomBytes(32).toString("hex");
+  adminSessions.set(token,Date.now()+ADMIN_SESSION_TTL_MS);
+  res.setHeader("Set-Cookie",`vorzeli_admin=${token}; Max-Age=${ADMIN_SESSION_TTL_MS/1000}; Path=/; HttpOnly; Secure; SameSite=Strict`);
+  res.json({ok:true});
+});
+app.post("/api/admin/logout",(req,res)=>{
+  const token=adminSessionToken(req);if(token)adminSessions.delete(token);
+  res.setHeader("Set-Cookie","vorzeli_admin=; Max-Age=0; Path=/; HttpOnly; Secure; SameSite=Strict");
+  res.json({ok:true});
+});
+app.get("/api/admin/session",adminOnly,(req,res)=>res.json({ok:true}));
 app.get("/api/frete/config",(req,res)=>res.json({origin_postal_code:SHIPPING_ORIGIN_CEP.replace(/(\d{5})(\d{3})/,"$1-$2"),provider:"Melhor Envio",ready_for_quotes:Boolean(process.env.MELHOR_ENVIO_TOKEN),message:process.env.MELHOR_ENVIO_TOKEN?"Integração de frete configurada.":"Configure MELHOR_ENVIO_TOKEN no Render para ativar cotações reais."}));
 
 app.post("/api/frete/cotar",requireDatabase,async(req,res)=>{
