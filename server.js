@@ -378,4 +378,4 @@ app.get("/api/pedido/:publicId",requireDatabase,async(req,res)=>{
 app.get("/api/status",async(req,res)=>{let database=false;try{if(process.env.DATABASE_URL){await pool.query("SELECT 1");database=true;}}catch{}res.json({status:"VORZELI online",database,payments:Boolean(process.env.MP_ACCESS_TOKEN)});});
 
 const PORT=process.env.PORT||3000;
-initDatabase().then(()=>app.listen(PORT,()=>console.log(`Servidor iniciado na porta ${PORT}`))).catch(e=>{console.error("Falha ao inicializar banco:",e);process.exit(1);});
+initDatabase().then(()=>{releaseExpiredReservations();setInterval(releaseExpiredReservations,60000).unref();app.listen(PORT,()=>console.log(`Servidor iniciado na porta ${PORT}`));}).catch(e=>{console.error("Falha ao inicializar banco:",e);process.exit(1);});
