@@ -327,6 +327,7 @@ let selectedDetail = "";
 
 let cart = [];
 let favorites = new Set();
+let appliedCoupon=null;
 try { favorites = new Set(JSON.parse(localStorage.getItem("vorzeli_favorites") || "[]").map(Number)); } catch { favorites = new Set(); }
 try {
   const savedCart = JSON.parse(localStorage.getItem("cart") || "[]");
@@ -1155,6 +1156,14 @@ function updateCheckoutSteps(){
   if(selectedShipping){steps[1].classList.add("done");steps[2].classList.add("active");}
 }
 
+async function applyCoupon(){
+ const input=document.getElementById("couponCode"),status=document.getElementById("couponStatus"),code=(input?.value||"").trim().toUpperCase();
+ const subtotal=cart.reduce((v,item)=>{const p=products.find(x=>x.id===item.id);return v+(p?Number(p.p)*item.q:0)},0);
+ if(!code){appliedCoupon=null;if(status)status.textContent="";updateCart();return;}
+ if(status)status.textContent="Validando cupom...";
+ try{const r=await fetch("/api/cupom/validar",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({code,subtotal})}),d=await r.json();if(!r.ok)throw new Error(d.error||"Cupom inválido.");appliedCoupon={code:d.code,discount:Number(d.discount)||0};if(input)input.value=d.code;if(status)status.textContent="✓ Cupom aplicado: "+money(appliedCoupon.discount)+" de desconto.";updateCart();}catch(e){appliedCoupon=null;if(status)status.textContent=e.message;updateCart();}
+}
+
 function updateCart() {
 
   cart =
@@ -1277,12 +1286,15 @@ function updateCart() {
 
 
   const shippingValue=Number(selectedShipping?.price||0);
+  const discount=Math.min(Number(appliedCoupon?.discount||0),total);
+  const discountRow=document.getElementById("discountRow"),discountTotal=document.getElementById("discountTotal");
+  if(discountRow)discountRow.style.display=discount>0?"flex":"none";if(discountTotal)discountTotal.textContent="- "+money(discount);
   const subtotalElement=document.getElementById("subtotal");
   const shippingElement=document.getElementById("shippingTotal");
   const totalElement=document.getElementById("total");
   if(subtotalElement)subtotalElement.textContent=money(total);
   if(shippingElement)shippingElement.textContent=selectedShipping?money(shippingValue):"A calcular";
-  if(totalElement)totalElement.textContent=money(total+shippingValue);
+  if(totalElement)totalElement.textContent=money(Math.max(0,total-discount)+shippingValue);
   updateCheckoutSteps();
 }
 
@@ -1400,7 +1412,7 @@ async function checkout() {
     try{response=await fetch("/api/criar-preferencia", {
       method: "POST",
       headers: {"Content-Type":"application/json"},
-      body: JSON.stringify({ items: cart.map(item => ({ id:item.id, q:item.q })), customer, shipping_service_id:selectedShipping?.id||"" }),
+      body: JSON.stringify({ items: cart.map(item => ({ id:item.id, q:item.q })), customer, shipping_service_id:selectedShipping?.id||"", coupon_code:appliedCoupon?.code||"" }),
       signal:controller.signal
     });}finally{clearTimeout(timer);}
     const data = await response.json();
