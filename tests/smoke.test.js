@@ -250,3 +250,9 @@ test("consulta pública de pedido valida identificador e bloqueia cache",()=>{
   assert.ok(!block.includes("address_line"));
   assert.ok(!block.includes("payer_email"));
 });
+
+test("admin limita sessões simultâneas e preserva as mais recentes",()=>{
+  assert.ok(server.includes("ADMIN_MAX_ACTIVE_SESSIONS=5"));
+  assert.ok(server.includes("ORDER BY created_at DESC OFFSET $1"));
+  assert.ok(server.includes("[ADMIN_MAX_ACTIVE_SESSIONS]"));
+});
