@@ -965,12 +965,33 @@ function render() {
 
   grid.innerHTML =
     filtered
-      .map(product => `
+      .map(product => {
+
+        const oldPrice = Number(product.oldPrice || product.old || 0);
+        const discount =
+          oldPrice > Number(product.p)
+            ? Math.round((1 - Number(product.p) / oldPrice) * 100)
+            : Number(product.discount || 0);
+
+        const rating = Number(product.rating || 0);
+        const reviews = Number(product.reviews || 0);
+        const installments = Number(product.installments || 10);
+        const installmentValue = Number(product.p) / installments;
+        const shipping = product.shipping || product.frete || "";
+        const imageContent =
+          product.i
+            ? (/^(https?:|\/|data:|[^<>]+\.(png|jpe?g|webp|svg))/i.test(String(product.i))
+                ? `<img src="${product.i}" alt="${product.n}" loading="lazy">`
+                : product.i)
+            : '<span class="productFallback">V</span>';
+
+        return `
 
         <article class="card">
 
           <div class="pic">
-            ${product.i || "📦"}
+            ${discount > 0 ? `<span class="discountPill">-${discount}%</span>` : ""}
+            ${imageContent}
           </div>
 
           <div class="info">
@@ -979,23 +1000,40 @@ function render() {
               ${product.c.toUpperCase()}
             </span>
 
-            <h3>
-              ${product.n}
-            </h3>
+            <h3>${product.n}</h3>
 
-            <div class="price">
-              ${money(product.p)}
+            ${rating > 0 ? `
+              <div class="ratingRow" aria-label="Avaliação ${rating} de 5">
+                <span class="ratingStar">★</span>
+                <b>${rating.toFixed(1)}</b>
+                ${reviews ? `<small>(${reviews})</small>` : ""}
+              </div>
+            ` : ""}
+
+            <div class="priceBlock">
+              ${oldPrice > Number(product.p) ? `
+                <div class="oldPrice">${money(oldPrice)}</div>
+              ` : ""}
+
+              <div class="price">${money(product.p)}</div>
+
+              <div class="install">
+                ${installments}x de ${money(installmentValue)}
+              </div>
             </div>
 
-            <div class="install">
-              em até 10x no cartão
-            </div>
+            ${shipping ? `
+              <div class="shippingInfo">
+                <span>✓</span> ${shipping}
+              </div>
+            ` : ""}
 
             <button
               class="add"
               onclick="add(${product.id})">
 
-              Adicionar ao carrinho
+              <span>Adicionar ao carrinho</span>
+              <span class="addArrow">→</span>
 
             </button>
 
@@ -1003,7 +1041,8 @@ function render() {
 
         </article>
 
-      `)
+      `;
+      })
       .join("");
 }
 
