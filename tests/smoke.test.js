@@ -54,3 +54,14 @@ test("perguntas de produto têm moderação administrativa",()=>{
   assert.ok(server.includes("approved=TRUE"),"perguntas públicas sem filtro de aprovação");
   assert.ok(admin.includes("loadQuestions"),"moderação de perguntas ausente do admin");
 });
+
+test("cupons e pós-venda permanecem integrados",()=>{
+  const script=fs.readFileSync("script.js","utf8");
+  const admin=fs.readFileSync("admin.html","utf8");
+  for(const marker of ["CREATE TABLE IF NOT EXISTS coupons","/api/cupom/validar","/api/admin/cupons","product_reviews"]){assert.ok(server.includes(marker),marker+" ausente");}
+  assert.match(index,/Cupom de desconto/);
+  assert.ok(script.includes("coupon_code"),"cupom não enviado ao checkout");
+  assert.ok(admin.includes("loadCoupons"),"gestão de cupons ausente");
+  assert.match(pedido,/Pedido entregue/);
+  assert.match(pedido,/Avaliar/);
+});
