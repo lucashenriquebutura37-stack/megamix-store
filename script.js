@@ -1493,7 +1493,10 @@ loadCatalog();
     cepInput.disabled=true;
     cepInput.placeholder="Buscando CEP...";
     try{
-      const response=await fetch("https://viacep.com.br/ws/"+cep+"/json/");
+      const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),8000);
+      let response;
+      try{response=await fetch("https://viacep.com.br/ws/"+cep+"/json/",{signal:controller.signal});}
+      finally{clearTimeout(timer);}
       if(!response.ok)throw new Error("CEP não encontrado.");
       const data=await response.json();
       if(data.erro)throw new Error("CEP não encontrado.");
@@ -1505,7 +1508,9 @@ loadCatalog();
       if(number)number.focus();
     }catch(error){
       lastCep="";
-      alert("Não foi possível localizar esse CEP. Confira o número ou preencha o endereço manualmente.");
+      cepInput.setCustomValidity(error?.name==="AbortError"?"A consulta do CEP demorou. Você pode preencher o endereço manualmente.":"Não foi possível localizar esse CEP. Confira o número ou preencha o endereço manualmente.");
+      cepInput.reportValidity();
+      setTimeout(()=>cepInput.setCustomValidity(""),3500);
     }finally{
       cepInput.disabled=false;
       cepInput.placeholder=oldPlaceholder;
