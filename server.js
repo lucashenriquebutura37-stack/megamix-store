@@ -89,7 +89,7 @@ function requireDatabase(req,res,next){
   next();
 }
 const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
-const baseUrl=req=>`${req.protocol}://${req.get("host")}`;
+const baseUrl=req=>process.env.PUBLIC_URL ? String(process.env.PUBLIC_URL).replace(/\/$/,"") : `${req.protocol}://${req.get("host")}`;
 const SHIPPING_ORIGIN_CEP="29177297";
 
 app.post("/api/admin/auth",adminOnly,(req,res)=>res.json({ok:true}));
