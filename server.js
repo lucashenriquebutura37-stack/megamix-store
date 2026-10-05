@@ -507,6 +507,26 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
   finally{client.release();}
 });
 
+app.post("/api/admin/email-teste",adminOnly,async(req,res)=>{
+  try{
+    const cfg=smtpConfig();
+    if(!cfg)return res.status(503).json({error:"SMTP não configurado no servidor."});
+    const to=clean(req.body?.email,240);
+    if(!to||!to.includes("@"))return res.status(400).json({error:"Informe um e-mail válido para o teste."});
+    const transporter=nodemailer.createTransport({host:cfg.host,port:cfg.port,secure:cfg.port===465,auth:{user:cfg.user,pass:cfg.pass}});
+    await transporter.verify();
+    await transporter.sendMail({
+      from:`VORZELI <${cfg.from}>`,
+      to,
+      subject:"Teste de e-mail — VORZELI",
+      text:"Este é um teste do sistema de e-mails da VORZELI. Se você recebeu esta mensagem, a integração SMTP com a Brevo está funcionando corretamente."
+    });
+    res.json({ok:true,message:"E-mail de teste enviado com sucesso."});
+  }catch(e){
+    console.error("Teste SMTP falhou:",e.message);
+    res.status(502).json({error:"Não foi possível enviar o e-mail de teste. Verifique as configurações SMTP."});
+  }
+});
 app.post("/api/admin/pedido-teste",adminOnly,requireDatabase,async(req,res)=>{
   const client=await pool.connect();
   try{
