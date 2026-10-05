@@ -11,6 +11,7 @@ app.use((req,res,next)=>{
   res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");
   res.setHeader("X-Frame-Options","DENY");
   res.setHeader("Permissions-Policy","camera=(), microphone=(), geolocation=()");
+  res.setHeader("Cross-Origin-Opener-Policy","same-origin-allow-popups");
   next();
 });
 
