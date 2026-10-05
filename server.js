@@ -53,6 +53,7 @@ async function initDatabase() {
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_company TEXT DEFAULT '';
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_price NUMERIC(12,2) DEFAULT 0;
     ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_delivery_time INTEGER DEFAULT 0;
+    ALTER TABLE orders ADD COLUMN IF NOT EXISTS stock_reduced BOOLEAN DEFAULT FALSE;
     CREATE TABLE IF NOT EXISTS order_items (
       id BIGSERIAL PRIMARY KEY, order_id BIGINT NOT NULL REFERENCES orders(id) ON DELETE CASCADE,
       product_id BIGINT NOT NULL REFERENCES products(id), product_name TEXT NOT NULL,
@@ -258,11 +259,24 @@ app.post("/api/admin/pedido-teste",adminOnly,requireDatabase,async(req,res)=>{
   finally{client.release();}
 });
 
+function validMercadoPagoSignature(req,paymentId){
+  const secret=process.env.MP_WEBHOOK_SECRET;
+  if(!secret)return true;
+  const signature=String(req.headers["x-signature"]||""),requestId=String(req.headers["x-request-id"]||"");
+  const parts=Object.fromEntries(signature.split(",").map(x=>x.trim().split("=")).filter(x=>x.length===2));
+  if(!parts.ts||!parts.v1)return false;
+  const dataId=String(req.query["data.id"]||paymentId||"").toLowerCase();
+  const manifest=(dataId?"id:"+dataId+";":"")+(requestId?"request-id:"+requestId+";":"")+"ts:"+parts.ts+";";
+  const expected=crypto.createHmac("sha256",secret).update(manifest).digest("hex");
+  try{return crypto.timingSafeEqual(Buffer.from(expected,"hex"),Buffer.from(parts.v1,"hex"));}catch{return false;}
+}
+
 app.post("/api/mercadopago/webhook",async(req,res)=>{
-  res.sendStatus(200);
   try{
     const paymentId=req.query["data.id"]||req.body?.data?.id;
-    if(!paymentId||!process.env.MP_ACCESS_TOKEN)return;
+    if(!paymentId||!process.env.MP_ACCESS_TOKEN)return res.sendStatus(200);
+    if(!validMercadoPagoSignature(req,paymentId))return res.sendStatus(401);
+    res.sendStatus(200);
     const mp=await fetch(`https://api.mercadopago.com/v1/payments/${encodeURIComponent(paymentId)}`,{headers:{Authorization:`Bearer ${process.env.MP_ACCESS_TOKEN}`}});
     if(!mp.ok)return;
     const pay=await mp.json(), publicId=pay.external_reference;
@@ -275,13 +289,20 @@ app.post("/api/mercadopago/webhook",async(req,res)=>{
       const current=or.rows[0];
       if(pay.status==="approved"&&current.status!=="paid"){
         const its=await client.query("SELECT * FROM order_items WHERE order_id=$1",[current.id]);
-        for(const it of its.rows){
-          const u=await client.query("UPDATE products SET stock=stock-$1 WHERE id=$2 AND stock >= $1 RETURNING id",[it.quantity,it.product_id]);
-          if(!u.rows.length)throw new Error("Estoque insuficiente ao confirmar pedido "+publicId);
+        if(!current.stock_reduced){
+          for(const it of its.rows){
+            const u=await client.query("UPDATE products SET stock=stock-$1 WHERE id=$2 AND stock >= $1 RETURNING id",[it.quantity,it.product_id]);
+            if(!u.rows.length)throw new Error("Estoque insuficiente ao confirmar pedido "+publicId);
+          }
         }
-        await client.query("UPDATE orders SET status='paid',shipping_status=CASE WHEN shipping_status='aguardando_pagamento' THEN 'preparando' ELSE shipping_status END,payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
+        await client.query("UPDATE orders SET status='paid',stock_reduced=TRUE,shipping_status=CASE WHEN shipping_status='aguardando_pagamento' THEN 'preparando' ELSE shipping_status END,payment_id=$1,payer_email=$2,paid_at=NOW() WHERE id=$3",[String(pay.id),clean(pay.payer?.email,240),current.id]);
       }else if(["rejected","cancelled","refunded","charged_back"].includes(pay.status)){
-        await client.query("UPDATE orders SET status=$1,payment_id=$2,payer_email=$3 WHERE id=$4",[pay.status,String(pay.id),clean(pay.payer?.email,240),current.id]);
+        if(["refunded","charged_back"].includes(pay.status)&&current.stock_reduced){
+          const its=await client.query("SELECT * FROM order_items WHERE order_id=$1",[current.id]);
+          for(const it of its.rows)await client.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[it.quantity,it.product_id]);
+          await client.query("UPDATE orders SET stock_reduced=FALSE WHERE id=$1",[current.id]);
+        }
+        await client.query("UPDATE orders SET status=$1,payment_id=$2,payer_email=$3,shipping_status=CASE WHEN $1 IN ('refunded','charged_back','cancelled') AND shipping_status<>'entregue' THEN 'cancelado' ELSE shipping_status END WHERE id=$4",[pay.status,String(pay.id),clean(pay.payer?.email,240),current.id]);
       }
       await client.query("COMMIT");
     }catch(e){await client.query("ROLLBACK");console.error(e);}finally{client.release();}
