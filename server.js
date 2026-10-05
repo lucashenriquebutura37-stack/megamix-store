@@ -46,6 +46,8 @@ app.use("/api/",rateLimit({windowMs:60000,max:180,keyPrefix:"api"}));
 app.use("/api/admin/auth",rateLimit({windowMs:15*60*1000,max:12,keyPrefix:"admin-login"}));
 app.use("/api/frete/cotar",rateLimit({windowMs:60000,max:30,keyPrefix:"shipping"}));
 app.use("/api/criar-preferencia",rateLimit({windowMs:60000,max:15,keyPrefix:"checkout"}));
+app.use(/^\/api\/produtos\/\d+\/perguntas$/,rateLimit({windowMs:10*60*1000,max:8,keyPrefix:"questions"}));
+app.use(/^\/api\/produtos\/\d+\/avaliacoes$/,rateLimit({windowMs:10*60*1000,max:6,keyPrefix:"reviews"}));
 
 app.get("/robots.txt",(req,res)=>res.type("text/plain").send("User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /api/\n\nSitemap: https://vorzeli.com.br/sitemap.xml\n"));
 const xmlEscape=v=>String(v??"").replace(/[<>&'"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"}[c]));
