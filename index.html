@@ -35,11 +35,11 @@
     </div>
 
     <div class="search">
-      <input id="search" placeholder="O que você está procurando?">
+      <input id="search" type="search" aria-label="Buscar produtos" placeholder="O que você está procurando?">
       <button onclick="render()" aria-label="Buscar"><svg class="uiIcon uiSearch" viewBox="0 0 24 24" aria-hidden="true"><path d="m15.5 14 5 5-1.5 1.5-5-5a7 7 0 1 1 1.5-1.5ZM10 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg></button>
     </div>
 
-    <button class="cartBtn" onclick="toggleCart()">
+    <button class="cartBtn" onclick="toggleCart()" aria-label="Abrir carrinho">
       <svg class="uiIcon uiCart" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 10.2A2 2 0 0 0 9.2 16H18a2 2 0 0 0 1.9-1.4L22 8H7l-.5-2H3V4Z"/></svg> <b id="count">0</b>
     </button>
   </div>
@@ -270,7 +270,7 @@
 </div>
 
 
-<aside id="sideMenu" class="sideMenu">
+<aside id="sideMenu" class="sideMenu" aria-label="Categorias da loja">
 
   <div class="drawerHead">
 
@@ -389,11 +389,11 @@
 
 <!-- CARRINHO -->
 
-<div id="cart" class="cart">
+<div id="cart" class="cart" role="dialog" aria-modal="true" aria-labelledby="cartTitle">
 
   <div class="cartHead">
 
-    <h2>Seu carrinho</h2>
+    <h2 id="cartTitle">Seu carrinho</h2>
 
     <button onclick="toggleCart()">
       ✕
@@ -402,14 +402,14 @@
   </div>
 
 
-  <div id="items"></div>
+  <div id="items" aria-live="polite"></div>
 
 
   <div class="total">
 
     <span>Total</span>
 
-    <strong id="total">
+    <strong id="total" aria-live="polite">
       R$ 0,00
     </strong>
 
@@ -432,7 +432,7 @@
     </div>
   </div>
 
-  <button class="checkout" onclick="checkout()">Finalizar pagamento</button>
+  <button class="checkout" onclick="checkout()" aria-label="Finalizar pagamento do pedido">Finalizar pagamento</button>
 
 </div>
 
