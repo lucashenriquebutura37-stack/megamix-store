@@ -244,8 +244,12 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const total=productsTotal+selectedShipping.price;
     const publicId="VZ-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(3).toString("hex").toUpperCase();
     await client.query("BEGIN");
-    const or=await client.query(`INSERT INTO orders(public_id,total,customer_name,customer_phone,postal_code,address_line,address_number,address_extra,neighborhood,city,state,shipping_service_id,shipping_service_name,shipping_company,shipping_price,shipping_delivery_time)
-      VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
+    for(const x of normalized){
+      const reserved=await client.query("UPDATE products SET stock=stock-$1 WHERE id=$2 AND stock >= $1 RETURNING id",[x.q,x.id]);
+      if(!reserved.rows.length)throw Object.assign(new Error("O estoque mudou enquanto você finalizava a compra. Atualize o carrinho e tente novamente."),{status:409});
+    }
+    const or=await client.query(`INSERT INTO orders(public_id,total,stock_reserved,customer_name,customer_phone,postal_code,address_line,address_number,address_extra,neighborhood,city,state,shipping_service_id,shipping_service_name,shipping_company,shipping_price,shipping_delivery_time)
+      VALUES($1,$2,TRUE,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16) RETURNING id`,
       [publicId,total,customerName,customerPhone,postalCode,addressLine,addressNumber,addressExtra,neighborhood,city,state,selectedShipping.id,selectedShipping.name,selectedShipping.company,selectedShipping.price,selectedShipping.delivery_time]);
     for(const it of items)await client.query("INSERT INTO order_items(order_id,product_id,product_name,unit_price,quantity) VALUES($1,$2,$3,$4,$5)",[or.rows[0].id,Number(it.id),it.title,it.unit_price,it.quantity]);
     const root=baseUrl(req);
