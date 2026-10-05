@@ -193,6 +193,8 @@ function recordAdminLoginFailure(key){
 }
 function clearAdminLoginFailures(key){adminLoginAttempts.delete(key)}
 
+app.use("/api/admin",(req,res,next)=>{res.set("Cache-Control","no-store");next();});
+
 app.post("/api/admin/auth",(req,res)=>{
   const configured=process.env.ADMIN_PASSWORD,provided=String(req.headers["x-admin-password"]||""),loginKey=adminLoginKey(req);
   if(!configured)return res.status(503).json({error:"Configure ADMIN_PASSWORD no Render."});
