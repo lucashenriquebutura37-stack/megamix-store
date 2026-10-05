@@ -354,6 +354,13 @@ function safeImageUrl(value) {
   return "";
 }
 
+function imagePrivacyAttributes(value){
+  try{
+    const url=new URL(value);
+    return url.protocol==='https:'&&url.hostname==='acdn-us.mitiendanube.com'?' crossorigin="anonymous"':'';
+  }catch{return '';}
+}
+
 const money = value =>
   Number(value).toLocaleString(
     "pt-BR",
@@ -1009,7 +1016,7 @@ function render() {
         const shipping = product.shipping || product.frete || "";
         const safeImg = safeImageUrl(product.i);
         const imageContent = safeImg
-          ? `<img src="${escapeHTML(safeImg)}" alt="${escapeHTML(product.n)}" loading="lazy" decoding="async">`
+          ? `<img src="${escapeHTML(safeImg)}"${imagePrivacyAttributes(safeImg)} alt="${escapeHTML(product.n)}" loading="lazy" decoding="async">`
           : '<span class="productFallback">V</span>';
 
         return `
@@ -1081,7 +1088,7 @@ function render() {
 function railCard(product) {
   const safeImg = safeImageUrl(product.i);
   const image = safeImg
-    ? '<img src="'+escapeHTML(safeImg)+'" alt="'+escapeHTML(product.n)+'" loading="lazy" decoding="async">'
+    ? '<img src="'+escapeHTML(safeImg)+'"'+imagePrivacyAttributes(safeImg)+' alt="'+escapeHTML(product.n)+'" loading="lazy" decoding="async">'
     : '<span class="productFallback">V</span>';
   const stock = Number(product.stock || 0);
   return '<article class="card"><div class="pic">'+image+'</div><div class="info"><span class="badge">'+escapeHTML(product.c).toUpperCase()+'</span><h3>'+escapeHTML(product.n)+'</h3><button type="button" class="productDetailsButton" data-onclick="openProductDetails('+Number(product.id)+')">Ver detalhes</button><div class="priceBlock"><div class="price">'+money(product.p)+'</div></div><div class="shippingInfo"><span>✓</span> '+(stock>0?escapeHTML(product.shipping||"Disponível"):"Sem estoque")+'</div><button class="add" '+(stock<=0?'disabled':'data-onclick="add('+product.id+')"')+'><span>'+(stock>0?"Adicionar ao carrinho":"Indisponível")+'</span><span class="addArrow">→</span></button></div></article>';
@@ -1242,7 +1249,7 @@ function updateCart() {
             <div class="cartItem">
 
               <div class="ciIcon">
-                ${safeImageUrl(product.i) ? '<img src="'+escapeHTML(safeImageUrl(product.i))+'" alt="" data-style="width:44px;height:44px;object-fit:contain">' : "📦"}
+                ${safeImageUrl(product.i) ? '<img src="'+escapeHTML(safeImageUrl(product.i))+'"'+imagePrivacyAttributes(safeImageUrl(product.i))+' alt="" data-style="width:44px;height:44px;object-fit:contain">' : "📦"}
               </div>
 
               <div data-style="flex:1">
@@ -1654,7 +1661,7 @@ function openProductDetails(id) {
   document.getElementById("productDetailsContent").innerHTML=`
     <nav class="productBreadcrumb" aria-label="Navegação"><button type="button" data-onclick="closeProductDialog()">Início</button><span>›</span><span>${escapeHTML(product.c||"Produto")}</span></nav>
     <h2 id="productDetailsTitle">${escapeHTML(product.n)}</h2>
-    ${images.length?`<div class="productGallery">${images.map((src,i)=>`<img src="${escapeHTML(src)}" alt="${escapeHTML(product.n)} - foto ${i+1}" loading="${i?"lazy":"eager"}" decoding="async">`).join("")}</div>`:""}
+    ${images.length?`<div class="productGallery">${images.map((src,i)=>`<img src="${escapeHTML(src)}"${imagePrivacyAttributes(src)} alt="${escapeHTML(product.n)} - foto ${i+1}" loading="${i?"lazy":"eager"}" decoding="async">`).join("")}</div>`:""}
     <div class="productBuyPanel">
       ${oldPrice>Number(product.p)?`<div class="oldPrice">${money(oldPrice)} <b class="discountPillInline">-${discount}%</b></div>`:""}
       <div class="price">${money(product.p)}</div>
@@ -1669,7 +1676,7 @@ function openProductDetails(id) {
     ${product.sku?`<p><b>Código:</b> ${escapeHTML(product.sku)}</p>`:""}
     ${product.description?`<section class="productDescription"><h3>Descrição do produto</h3><p>${escapeHTML(product.description)}</p></section>`:""}
     ${(product.variants||[]).length?`<section><h3>Características</h3><dl class="productCharacteristics">${product.variants.map(v=>`<div><dt>${escapeHTML(v.name)}</dt><dd>${escapeHTML(v.value)}</dd></div>`).join("")}</dl></section>`:""}
-    <section class="productReviews"><h3>Avaliações de compradores</h3><div id="productReviewsList"><p>Carregando avaliações...</p></div><div class="askProduct"><h4>Avalie uma compra entregue</h4><input id="reviewOrder" maxlength="80" placeholder="Número do pedido VZ-..."><select id="reviewRating"><option value="5">★★★★★ — 5</option><option value="4">★★★★☆ — 4</option><option value="3">★★★☆☆ — 3</option><option value="2">★★☆☆☆ — 2</option><option value="1">★☆☆☆☆ — 1</option></select><textarea id="reviewComment" maxlength="1200" placeholder="Conte como foi sua experiência com o produto"></textarea><button type="button" data-onclick="sendProductReview(${Number(product.id)})">Enviar avaliação</button><small id="reviewStatus" aria-live="polite">Somente pedidos pagos e entregues podem avaliar.</small></div></section>\n    <section class="productQuestions"><h3>Perguntas sobre o produto</h3><div id="productQuestionsList"><p>Carregando perguntas...</p></div><div class="askProduct"><input id="questionName" maxlength="80" placeholder="Seu nome (opcional)"><textarea id="questionText" maxlength="600" placeholder="Tire sua dúvida sobre este produto"></textarea><button type="button" data-onclick="sendProductQuestion(${Number(product.id)})">Enviar pergunta</button><small id="questionStatus" aria-live="polite">As perguntas são analisadas antes da publicação.</small></div></section>\n    ${related.length?`<section class="relatedProducts"><h3>Você também pode gostar</h3><div>${related.map(p=>`<button type="button" data-onclick="openRelatedProduct(${Number(p.id)})">${safeImageUrl(p.i)?`<img src="${escapeHTML(safeImageUrl(p.i))}" alt="">`:""}<span>${escapeHTML(p.n)}</span><b>${money(p.p)}</b></button>`).join("")}</div></section>`:""}
+    <section class="productReviews"><h3>Avaliações de compradores</h3><div id="productReviewsList"><p>Carregando avaliações...</p></div><div class="askProduct"><h4>Avalie uma compra entregue</h4><input id="reviewOrder" maxlength="80" placeholder="Número do pedido VZ-..."><select id="reviewRating"><option value="5">★★★★★ — 5</option><option value="4">★★★★☆ — 4</option><option value="3">★★★☆☆ — 3</option><option value="2">★★☆☆☆ — 2</option><option value="1">★☆☆☆☆ — 1</option></select><textarea id="reviewComment" maxlength="1200" placeholder="Conte como foi sua experiência com o produto"></textarea><button type="button" data-onclick="sendProductReview(${Number(product.id)})">Enviar avaliação</button><small id="reviewStatus" aria-live="polite">Somente pedidos pagos e entregues podem avaliar.</small></div></section>\n    <section class="productQuestions"><h3>Perguntas sobre o produto</h3><div id="productQuestionsList"><p>Carregando perguntas...</p></div><div class="askProduct"><input id="questionName" maxlength="80" placeholder="Seu nome (opcional)"><textarea id="questionText" maxlength="600" placeholder="Tire sua dúvida sobre este produto"></textarea><button type="button" data-onclick="sendProductQuestion(${Number(product.id)})">Enviar pergunta</button><small id="questionStatus" aria-live="polite">As perguntas são analisadas antes da publicação.</small></div></section>\n    ${related.length?`<section class="relatedProducts"><h3>Você também pode gostar</h3><div>${related.map(p=>`<button type="button" data-onclick="openRelatedProduct(${Number(p.id)})">${safeImageUrl(p.i)?`<img src="${escapeHTML(safeImageUrl(p.i))}"${imagePrivacyAttributes(safeImageUrl(p.i))} alt="">`:""}<span>${escapeHTML(p.n)}</span><b>${money(p.p)}</b></button>`).join("")}</div></section>`:""}
     <p class="productPolicyLink"><a href="/politicas.html#trocas">Trocas e devoluções</a> • <a href="/politicas.html#atendimento">Precisa de ajuda?</a></p>`;
   const addBtn=document.getElementById("productDetailsAdd");
   if(addBtn)addBtn.addEventListener("click",()=>{dialog.close();add(product.id)});
