@@ -1597,3 +1597,14 @@ html{scroll-behavior:smooth}body{background:var(--vz-bg);-webkit-font-smoothing:
 .deliveryBox input:focus{border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,.08)}
 .deliveryRow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:390px){.deliveryBox{padding:12px}.deliveryBox input{height:40px}.deliveryRow{gap:6px}}
+
+/* Frete no carrinho */
+.shippingCalcBtn{width:100%;margin-top:4px}
+.shippingTitle{font-size:13px;font-weight:800;margin:14px 0 6px}
+.shippingOption{display:flex;gap:11px;align-items:flex-start;padding:12px;margin-top:8px;border:1px solid #e1e3e7;border-radius:14px;background:#fff;cursor:pointer;transition:.18s ease}
+.shippingOption:hover,.shippingOption.selected{border-color:#ff5a1f;box-shadow:0 0 0 3px rgba(255,90,31,.08)}
+.shippingOption input{width:auto!important;height:auto!important;margin:3px 0 0;accent-color:#ff5a1f}
+.shippingOption span{display:flex;flex-direction:column;gap:3px;min-width:0}
+.shippingOption b{font-size:13px}
+.shippingOption small,.shippingHint{font-size:12px;color:#686d76}
+#shippingOptions{margin-bottom:8px}
