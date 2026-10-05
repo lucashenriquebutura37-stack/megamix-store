@@ -91,6 +91,21 @@ function requireDatabase(req,res,next){
 const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
 const baseUrl=req=>process.env.PUBLIC_URL ? String(process.env.PUBLIC_URL).replace(/\/$/,"") : `${req.protocol}://${req.get("host")}`;
 const SHIPPING_ORIGIN_CEP="29177297";
+const finite=(v,min=0,max=Number.MAX_SAFE_INTEGER)=>{const n=Number(v);return Number.isFinite(n)&&n>=min&&n<=max?n:null};
+const safeImage=(v)=>{const x=clean(v,1000);if(!x)return "";try{const u=new URL(x);return (u.protocol==="https:"||u.protocol==="http:")?x:""}catch{return ""}};
+function validateProductInput(b,current={}){
+  const name=clean(b.n??current.n,180),category=clean(b.c??current.c,120),subcategory=clean(b.sub??current.sub,120);
+  const price=finite(b.p??current.p,0.01,99999999),oldPrice=finite(b.oldPrice??current.oldPrice??0,0,99999999);
+  const stock=finite(b.stock??current.stock??0,0,1000000),rating=finite(b.rating??current.rating??0,0,5);
+  const reviews=finite(b.reviews??current.reviews??0,0,100000000),installments=finite(b.installments??current.installments??10,1,48);
+  const weightKg=finite(b.weightKg??current.weightKg??0,0,1000),lengthCm=finite(b.lengthCm??current.lengthCm??0,0,1000);
+  const widthCm=finite(b.widthCm??current.widthCm??0,0,1000),heightCm=finite(b.heightCm??current.heightCm??0,0,1000);
+  if(!name||!category||!subcategory||price===null)return {error:"Nome, categoria, subcategoria e preço válido são obrigatórios."};
+  if([oldPrice,stock,rating,reviews,installments,weightKg,lengthCm,widthCm,heightCm].some(x=>x===null))return {error:"Há valores numéricos inválidos no produto."};
+  const rawImage=clean(b.i??current.i,1000),image=safeImage(rawImage);
+  if(rawImage&&!image)return {error:"A URL da imagem deve começar com http:// ou https://."};
+  return {values:[name,category,subcategory,clean(b.detail??current.detail,120),price,oldPrice,Math.floor(stock),image,rating,Math.floor(reviews),clean(b.shipping??current.shipping,120),Math.floor(installments),Boolean(b.featured??current.featured),weightKg,lengthCm,widthCm,heightCm]};
+}
 
 app.post("/api/admin/auth",adminOnly,(req,res)=>res.json({ok:true}));
 app.get("/api/frete/config",(req,res)=>res.json({origin_postal_code:SHIPPING_ORIGIN_CEP.replace(/(\d{5})(\d{3})/,"$1-$2"),provider:"Melhor Envio",ready_for_quotes:Boolean(process.env.MELHOR_ENVIO_TOKEN),message:process.env.MELHOR_ENVIO_TOKEN?"Integração de frete configurada.":"Configure MELHOR_ENVIO_TOKEN no Render para ativar cotações reais."}));
@@ -156,21 +171,20 @@ app.get("/api/produtos",requireDatabase,async(req,res)=>{
 });
 app.post("/api/produtos",adminOnly,requireDatabase,async(req,res)=>{
   try{
-    const b=req.body||{}, price=Number(b.p), rating=Math.min(5,Math.max(0,Number(b.rating||0)));
-    if(!clean(b.n)||!clean(b.c)||!clean(b.sub)||!Number.isFinite(price)||price<=0) return res.status(400).json({error:"Nome, categoria, subcategoria e preço são obrigatórios."});
-    const v=[clean(b.n,180),clean(b.c,120),clean(b.sub,120),clean(b.detail,120),price,Math.max(0,Number(b.oldPrice||0)),Math.max(0,Math.floor(Number(b.stock||0))),clean(b.i,1000),rating,Math.max(0,Math.floor(Number(b.reviews||0))),clean(b.shipping,120),Math.max(1,Math.floor(Number(b.installments||10))),Boolean(b.featured),Math.max(0,Number(b.weightKg||0)),Math.max(0,Number(b.lengthCm||0)),Math.max(0,Number(b.widthCm||0)),Math.max(0,Number(b.heightCm||0))];
-    const r=await pool.query(`INSERT INTO products(name,category,subcategory,detail,price,old_price,stock,image,rating,reviews,shipping,installments,featured,weight_kg,length_cm,width_cm,height_cm) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,v);
+    const checked=validateProductInput(req.body||{});
+    if(checked.error)return res.status(400).json({error:checked.error});
+    const r=await pool.query(`INSERT INTO products(name,category,subcategory,detail,price,old_price,stock,image,rating,reviews,shipping,installments,featured,weight_kg,length_cm,width_cm,height_cm) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17) RETURNING *`,checked.values);
     res.status(201).json(toProduct(r.rows[0]));
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao cadastrar produto."});}
 });
 app.put("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
   try{
+    if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});
     const cur=await pool.query("SELECT * FROM products WHERE id=$1",[req.params.id]);
     if(!cur.rows.length)return res.status(404).json({error:"Produto não encontrado."});
-    const p=toProduct(cur.rows[0]),b=req.body||{},price=Number(b.p??p.p);
-    if(!Number.isFinite(price)||price<=0)return res.status(400).json({error:"Preço inválido."});
-    const v=[clean(b.n??p.n,180),clean(b.c??p.c,120),clean(b.sub??p.sub,120),clean(b.detail??p.detail,120),price,Math.max(0,Number(b.oldPrice??p.oldPrice)),Math.max(0,Math.floor(Number(b.stock??p.stock))),clean(b.i??p.i,1000),Math.min(5,Math.max(0,Number(b.rating??p.rating))),Math.max(0,Math.floor(Number(b.reviews??p.reviews))),clean(b.shipping??p.shipping,120),Math.max(1,Math.floor(Number(b.installments??p.installments))),Boolean(b.featured??p.featured),Math.max(0,Number(b.weightKg??p.weightKg)),Math.max(0,Number(b.lengthCm??p.lengthCm)),Math.max(0,Number(b.widthCm??p.widthCm)),Math.max(0,Number(b.heightCm??p.heightCm)),req.params.id];
-    const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13,weight_kg=$14,length_cm=$15,width_cm=$16,height_cm=$17 WHERE id=$18 RETURNING *`,v);
+    const checked=validateProductInput(req.body||{},toProduct(cur.rows[0]));
+    if(checked.error)return res.status(400).json({error:checked.error});
+    const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13,weight_kg=$14,length_cm=$15,width_cm=$16,height_cm=$17 WHERE id=$18 RETURNING *`,[...checked.values,req.params.id]);
     res.json(toProduct(r.rows[0]));
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar produto."});}
 });
