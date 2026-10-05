@@ -110,3 +110,9 @@ test("desconto do Mercado Pago é reconciliado em centavos",()=>{
   assert.ok(server.includes("Falha ao reconciliar desconto do carrinho."));
   assert.ok(!server.includes("x.unit_price*(1-discount/productsTotal)"));
 });
+
+test("avaliações públicas não expõem nome completo do comprador",()=>{
+  assert.ok(server.includes("function publicReviewerName"));
+  assert.ok(server.includes("customer_name:publicReviewerName(x.customer_name)"));
+  assert.ok(server.includes("items:publicItems"));
+});
