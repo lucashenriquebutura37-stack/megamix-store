@@ -261,3 +261,9 @@ test("dashboard consulta nome real dos produtos com estoque baixo",()=>{
   assert.ok(server.includes("SELECT id,name AS n,sku,stock FROM products WHERE stock<=3 ORDER BY stock ASC,name ASC LIMIT 10"));
   assert.ok(!server.includes("SELECT id,n,sku,stock FROM products"));
 });
+
+test("dashboard administrativo destaca pedidos pendentes separadamente",()=>{
+  assert.ok(admin.includes('id="mPendingOrders"'));
+  assert.ok(admin.includes('"mPendingOrders").textContent=d.pending_orders??0'));
+  assert.ok(admin.includes("Moderação pendente"));
+});
