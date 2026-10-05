@@ -783,13 +783,15 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
 
 app.get("/api/admin/dashboard",adminOnly,requireDatabase,async(req,res)=>{
   try{
-    const [orders,products,pending]=await Promise.all([
-      pool.query(`SELECT COUNT(*)::int total_orders,COUNT(*) FILTER (WHERE status='paid')::int paid_orders,COALESCE(SUM(total) FILTER (WHERE status='paid'),0)::numeric revenue FROM orders WHERE is_test=FALSE`),
+    const [orders,products,pending,topProducts,coupons]=await Promise.all([
+      pool.query(`SELECT COUNT(*)::int total_orders,COUNT(*) FILTER (WHERE status='paid')::int paid_orders,COUNT(*) FILTER (WHERE status='pending')::int pending_orders,COALESCE(SUM(total) FILTER (WHERE status='paid'),0)::numeric revenue FROM orders WHERE is_test=FALSE`),
       pool.query(`SELECT COUNT(*)::int total_products,COUNT(*) FILTER (WHERE stock<=3)::int low_stock,COALESCE(SUM(stock),0)::int stock_units FROM products`),
-      pool.query(`SELECT (SELECT COUNT(*) FROM product_questions WHERE approved=FALSE)::int pending_questions,(SELECT COUNT(*) FROM product_reviews WHERE approved=FALSE)::int pending_reviews`)
+      pool.query(`SELECT (SELECT COUNT(*) FROM product_questions WHERE approved=FALSE)::int pending_questions,(SELECT COUNT(*) FROM product_reviews WHERE approved=FALSE)::int pending_reviews`),
+      pool.query(`SELECT oi.product_id,oi.product_name,SUM(oi.quantity)::int units_sold,ROUND(SUM(oi.quantity*oi.unit_price)::numeric,2) gross_sales FROM order_items oi JOIN orders o ON o.id=oi.order_id WHERE o.status='paid' AND o.is_test=FALSE GROUP BY oi.product_id,oi.product_name ORDER BY units_sold DESC,gross_sales DESC LIMIT 5`),
+      pool.query(`SELECT code,uses,discount_type,discount_value,active,expires_at FROM coupons ORDER BY uses DESC,created_at DESC LIMIT 5`)
     ]);
     res.set("Cache-Control","no-store");
-    res.json({...orders.rows[0],...products.rows[0],...pending.rows[0],revenue:Number(orders.rows[0].revenue||0)});
+    res.json({...orders.rows[0],...products.rows[0],...pending.rows[0],revenue:Number(orders.rows[0].revenue||0),top_products:topProducts.rows.map(x=>({...x,gross_sales:Number(x.gross_sales||0)})),top_coupons:coupons.rows});
   }catch(e){console.error("Dashboard:",e);res.status(500).json({error:"Não foi possível carregar o resumo da loja."});}
 });
 
