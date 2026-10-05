@@ -135,7 +135,7 @@ function renderOrders(){
  const paid=adminOrders.filter(o=>o.status==="paid"&&!o.is_test), revenue=paid.reduce((a,o)=>a+Number(o.total||0),0);
  const readyToShip=paid.filter(o=>o.shipping_status==="preparando").length;
  const metrics=$("orderMetrics");if(metrics)metrics.querySelector(".orderItems").textContent=adminOrders.length+" pedidos • "+paid.length+" pagos • "+readyToShip+" para enviar • "+revenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"})+" em vendas";
- if($("orderSummary"))$("orderSummary").textContent=adminOrders.length+" pedidos • "+paid.length+" pagos • "+revenue.toLocaleString("pt-BR",{style:"currency",currency:"BRL"});
+ if($("orderSummary"))$("orderSummary").textContent=data.length+" exibidos de "+adminOrders.length+" pedidos";
  const box=$("ordersList");
  box.innerHTML=data.length?data.map(o=>{
    const lines=(o.items||[]).map(i=>esc(i.quantity)+"× "+esc(i.name)).join("<br>");
