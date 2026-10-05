@@ -420,7 +420,7 @@ app.get("/api/pedido/:publicId",requireDatabase,async(req,res)=>{
   catch(e){res.status(500).json({error:"Erro ao consultar pedido."});}
 });
 
-app.get("/api/status",async(req,res)=>{let database=false;try{if(process.env.DATABASE_URL){await pool.query("SELECT 1");database=true;}}catch{}const healthy=database&&Boolean(process.env.MP_ACCESS_TOKEN)&&Boolean(process.env.MELHOR_ENVIO_TOKEN);res.status(healthy?200:503).json({status:healthy?"ok":"degraded",service:"VORZELI",database,payments:Boolean(process.env.MP_ACCESS_TOKEN),shipping:Boolean(process.env.MELHOR_ENVIO_TOKEN),public_url:Boolean(process.env.PUBLIC_URL),webhook_signature:Boolean(process.env.MP_WEBHOOK_SECRET),timestamp:new Date().toISOString()});});
+app.get("/api/status",async(req,res)=>{let database=false,dbLatencyMs=null;try{if(process.env.DATABASE_URL){const started=Date.now();await pool.query("SELECT 1");dbLatencyMs=Date.now()-started;database=true;}}catch{}const healthy=database&&Boolean(process.env.MP_ACCESS_TOKEN)&&Boolean(process.env.MELHOR_ENVIO_TOKEN);res.set("Cache-Control","no-store");res.status(healthy?200:503).json({status:healthy?"ok":"degraded",service:"VORZELI",database,db_latency_ms:dbLatencyMs,payments:Boolean(process.env.MP_ACCESS_TOKEN),shipping:Boolean(process.env.MELHOR_ENVIO_TOKEN),public_url:Boolean(process.env.PUBLIC_URL),webhook_signature:Boolean(process.env.MP_WEBHOOK_SECRET),uptime_seconds:Math.floor(process.uptime()),timestamp:new Date().toISOString()});});
 
 const PORT=process.env.PORT||3000;
 initDatabase().then(()=>{releaseExpiredReservations();setInterval(releaseExpiredReservations,60000).unref();app.listen(PORT,()=>console.log(`Servidor iniciado na porta ${PORT}`));}).catch(e=>{console.error("Falha ao inicializar banco:",e);process.exit(1);});
