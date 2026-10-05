@@ -232,3 +232,9 @@ test("textos públicos passam por sanitização antes de serem persistidos",()=>
   assert.ok(server.includes("cleanUserText(req.body?.question,600)"));
   assert.ok(server.includes("cleanUserText(req.body?.answer,1200)"));
 });
+
+test("logs críticos usam sanitização de erro",()=>{
+  assert.ok(server.includes("function safeError(error)"));
+  assert.ok(server.includes('"Checkout:",safeError(e)'));
+  assert.ok(server.includes('"Falha ao inicializar banco:",safeError(e)'));
+});
