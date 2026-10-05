@@ -104,7 +104,7 @@ function toProduct(row) {
     rating:Number(row.rating||0), reviews:Number(row.reviews||0), shipping:row.shipping||"",
     installments:Number(row.installments||10), featured:Boolean(row.featured),
     weightKg:Number(row.weight_kg||0), lengthCm:Number(row.length_cm||0), widthCm:Number(row.width_cm||0), heightCm:Number(row.height_cm||0),
-    description:row.description||"", sku:row.sku||"", brand:row.brand||"", images:Array.isArray(row.images)?row.images:[],
+    description:row.description||"", sku:row.sku||"", brand:row.brand||"", images:Array.isArray(row.images)?row.images:[], variants:Array.isArray(row.variants)?row.variants:[], tags:Array.isArray(row.tags)?row.tags:[],
     createdAt:row.created_at };
 }
 const ADMIN_SESSION_TTL_MS=8*60*60*1000;
