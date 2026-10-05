@@ -16,7 +16,7 @@
 <title>VORZELI</title>
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="vorzeli-icons.css">
-</head>
+<script src="ui-actions.js?v=csp1" defer></script></head>
 
 <body>
 
@@ -26,7 +26,7 @@
   </div>
 
   <div class="nav">
-    <button class="menuBtn" onclick="toggleMenu()" aria-label="Abrir categorias">
+    <button class="menuBtn" data-onclick="toggleMenu()" aria-label="Abrir categorias">
       <svg class="uiIcon uiMenu" viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16v2H4V6Zm0 5h16v2H4v-2Zm0 5h16v2H4v-2Z"/></svg>
     </button>
 
@@ -36,10 +36,10 @@
 
     <div class="search">
       <input id="search" type="search" list="searchSuggestions" aria-label="Buscar produtos" placeholder="O que você está procurando?"><datalist id="searchSuggestions"></datalist>
-      <button onclick="render()" aria-label="Buscar"><svg class="uiIcon uiSearch" viewBox="0 0 24 24" aria-hidden="true"><path d="m15.5 14 5 5-1.5 1.5-5-5a7 7 0 1 1 1.5-1.5ZM10 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg></button>
+      <button data-onclick="render()" aria-label="Buscar"><svg class="uiIcon uiSearch" viewBox="0 0 24 24" aria-hidden="true"><path d="m15.5 14 5 5-1.5 1.5-5-5a7 7 0 1 1 1.5-1.5ZM10 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg></button>
     </div>
 
-    <button class="cartBtn" onclick="toggleCart()" aria-label="Abrir carrinho">
+    <button class="cartBtn" data-onclick="toggleCart()" aria-label="Abrir carrinho">
       <svg class="uiIcon uiCart" viewBox="0 0 24 24" aria-hidden="true"><path d="M3 4h2l2.2 10.2A2 2 0 0 0 9.2 16H18a2 2 0 0 0 1.9-1.4L22 8H7l-.5-2H3V4Z"/></svg> <b id="count">0</b>
     </button>
   </div>
@@ -69,7 +69,7 @@
     </p>
 
     <div class="heroActions">
-      <button onclick="document.getElementById('areas').scrollIntoView({behavior:'smooth'})">
+      <button data-onclick="scrollToSection('areas')">
         Explorar a loja
       </button>
       <span>✓ Compra segura &nbsp; ✓ Envio para todo o Brasil</span>
@@ -122,7 +122,7 @@
 
     <button
       class="specialCard"
-      onclick="openArea('Audiologia — Acessórios e Componentes')">
+      data-onclick="openArea('Audiologia — Acessórios e Componentes')">
 
       <div class="specialIcon"><img class="vorzeliGraphicIcon" src="audiologia-acessorios-e-componentes__audiometro.svg" alt="" aria-hidden="true"></div>
 
@@ -142,7 +142,7 @@
 
     <button
       class="specialCard"
-      onclick="openArea('Medicina — Acessórios e Componentes')">
+      data-onclick="openArea('Medicina — Acessórios e Componentes')">
 
       <div class="specialIcon"><img class="vorzeliGraphicIcon" src="medicina-acessorios-e-componentes__ecg.svg" alt="" aria-hidden="true"></div>
 
@@ -175,7 +175,7 @@
       <h2><span class="sectionGlyph">↘</span> Ofertas</h2>
     </div>
 
-    <button onclick="showAll()">
+    <button data-onclick="showAll()">
       Ver mais →
     </button>
 
@@ -197,7 +197,7 @@
       <h2><span class="sectionGlyph">★</span> Mais vendidos</h2>
     </div>
 
-    <button onclick="showAll()">
+    <button data-onclick="showAll()">
       Ver mais →
     </button>
 
@@ -219,7 +219,7 @@
       <h2><span class="sectionGlyph">✦</span> Novidades</h2>
     </div>
 
-    <button onclick="showAll()">
+    <button data-onclick="showAll()">
       Ver mais →
     </button>
 
@@ -266,7 +266,7 @@
 <div
   id="menuOverlay"
   class="drawerOverlay"
-  onclick="toggleMenu()">
+  data-onclick="toggleMenu()">
 </div>
 
 
@@ -276,7 +276,7 @@
 
     <h2>Categorias</h2>
 
-    <button onclick="toggleMenu()">
+    <button data-onclick="toggleMenu()">
       ✕
     </button>
 
@@ -290,7 +290,7 @@
     <input
       id="menuSearch"
       placeholder="Buscar categoria..."
-      oninput="renderMenu()">
+      data-oninput="renderMenu()">
 
   </div>
 
@@ -306,7 +306,7 @@
 
   <div class="areaModalHead">
 
-    <button onclick="closeArea()">
+    <button data-onclick="closeArea()">
       ‹ Voltar
     </button>
 
@@ -314,7 +314,7 @@
       Categoria
     </h2>
 
-    <button onclick="toggleCart()">
+    <button data-onclick="toggleCart()">
       🛒
     </button>
 
@@ -341,7 +341,7 @@
 
     <div
       id="productArea"
-      style="display:none;">
+      data-style="display:none;">
 
       <div class="heading">
 
@@ -356,7 +356,7 @@
 
         <select
           id="sort"
-          onchange="render()">
+          data-onchange="render()">
 
           <option value="">
             Ordenar
@@ -374,12 +374,12 @@
 
 
       <div class="catalogFilters" aria-label="Filtros de produtos">
-        <label>Preço mínimo <input id="filterMin" type="number" min="0" step="0.01" inputmode="decimal" oninput="render()"></label>
-        <label>Preço máximo <input id="filterMax" type="number" min="0" step="0.01" inputmode="decimal" oninput="render()"></label>
-        <label>Marca <input id="filterBrand" type="search" placeholder="Digite a marca" oninput="render()"></label>
-        <label><input id="filterStock" type="checkbox" onchange="render()"> Somente em estoque</label>
-        <label><input id="filterOffers" type="checkbox" onchange="render()"> Somente ofertas</label>
-        <button type="button" onclick="clearCatalogFilters()">Limpar filtros</button>
+        <label>Preço mínimo <input id="filterMin" type="number" min="0" step="0.01" inputmode="decimal" data-oninput="render()"></label>
+        <label>Preço máximo <input id="filterMax" type="number" min="0" step="0.01" inputmode="decimal" data-oninput="render()"></label>
+        <label>Marca <input id="filterBrand" type="search" placeholder="Digite a marca" data-oninput="render()"></label>
+        <label><input id="filterStock" type="checkbox" data-onchange="render()"> Somente em estoque</label>
+        <label><input id="filterOffers" type="checkbox" data-onchange="render()"> Somente ofertas</label>
+        <button type="button" data-onclick="clearCatalogFilters()">Limpar filtros</button>
       </div>
       <div
         id="grid"
@@ -401,7 +401,7 @@
 
     <h2 id="cartTitle">Seu carrinho</h2>
 
-    <button onclick="toggleCart()">
+    <button data-onclick="toggleCart()">
       ✕
     </button>
 
@@ -418,11 +418,11 @@
   <div class="orderSummary" aria-label="Resumo do pedido">
     <div><span>Subtotal</span><strong id="subtotal">R$ 0,00</strong></div>
     <div><span>Frete</span><strong id="shippingTotal">A calcular</strong></div>
-    <div id="discountRow" style="display:none"><span>Desconto</span><strong id="discountTotal">- R$ 0,00</strong></div>
+    <div id="discountRow" data-style="display:none"><span>Desconto</span><strong id="discountTotal">- R$ 0,00</strong></div>
     <div class="grandTotal"><span>Total</span><strong id="total" aria-live="polite">R$ 0,00</strong></div>
   </div>
 
-  <div class="couponBox"><label for="couponCode">Cupom de desconto</label><div><input id="couponCode" maxlength="40" autocomplete="off" placeholder="Digite seu cupom"><button type="button" onclick="applyCoupon()">Aplicar</button></div><small id="couponStatus" aria-live="polite"></small></div>
+  <div class="couponBox"><label for="couponCode">Cupom de desconto</label><div><input id="couponCode" maxlength="40" autocomplete="off" placeholder="Digite seu cupom"><button type="button" data-onclick="applyCoupon()">Aplicar</button></div><small id="couponStatus" aria-live="polite"></small></div>
 
   <div class="deliveryBox">
     <div class="checkoutSectionTitle"><span>2</span><div><h3>Entrega</h3><p>Informe onde você quer receber o pedido.</p></div></div>
@@ -433,22 +433,22 @@
     <div class="deliveryRow"><input id="addressNumber" placeholder="Número"><input id="addressExtra" placeholder="Complemento"></div>
     <input id="neighborhood" placeholder="Bairro">
     <input id="city" autocomplete="address-level2" placeholder="Cidade">
-    <div id="shippingBox" style="margin-top:12px">
-      <button class="secondary shippingCalcBtn" type="button" onclick="calculateShipping()">Calcular frete</button>
+    <div id="shippingBox" data-style="margin-top:12px">
+      <button class="secondary shippingCalcBtn" type="button" data-onclick="calculateShipping()">Calcular frete</button>
       <div id="shippingOptions" aria-live="polite"></div>
     </div>
   </div>
 
   <div id="checkoutNotice" class="checkoutNotice" role="status" aria-live="polite"></div>
   <div class="paymentTrust"><b>Pagamento seguro</b><span>Você será direcionado ao Mercado Pago para concluir a compra.</span><a href="/politicas.html">Trocas, devoluções e privacidade</a></div>
-  <button class="checkout" onclick="checkout()" aria-label="Ir para o pagamento seguro">Ir para pagamento seguro</button>
+  <button class="checkout" data-onclick="checkout()" aria-label="Ir para o pagamento seguro">Ir para pagamento seguro</button>
 
 </div>
 
 
 <div
   id="overlay"
-  onclick="toggleCart()">
+  data-onclick="toggleCart()">
 </div>
 
 
@@ -509,7 +509,7 @@
 </div>
 <dialog id="productDetailsDialog" aria-labelledby="productDetailsTitle"><form method="dialog"><button class="productDetailsClose" aria-label="Fechar detalhes">Fechar ×</button></form><div id="productDetailsContent"></div></dialog>
 <script src="vorzeli-icons.js"></script>
-<script src="script.js"></script>
+<script src="script.js?v=csp1"></script>
 </body>
 </html>
 

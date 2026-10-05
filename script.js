@@ -408,7 +408,7 @@ function renderAreas() {
 
         <button
           class="areaCard"
-          onclick='openArea(${JSON.stringify(area.name)})'>
+          data-onclick='openArea(${JSON.stringify(area.name)})'>
 
           <div class="areaIcon">
             ${vorzeliAreaIconHTML(area)}
@@ -486,7 +486,7 @@ function menuButton(area) {
 
     <button
       class="menuItem"
-      onclick='openArea(${JSON.stringify(area.name)})'>
+      data-onclick='openArea(${JSON.stringify(area.name)})'>
 
       <span class="menuGraphic">${vorzeliAreaIconHTML(area)}</span>
 
@@ -582,7 +582,7 @@ function subButton(
 
     <button
       class="subcat"
-      onclick='selectSub(${JSON.stringify(name)},this)'>
+      data-onclick='selectSub(${JSON.stringify(name)},this)'>
 
       <span class="subcatIcon">
         ${vorzeliIconHTML(selected, name, icon)}
@@ -611,7 +611,7 @@ function detailButton(
 
     <button
       class="subcat"
-      onclick='selectDetail(${JSON.stringify(name)},this)'>
+      data-onclick='selectDetail(${JSON.stringify(name)},this)'>
 
       <span class="subcatIcon">
         ${vorzeliIconHTML(selectedSub || selected, name, icon)}
@@ -770,7 +770,7 @@ function selectSub(
 
         <button
           class="subcat"
-          onclick='openArea(${JSON.stringify(selected)})'>
+          data-onclick='openArea(${JSON.stringify(selected)})'>
 
           <span class="subcatIcon">
             ←
@@ -1027,7 +1027,7 @@ function render() {
               ${escapeHTML(product.c).toUpperCase()}
             </span>
 
-            <h3>${escapeHTML(product.n)}</h3><button type="button" class="productDetailsButton" onclick="openProductDetails(${Number(product.id)})">Ver detalhes</button>
+            <h3>${escapeHTML(product.n)}</h3><button type="button" class="productDetailsButton" data-onclick="openProductDetails(${Number(product.id)})">Ver detalhes</button>
 
             ${rating > 0 ? `
               <div class="ratingRow" aria-label="Avaliação ${rating} de 5">
@@ -1057,7 +1057,7 @@ function render() {
 
             <button
               class="add"
-              onclick="add(${product.id})">
+              data-onclick="add(${product.id})">
 
               <span>Adicionar ao carrinho</span>
               <span class="addArrow">→</span>
@@ -1084,7 +1084,7 @@ function railCard(product) {
     ? '<img src="'+escapeHTML(safeImg)+'" alt="'+escapeHTML(product.n)+'" loading="lazy" decoding="async">'
     : '<span class="productFallback">V</span>';
   const stock = Number(product.stock || 0);
-  return '<article class="card"><div class="pic">'+image+'</div><div class="info"><span class="badge">'+escapeHTML(product.c).toUpperCase()+'</span><h3>'+escapeHTML(product.n)+'</h3><button type="button" class="productDetailsButton" onclick="openProductDetails('+Number(product.id)+')">Ver detalhes</button><div class="priceBlock"><div class="price">'+money(product.p)+'</div></div><div class="shippingInfo"><span>✓</span> '+(stock>0?escapeHTML(product.shipping||"Disponível"):"Sem estoque")+'</div><button class="add" '+(stock<=0?'disabled':'onclick="add('+product.id+')"')+'><span>'+(stock>0?"Adicionar ao carrinho":"Indisponível")+'</span><span class="addArrow">→</span></button></div></article>';
+  return '<article class="card"><div class="pic">'+image+'</div><div class="info"><span class="badge">'+escapeHTML(product.c).toUpperCase()+'</span><h3>'+escapeHTML(product.n)+'</h3><button type="button" class="productDetailsButton" data-onclick="openProductDetails('+Number(product.id)+')">Ver detalhes</button><div class="priceBlock"><div class="price">'+money(product.p)+'</div></div><div class="shippingInfo"><span>✓</span> '+(stock>0?escapeHTML(product.shipping||"Disponível"):"Sem estoque")+'</div><button class="add" '+(stock<=0?'disabled':'data-onclick="add('+product.id+')"')+'><span>'+(stock>0?"Adicionar ao carrinho":"Indisponível")+'</span><span class="addArrow">→</span></button></div></article>';
 }
 
 function fillRails() {
@@ -1241,10 +1241,10 @@ function updateCart() {
             <div class="cartItem">
 
               <div class="ciIcon">
-                ${safeImageUrl(product.i) ? '<img src="'+escapeHTML(safeImageUrl(product.i))+'" alt="" style="width:44px;height:44px;object-fit:contain">' : "📦"}
+                ${safeImageUrl(product.i) ? '<img src="'+escapeHTML(safeImageUrl(product.i))+'" alt="" data-style="width:44px;height:44px;object-fit:contain">' : "📦"}
               </div>
 
-              <div style="flex:1">
+              <div data-style="flex:1">
 
                 <b>
                   ${escapeHTML(product.n)}
@@ -1257,14 +1257,14 @@ function updateCart() {
                 <div class="qty">
 
                   <button
-                    onclick="change(${item.id},-1)">
+                    data-onclick="change(${item.id},-1)">
                     −
                   </button>
 
                   ${item.q}
 
                   <button
-                    onclick="change(${item.id},1)">
+                    data-onclick="change(${item.id},1)">
                     +
                   </button>
 
@@ -1380,7 +1380,7 @@ async function calculateShipping(){
   const cep=(document.getElementById("postalCode")?.value||"").replace(/\D/g,"");
   if(cep.length!==8){checkoutMessage("Digite um CEP válido com 8 números.","warning");focusCheckoutField("postalCode");return;}
   const box=document.getElementById("shippingOptions");
-  checkoutMessage("Consultando as melhores opções de entrega...");if(box)box.innerHTML='<p style="font-size:13px">Calculando opções de entrega...</p>';
+  checkoutMessage("Consultando as melhores opções de entrega...");if(box)box.innerHTML='<p data-style="font-size:13px">Calculando opções de entrega...</p>';
   selectedShipping=null;
   try{
     const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),15000);
@@ -1389,9 +1389,9 @@ async function calculateShipping(){
     finally{clearTimeout(timer);}
     const d=await r.json();if(!r.ok)throw new Error(d.error||"Não foi possível calcular o frete.");
     if(!d.quotes?.length)throw new Error("Nenhuma opção de entrega disponível para este CEP.");
-    if(box)box.innerHTML='<div class="shippingTitle">Escolha a entrega</div>'+d.quotes.map((q,i)=>'<label class="shippingOption"><input type="radio" name="shippingOption" value="'+q.id+'" onchange="chooseShipping('+i+')"><span><b>'+(q.company?q.company+" • ":"")+q.name+'</b><small>'+money(Number(q.price))+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</small></span></label>').join("");
+    if(box)box.innerHTML='<div class="shippingTitle">Escolha a entrega</div>'+d.quotes.map((q,i)=>'<label class="shippingOption"><input type="radio" name="shippingOption" value="'+q.id+'" data-onchange="chooseShipping('+i+')"><span><b>'+(q.company?q.company+" • ":"")+q.name+'</b><small>'+money(Number(q.price))+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</small></span></label>').join("");
     window.shippingQuotes=d.quotes;checkoutMessage("Fretes encontrados. Escolha a opção que preferir.","success");
-  }catch(e){const msg=e?.name==="AbortError"?"A cotação demorou para responder. Tente novamente.":(e.message||"Não foi possível calcular o frete.");checkoutMessage(msg,"error");if(box)box.innerHTML='<p class="shippingError">'+escapeHTML(msg)+'</p><button type="button" class="shippingRetry" onclick="calculateShipping()">Tentar novamente</button>';}
+  }catch(e){const msg=e?.name==="AbortError"?"A cotação demorou para responder. Tente novamente.":(e.message||"Não foi possível calcular o frete.");checkoutMessage(msg,"error");if(box)box.innerHTML='<p class="shippingError">'+escapeHTML(msg)+'</p><button type="button" class="shippingRetry" data-onclick="calculateShipping()">Tentar novamente</button>';}
 }
 function chooseShipping(index){
   selectedShipping=window.shippingQuotes?.[index]||null;
@@ -1651,7 +1651,7 @@ function openProductDetails(id) {
   const installments=Math.max(1,Number(product.installments||10));
   const related=products.filter(p=>p.id!==product.id&&(p.c===product.c||p.sub===product.sub)).slice(0,4);
   document.getElementById("productDetailsContent").innerHTML=`
-    <nav class="productBreadcrumb" aria-label="Navegação"><button type="button" onclick="document.getElementById('productDetailsDialog').close()">Início</button><span>›</span><span>${escapeHTML(product.c||"Produto")}</span></nav>
+    <nav class="productBreadcrumb" aria-label="Navegação"><button type="button" data-onclick="closeProductDialog()">Início</button><span>›</span><span>${escapeHTML(product.c||"Produto")}</span></nav>
     <h2 id="productDetailsTitle">${escapeHTML(product.n)}</h2>
     ${images.length?`<div class="productGallery">${images.map((src,i)=>`<img src="${escapeHTML(src)}" alt="${escapeHTML(product.n)} - foto ${i+1}" loading="${i?"lazy":"eager"}" decoding="async">`).join("")}</div>`:""}
     <div class="productBuyPanel">
@@ -1660,15 +1660,15 @@ function openProductDetails(id) {
       <div class="install">ou em até ${installments}x de ${money(Number(product.p)/installments)}</div>
       ${Number(product.rating)>0?`<div class="ratingRow"><span class="ratingStar">★</span><b>${Number(product.rating).toFixed(1)}</b><small> (${Number(product.reviews||0)} avaliações)</small></div>`:""}
       <p class="stockState">${stock>0?"✓ Disponível em estoque":"Sem estoque"}</p>
-      <div class="productPrimaryActions"><button type="button" class="buyNow" onclick="buyNow(${Number(product.id)})" ${stock<=0?"disabled":""}>Comprar agora</button><button type="button" class="add" id="productDetailsAdd" ${stock<=0?"disabled":""}>${stock>0?"Adicionar ao carrinho":"Indisponível"}</button></div>
-      <div class="productSecondaryActions"><button type="button" id="favoriteProductButton" onclick="toggleFavorite(${Number(product.id)})">${isFavorite(product.id)?"♥ Salvo nos favoritos":"♡ Adicionar aos favoritos"}</button><button type="button" onclick="shareProduct(${Number(product.id)})">Compartilhar</button></div>
+      <div class="productPrimaryActions"><button type="button" class="buyNow" data-onclick="buyNow(${Number(product.id)})" ${stock<=0?"disabled":""}>Comprar agora</button><button type="button" class="add" id="productDetailsAdd" ${stock<=0?"disabled":""}>${stock>0?"Adicionar ao carrinho":"Indisponível"}</button></div>
+      <div class="productSecondaryActions"><button type="button" id="favoriteProductButton" data-onclick="toggleFavorite(${Number(product.id)})">${isFavorite(product.id)?"♥ Salvo nos favoritos":"♡ Adicionar aos favoritos"}</button><button type="button" data-onclick="shareProduct(${Number(product.id)})">Compartilhar</button></div>
       <div class="productTrustMini"><span>✓ Pagamento seguro</span><span>↗ Frete calculado pelo CEP no carrinho</span><span>↺ Consulte trocas e devoluções</span></div>
     </div>
     ${product.brand?`<p><b>Marca:</b> ${escapeHTML(product.brand)}</p>`:""}
     ${product.sku?`<p><b>Código:</b> ${escapeHTML(product.sku)}</p>`:""}
     ${product.description?`<section class="productDescription"><h3>Descrição do produto</h3><p>${escapeHTML(product.description)}</p></section>`:""}
     ${(product.variants||[]).length?`<section><h3>Características</h3><dl class="productCharacteristics">${product.variants.map(v=>`<div><dt>${escapeHTML(v.name)}</dt><dd>${escapeHTML(v.value)}</dd></div>`).join("")}</dl></section>`:""}
-    <section class="productReviews"><h3>Avaliações de compradores</h3><div id="productReviewsList"><p>Carregando avaliações...</p></div><div class="askProduct"><h4>Avalie uma compra entregue</h4><input id="reviewOrder" maxlength="80" placeholder="Número do pedido VZ-..."><select id="reviewRating"><option value="5">★★★★★ — 5</option><option value="4">★★★★☆ — 4</option><option value="3">★★★☆☆ — 3</option><option value="2">★★☆☆☆ — 2</option><option value="1">★☆☆☆☆ — 1</option></select><textarea id="reviewComment" maxlength="1200" placeholder="Conte como foi sua experiência com o produto"></textarea><button type="button" onclick="sendProductReview(${Number(product.id)})">Enviar avaliação</button><small id="reviewStatus" aria-live="polite">Somente pedidos pagos e entregues podem avaliar.</small></div></section>\n    <section class="productQuestions"><h3>Perguntas sobre o produto</h3><div id="productQuestionsList"><p>Carregando perguntas...</p></div><div class="askProduct"><input id="questionName" maxlength="80" placeholder="Seu nome (opcional)"><textarea id="questionText" maxlength="600" placeholder="Tire sua dúvida sobre este produto"></textarea><button type="button" onclick="sendProductQuestion(${Number(product.id)})">Enviar pergunta</button><small id="questionStatus" aria-live="polite">As perguntas são analisadas antes da publicação.</small></div></section>\n    ${related.length?`<section class="relatedProducts"><h3>Você também pode gostar</h3><div>${related.map(p=>`<button type="button" onclick="openRelatedProduct(${Number(p.id)})">${safeImageUrl(p.i)?`<img src="${escapeHTML(safeImageUrl(p.i))}" alt="">`:""}<span>${escapeHTML(p.n)}</span><b>${money(p.p)}</b></button>`).join("")}</div></section>`:""}
+    <section class="productReviews"><h3>Avaliações de compradores</h3><div id="productReviewsList"><p>Carregando avaliações...</p></div><div class="askProduct"><h4>Avalie uma compra entregue</h4><input id="reviewOrder" maxlength="80" placeholder="Número do pedido VZ-..."><select id="reviewRating"><option value="5">★★★★★ — 5</option><option value="4">★★★★☆ — 4</option><option value="3">★★★☆☆ — 3</option><option value="2">★★☆☆☆ — 2</option><option value="1">★☆☆☆☆ — 1</option></select><textarea id="reviewComment" maxlength="1200" placeholder="Conte como foi sua experiência com o produto"></textarea><button type="button" data-onclick="sendProductReview(${Number(product.id)})">Enviar avaliação</button><small id="reviewStatus" aria-live="polite">Somente pedidos pagos e entregues podem avaliar.</small></div></section>\n    <section class="productQuestions"><h3>Perguntas sobre o produto</h3><div id="productQuestionsList"><p>Carregando perguntas...</p></div><div class="askProduct"><input id="questionName" maxlength="80" placeholder="Seu nome (opcional)"><textarea id="questionText" maxlength="600" placeholder="Tire sua dúvida sobre este produto"></textarea><button type="button" data-onclick="sendProductQuestion(${Number(product.id)})">Enviar pergunta</button><small id="questionStatus" aria-live="polite">As perguntas são analisadas antes da publicação.</small></div></section>\n    ${related.length?`<section class="relatedProducts"><h3>Você também pode gostar</h3><div>${related.map(p=>`<button type="button" data-onclick="openRelatedProduct(${Number(p.id)})">${safeImageUrl(p.i)?`<img src="${escapeHTML(safeImageUrl(p.i))}" alt="">`:""}<span>${escapeHTML(p.n)}</span><b>${money(p.p)}</b></button>`).join("")}</div></section>`:""}
     <p class="productPolicyLink"><a href="/politicas.html#trocas">Trocas e devoluções</a> • <a href="/politicas.html#atendimento">Precisa de ajuda?</a></p>`;
   const addBtn=document.getElementById("productDetailsAdd");
   if(addBtn)addBtn.addEventListener("click",()=>{dialog.close();add(product.id)});

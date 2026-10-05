@@ -5,8 +5,8 @@ const fs=require("node:fs");
 const server=fs.readFileSync("server.js","utf8");
 const index=fs.readFileSync("index.html","utf8");
 const script=fs.readFileSync("script.js","utf8");
-const admin=fs.readFileSync("admin.html","utf8");
-const pedido=fs.readFileSync("pedido.html","utf8");
+const admin=fs.readFileSync("admin.html","utf8")+fs.readFileSync("page-admin.js","utf8");
+const pedido=fs.readFileSync("pedido.html","utf8")+fs.readFileSync("page-pedido.js","utf8");
 
 test("rotas críticas da loja continuam presentes",()=>{
   for(const route of ["/api/frete/cotar","/api/criar-preferencia","/api/mercadopago/webhook","/api/pedido/:publicId","/api/status","/healthz"]){
@@ -51,7 +51,7 @@ test("experiência moderna de produto permanece ativa",()=>{
 
 test("perguntas de produto têm moderação administrativa",()=>{
   const server=fs.readFileSync("server.js","utf8");
-  const admin=fs.readFileSync("admin.html","utf8");
+  const admin=fs.readFileSync("admin.html","utf8")+fs.readFileSync("page-admin.js","utf8");
   for(const marker of ["product_questions","/api/produtos/:id/perguntas","/api/admin/perguntas"]){assert.ok(server.includes(marker),marker+" ausente");}
   assert.ok(server.includes("approved=TRUE"),"perguntas públicas sem filtro de aprovação");
   assert.ok(admin.includes("loadQuestions"),"moderação de perguntas ausente do admin");
@@ -59,7 +59,7 @@ test("perguntas de produto têm moderação administrativa",()=>{
 
 test("cupons e pós-venda permanecem integrados",()=>{
   const script=fs.readFileSync("script.js","utf8");
-  const admin=fs.readFileSync("admin.html","utf8");
+  const admin=fs.readFileSync("admin.html","utf8")+fs.readFileSync("page-admin.js","utf8");
   for(const marker of ["CREATE TABLE IF NOT EXISTS coupons","/api/cupom/validar","/api/admin/cupons","product_reviews"]){assert.ok(server.includes(marker),marker+" ausente");}
   assert.match(index,/Cupom de desconto/);
   assert.ok(script.includes("coupon_code"),"cupom não enviado ao checkout");
