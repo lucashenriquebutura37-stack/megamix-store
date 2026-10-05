@@ -116,7 +116,7 @@ async function releaseExpiredReservations(){
     for(const order of expired.rows){
       const items=await client.query("SELECT product_id,quantity FROM order_items WHERE order_id=$1",[order.id]);
       for(const item of items.rows)await client.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[item.quantity,item.product_id]);
-      await client.query("UPDATE orders SET stock_reserved=FALSE,status='expired',shipping_status='cancelado' WHERE id=$1",[order.id]);
+      await client.query("UPDATE orders SET stock_reserved=FALSE,reservation_expires_at=NULL,status='expired',shipping_status='cancelado' WHERE id=$1",[order.id]);
     }
     await client.query("COMMIT");
   }catch(e){try{await client.query("ROLLBACK")}catch{};console.error("Erro ao liberar reservas expiradas:",e);}
@@ -130,7 +130,7 @@ async function cancelReservedOrder(publicId){
     if(r.rows[0]?.stock_reserved){
       const items=await c.query("SELECT product_id,quantity FROM order_items WHERE order_id=$1",[r.rows[0].id]);
       for(const item of items.rows)await c.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[item.quantity,item.product_id]);
-      await c.query("UPDATE orders SET stock_reserved=FALSE,status='cancelled',shipping_status='cancelado' WHERE id=$1",[r.rows[0].id]);
+      await c.query("UPDATE orders SET stock_reserved=FALSE,reservation_expires_at=NULL,status='cancelled',shipping_status='cancelado' WHERE id=$1",[r.rows[0].id]);
     }
     await c.query("COMMIT");
   }catch(e){try{await c.query("ROLLBACK")}catch{};throw e;}finally{c.release();}
