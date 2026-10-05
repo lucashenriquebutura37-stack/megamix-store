@@ -1588,3 +1588,46 @@ html{scroll-behavior:smooth}body{background:var(--vz-bg);-webkit-font-smoothing:
  .discovery span{display:none!important}
  .discovery div{padding:11px 7px!important}
 }
+
+
+/* VORZELI — carrinho mobile em destaque */
+@media(max-width:760px){
+ .cartBtn{
+   grid-column:3!important;
+   grid-row:1!important;
+   justify-self:end!important;
+   align-self:center!important;
+   position:relative!important;
+   width:46px!important;
+   height:46px!important;
+   padding:0!important;
+   display:flex!important;
+   align-items:center!important;
+   justify-content:center!important;
+   background:#fff!important;
+   border:1px solid #e3e6ea!important;
+   border-radius:15px!important;
+   box-shadow:0 6px 18px rgba(20,24,30,.09)!important;
+   overflow:visible!important;
+ }
+ .cartBtn .uiIcon{width:25px!important;height:25px!important}
+ .cartBtn b{
+   position:absolute!important;
+   top:-7px!important;
+   right:-7px!important;
+   min-width:23px!important;
+   height:23px!important;
+   padding:0 5px!important;
+   display:flex!important;
+   align-items:center!important;
+   justify-content:center!important;
+   background:#ff5a1f!important;
+   color:#fff!important;
+   border:2px solid #fff!important;
+   border-radius:999px!important;
+   font-size:10px!important;
+   line-height:1!important;
+   font-weight:900!important;
+   box-shadow:0 3px 9px rgba(255,90,31,.3)!important;
+ }
+}
