@@ -60,7 +60,7 @@ app.use("/api/criar-preferencia",rateLimit({windowMs:60000,max:15,keyPrefix:"che
 app.use(/^\/api\/produtos\/\d+\/perguntas$/,rateLimit({windowMs:10*60*1000,max:8,keyPrefix:"questions"}));
 app.use(/^\/api\/produtos\/\d+\/avaliacoes$/,rateLimit({windowMs:10*60*1000,max:6,keyPrefix:"reviews"}));
 
-app.get("/robots.txt",(req,res)=>res.type("text/plain").send("User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /api/\n\nSitemap: https://vorzeli.com.br/sitemap.xml\n"));
+app.get("/robots.txt",(req,res)=>{res.set("Cache-Control","public, max-age=3600");res.type("text/plain").send("User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /api/\n\nSitemap: https://vorzeli.com.br/sitemap.xml\n");});
 const xmlEscape=v=>String(v??"").replace(/[<>&'"]/g,c=>({"<":"&lt;",">":"&gt;","&":"&amp;","'":"&apos;",'"':"&quot;"}[c]));
 app.get("/sitemap.xml",async(req,res)=>{
   // O sitemap nunca deve depender do banco para as páginas essenciais.
