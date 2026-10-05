@@ -73,7 +73,6 @@ app.get("/sitemap.xml",async(req,res)=>{
   const root=(PUBLIC_URL||"https://vorzeli.com.br").replace(/\/$/,"");
   const urls=[
     `<url><loc>${xmlEscape(root+"/")}</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
-    `<url><loc>${xmlEscape(root+"/pedido.html")}</loc><changefreq>monthly</changefreq><priority>0.5</priority></url>`,
     `<url><loc>${xmlEscape(root+"/politicas.html")}</loc><changefreq>monthly</changefreq><priority>0.4</priority></url>`
   ];
   if(process.env.DATABASE_URL){
@@ -337,8 +336,9 @@ async function sendShippingUpdateEmail({to,publicId,status,trackingCode=""}){
 }
 async function releaseExpiredReservations(){
   if(!process.env.DATABASE_URL)return;
-  const client=await pool.connect();
+  let client;
   try{
+    client=await pool.connect();
     await client.query("BEGIN");
     const expired=await client.query("SELECT id,coupon_code,coupon_released FROM orders WHERE stock_reserved=TRUE AND stock_reduced=FALSE AND status='pending' AND reservation_expires_at<=NOW() ORDER BY reservation_expires_at LIMIT 100 FOR UPDATE SKIP LOCKED");
     for(const order of expired.rows){
@@ -350,7 +350,7 @@ async function releaseExpiredReservations(){
     }
     await client.query("COMMIT");
   }catch(e){try{await client.query("ROLLBACK")}catch{};console.error("Erro ao liberar reservas expiradas:",safeError(e));}
-  finally{client.release();}
+  finally{client?.release();}
 }
 async function cancelReservedOrder(publicId){
   const c=await pool.connect();
@@ -806,6 +806,11 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
       if(!or.rows.length){await client.query("ROLLBACK");return res.sendStatus(200);}
       const current=or.rows[0];
       if(pay.status==="approved"&&!["paid","refunded","charged_back"].includes(current.status)){
+        if(pay.currency_id!=="BRL"||!Number.isFinite(Number(pay.transaction_amount))||moneyCents(pay.transaction_amount)!==moneyCents(current.total)){
+          await client.query("ROLLBACK");
+          console.warn("Webhook Mercado Pago: valor ou moeda divergente; pedido não aprovado.");
+          return res.sendStatus(409);
+        }
         const its=await client.query("SELECT * FROM order_items WHERE order_id=$1",[current.id]);
         if(!current.stock_reserved&&!current.stock_reduced){
           for(const it of its.rows){
@@ -823,11 +828,15 @@ app.post(["/api/mercadopago/webhook","/api/webhook"],async(req,res)=>{
           if(current.status!==normalizedStatus)await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[current.id,"payment_"+normalizedStatus,"Pagamento aguardando confirmação: "+pay.status+"."]);
         }
       }else if(["rejected","cancelled","refunded","charged_back"].includes(pay.status)){
-        if(["rejected","cancelled"].includes(pay.status)&&current.status==="paid"){await client.query("COMMIT");return;}
+        if(["rejected","cancelled"].includes(pay.status)&&current.status==="paid"){await client.query("COMMIT");return res.sendStatus(200);}
         if((["refunded","charged_back"].includes(pay.status)&&current.stock_reduced)||(["rejected","cancelled"].includes(pay.status)&&current.stock_reserved)){
           const its=await client.query("SELECT * FROM order_items WHERE order_id=$1",[current.id]);
           for(const it of its.rows)await client.query("UPDATE products SET stock=stock+$1 WHERE id=$2",[it.quantity,it.product_id]);
           await client.query("UPDATE orders SET stock_reduced=FALSE,stock_reserved=FALSE,reservation_expires_at=NULL WHERE id=$1",[current.id]);
+        }
+        if(["rejected","cancelled"].includes(pay.status)&&current.coupon_code&&!current.coupon_released){
+          await client.query("UPDATE coupons SET uses=GREATEST(uses-1,0) WHERE UPPER(code)=UPPER($1)",[current.coupon_code]);
+          await client.query("UPDATE orders SET coupon_released=TRUE WHERE id=$1",[current.id]);
         }
         await client.query("UPDATE orders SET status=$1,payment_id=$2,payer_email=$3,shipping_status=CASE WHEN $1 IN ('refunded','charged_back','cancelled') AND shipping_status<>'entregue' THEN 'cancelado' ELSE shipping_status END WHERE id=$4",[pay.status,String(pay.id),clean(pay.payer?.email,240),current.id]);
         await client.query("INSERT INTO order_events(order_id,event_type,detail) VALUES($1,$2,$3)",[current.id,"payment_"+pay.status,"Pagamento atualizado para: "+pay.status+"."]);
