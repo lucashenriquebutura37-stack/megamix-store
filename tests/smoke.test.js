@@ -295,3 +295,12 @@ test("endpoints operacionais definem cache apropriado",()=>{
   assert.ok(server.includes('app.get("/robots.txt"'));
   assert.ok(server.includes('"public, max-age=3600"'));
 });
+
+test("configuração final mantém práticas essenciais de produção",()=>{
+  const pkg=require("../package.json");
+  assert.equal(pkg.scripts.validate,"npm run check && npm test");
+  assert.ok(pkg.engines.node.includes("22"));
+  assert.ok(server.includes('Cache-Control'));
+  assert.ok(server.includes('Content-Security-Policy'));
+  assert.ok(server.includes('Strict-Transport-Security'));
+});
