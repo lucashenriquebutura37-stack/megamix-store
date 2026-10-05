@@ -284,6 +284,7 @@ function requireDatabase(req,res,next){
   next();
 }
 const clean=(v,max=300)=>String(v??"").trim().slice(0,max);
+const cleanUserText=(v,max=300)=>clean(v,max).replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g,"").replace(/<\/?(?:script|iframe|object|embed|style|svg|math)\b[^>]*>/gi,"");
 const baseUrl=req=>process.env.PUBLIC_URL ? String(process.env.PUBLIC_URL).replace(/\/$/,"") : `${req.protocol}://${req.get("host")}`;
 const SHIPPING_ORIGIN_CEP="29177297";
 const STOCK_RESERVATION_MINUTES=30;
@@ -496,12 +497,12 @@ app.get("/api/produtos/:id/avaliacoes",requireDatabase,async(req,res)=>{
 app.post("/api/produtos/:id/avaliacoes",requireDatabase,async(req,res)=>{
   try{
     if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});
-    const publicId=clean(req.body?.order_id,80),rating=Number(req.body?.rating),comment=clean(req.body?.comment,1200);
+    const publicId=clean(req.body?.order_id,80),rating=Number(req.body?.rating),comment=cleanUserText(req.body?.comment,1200);
     if(!publicId||!Number.isInteger(rating)||rating<1||rating>5)return res.status(400).json({error:"Informe o pedido e uma nota de 1 a 5."});
     const o=await pool.query("SELECT o.id,o.customer_name,o.shipping_status FROM orders o JOIN order_items oi ON oi.order_id=o.id WHERE o.public_id=$1 AND oi.product_id=$2 AND o.status='paid' LIMIT 1",[publicId,req.params.id]);
     if(!o.rows.length)return res.status(403).json({error:"Não foi possível confirmar a compra deste produto."});
     if(o.rows[0].shipping_status!=="entregue")return res.status(409).json({error:"A avaliação fica disponível após o pedido ser marcado como entregue."});
-    await pool.query("INSERT INTO product_reviews(product_id,order_id,customer_name,rating,comment) VALUES($1,$2,$3,$4,$5) ON CONFLICT(product_id,order_id) DO UPDATE SET rating=EXCLUDED.rating,comment=EXCLUDED.comment,approved=FALSE,created_at=NOW()",[req.params.id,o.rows[0].id,clean(o.rows[0].customer_name,80),rating,comment]);
+    await pool.query("INSERT INTO product_reviews(product_id,order_id,customer_name,rating,comment) VALUES($1,$2,$3,$4,$5) ON CONFLICT(product_id,order_id) DO UPDATE SET rating=EXCLUDED.rating,comment=EXCLUDED.comment,approved=FALSE,created_at=NOW()",[req.params.id,o.rows[0].id,cleanUserText(o.rows[0].customer_name,80),rating,comment]);
     res.status(201).json({ok:true,message:"Avaliação recebida e aguardando moderação."});
   }catch(e){console.error("Nova avaliação:",e);res.status(500).json({error:"Não foi possível enviar a avaliação."});}
 });
@@ -531,7 +532,7 @@ app.get("/api/produtos/:id/perguntas",requireDatabase,async(req,res)=>{
 app.post("/api/produtos/:id/perguntas",requireDatabase,async(req,res)=>{
   try{
     if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Produto inválido."});
-    const name=clean(req.body?.name,80),question=clean(req.body?.question,600);
+    const name=cleanUserText(req.body?.name,80),question=cleanUserText(req.body?.question,600);
     if(question.length<5)return res.status(400).json({error:"Escreva uma pergunta com pelo menos 5 caracteres."});
     const p=await pool.query("SELECT id FROM products WHERE id=$1",[req.params.id]);if(!p.rows.length)return res.status(404).json({error:"Produto não encontrado."});
     await pool.query("INSERT INTO product_questions(product_id,customer_name,question) VALUES($1,$2,$3)",[req.params.id,name,question]);
@@ -543,7 +544,7 @@ app.get("/api/admin/perguntas",adminOnly,requireDatabase,async(req,res)=>{
   catch(e){console.error(e);res.status(500).json({error:"Não foi possível carregar perguntas."});}
 });
 app.put("/api/admin/perguntas/:id",adminOnly,requireDatabase,async(req,res)=>{
-  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Pergunta inválida."});const answer=clean(req.body?.answer,1200),approved=Boolean(req.body?.approved);const r=await pool.query("UPDATE product_questions SET answer=$1,approved=$2,answered_at=CASE WHEN $1<>'' THEN NOW() ELSE answered_at END WHERE id=$3 RETURNING id",[answer,approved,req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Pergunta não encontrada."});res.json({ok:true});}
+  try{if(!/^\d+$/.test(String(req.params.id)))return res.status(400).json({error:"Pergunta inválida."});const answer=cleanUserText(req.body?.answer,1200),approved=Boolean(req.body?.approved);const r=await pool.query("UPDATE product_questions SET answer=$1,approved=$2,answered_at=CASE WHEN $1<>'' THEN NOW() ELSE answered_at END WHERE id=$3 RETURNING id",[answer,approved,req.params.id]);if(!r.rows.length)return res.status(404).json({error:"Pergunta não encontrada."});res.json({ok:true});}
   catch(e){console.error(e);res.status(500).json({error:"Não foi possível atualizar a pergunta."});}
 });
 
