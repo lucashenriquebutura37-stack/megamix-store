@@ -148,7 +148,7 @@ app.post("/api/frete/cotar",requireDatabase,async(req,res)=>{
       return {id:String(p.id),width,height,length,weight,insurance_value:Number(p.price),quantity:x.q};
     });
     const apiBase=process.env.MELHOR_ENVIO_SANDBOX==="true"?"https://sandbox.melhorenvio.com.br":"https://melhorenvio.com.br";
-    const r=await fetch(apiBase+"/api/v2/me/shipment/calculate",{method:"POST",headers:{
+    const r=await fetch(apiBase+"/api/v2/me/shipment/calculate",{method:"POST",signal:externalSignal(),headers:{
       "Accept":"application/json","Content-Type":"application/json","Authorization":"Bearer "+process.env.MELHOR_ENVIO_TOKEN,
       "User-Agent":process.env.MELHOR_ENVIO_USER_AGENT||"VORZELI (contato da loja)"
     },body:JSON.stringify({from:{postal_code:SHIPPING_ORIGIN_CEP},to:{postal_code:destination},products,options:{receipt:false,own_hand:false}})});
@@ -171,7 +171,7 @@ app.post("/api/admin/frete-teste",adminOnly,async(req,res)=>{
     const width=Math.max(0,Number(req.body?.width_cm||0)),height=Math.max(0,Number(req.body?.height_cm||0));
     if(!(weight>0&&length>0&&width>0&&height>0))return res.status(400).json({error:"Informe peso e dimensões válidos."});
     const apiBase=process.env.MELHOR_ENVIO_SANDBOX==="true"?"https://sandbox.melhorenvio.com.br":"https://melhorenvio.com.br";
-    const r=await fetch(apiBase+"/api/v2/me/shipment/calculate",{method:"POST",headers:{
+    const r=await fetch(apiBase+"/api/v2/me/shipment/calculate",{method:"POST",signal:externalSignal(),headers:{
       "Accept":"application/json","Content-Type":"application/json","Authorization":"Bearer "+process.env.MELHOR_ENVIO_TOKEN,
       "User-Agent":process.env.MELHOR_ENVIO_USER_AGENT||"VORZELI (loja online)"
     },body:JSON.stringify({from:{postal_code:SHIPPING_ORIGIN_CEP},to:{postal_code:destination},products:[{id:"teste",width,height,length,weight,insurance_value:10,quantity:1}],options:{receipt:false,own_hand:false}})});
@@ -222,7 +222,7 @@ async function quoteShipping(destination, normalized, productRows){
     return {id:String(p.id),width,height,length,weight,insurance_value:Number(p.price),quantity:x.q};
   });
   const apiBase=process.env.MELHOR_ENVIO_SANDBOX==="true"?"https://sandbox.melhorenvio.com.br":"https://melhorenvio.com.br";
-  const r=await fetch(apiBase+"/api/v2/me/shipment/calculate",{method:"POST",headers:{
+  const r=await fetch(apiBase+"/api/v2/me/shipment/calculate",{method:"POST",signal:externalSignal(),headers:{
     "Accept":"application/json","Content-Type":"application/json","Authorization":"Bearer "+process.env.MELHOR_ENVIO_TOKEN,
     "User-Agent":process.env.MELHOR_ENVIO_USER_AGENT||"VORZELI (loja online)"
   },body:JSON.stringify({from:{postal_code:SHIPPING_ORIGIN_CEP},to:{postal_code:destination},products:shippingProducts,options:{receipt:false,own_hand:false}})});
