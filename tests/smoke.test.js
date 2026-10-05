@@ -46,3 +46,11 @@ test("experiência moderna de produto permanece ativa",()=>{
   assert.match(index,/Melhor avaliados/);
   assert.match(index,/Mais recentes/);
 });
+
+test("perguntas de produto têm moderação administrativa",()=>{
+  const server=fs.readFileSync("server.js","utf8");
+  const admin=fs.readFileSync("admin.html","utf8");
+  for(const marker of ["product_questions","/api/produtos/:id/perguntas","/api/admin/perguntas"]){assert.ok(server.includes(marker),marker+" ausente");}
+  assert.ok(server.includes("approved=TRUE"),"perguntas públicas sem filtro de aprovação");
+  assert.ok(admin.includes("loadQuestions"),"moderação de perguntas ausente do admin");
+});
