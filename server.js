@@ -310,7 +310,7 @@ app.put("/api/produtos/:id",adminOnly,requireDatabase,async(req,res)=>{
     if(!cur.rows.length)return res.status(404).json({error:"Produto não encontrado."});
     const checked=validateProductInput(req.body||{},toProduct(cur.rows[0]));
     if(checked.error)return res.status(400).json({error:checked.error});
-    const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13,weight_kg=$14,length_cm=$15,width_cm=$16,height_cm=$17 WHERE id=$18 RETURNING *`,[...checked.values,req.params.id]);
+    const r=await pool.query(`UPDATE products SET name=$1,category=$2,subcategory=$3,detail=$4,price=$5,old_price=$6,stock=$7,image=$8,rating=$9,reviews=$10,shipping=$11,installments=$12,featured=$13,weight_kg=$14,length_cm=$15,width_cm=$16,height_cm=$17,description=$18,sku=$19,brand=$20,images=$21::jsonb WHERE id=$22 RETURNING *`,[...checked.values,checked.extra.description,checked.extra.sku,checked.extra.brand,JSON.stringify(checked.extra.images),req.params.id]);
     res.json(toProduct(r.rows[0]));
   }catch(e){console.error(e);res.status(500).json({error:"Erro ao atualizar produto."});}
 });
