@@ -624,18 +624,11 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const productsTotal=items.reduce((s,x)=>s+x.quantity*x.unit_price,0);
     let coupon=null,discount=0;
     const couponCode=clean(req.body?.coupon_code,40).toUpperCase();
-    if(couponCode){
-      const cr=await client.query("SELECT * FROM coupons WHERE UPPER(code)=$1 AND active=TRUE AND (expires_at IS NULL OR expires_at>NOW()) AND (max_uses=0 OR uses<max_uses) LIMIT 1 FOR UPDATE",[couponCode]);
-      if(!cr.rows.length)return res.status(409).json({error:"O cupom não está mais disponível."});
-      coupon=cr.rows[0];if(productsTotal<Number(coupon.min_order||0))return res.status(409).json({error:"O valor do carrinho não atende à compra mínima do cupom."});
-      discount=coupon.discount_type==="percent"?productsTotal*Math.min(Number(coupon.discount_value),100)/100:Math.min(Number(coupon.discount_value),productsTotal);discount=Number(discount.toFixed(2));
-    }
     const requestedShippingId=clean(req.body?.shipping_service_id,40);
     if(!requestedShippingId)return res.status(400).json({error:"Escolha uma opção de frete."});
     const shippingQuotes=await quoteShipping(postalCode,normalized,pr.rows);
     const selectedShipping=shippingQuotes.find(q=>q.id===requestedShippingId);
     if(!selectedShipping)return res.status(400).json({error:"A opção de frete escolhida não está mais disponível. Calcule novamente."});
-    const total=Math.max(0.01,productsTotal-discount)+selectedShipping.price;
     let reservationCommitted=false,paymentRequestStarted=false,reservationCompensated=false;
     const publicId="VZ-"+Date.now().toString(36).toUpperCase()+"-"+crypto.randomBytes(3).toString("hex").toUpperCase();
     await client.query("BEGIN");
@@ -643,6 +636,15 @@ app.post("/api/criar-preferencia",requireDatabase,async(req,res)=>{
     const lockedStock=new Map(locked.rows.map(r=>[Number(r.id),Number(r.stock)]));
     const lockedById=new Map(locked.rows.map(r=>[Number(r.id),r]));
     for(const it of items){const current=lockedById.get(Number(it.id));if(!current||Number(current.price)!==Number(it.unit_price))throw Object.assign(new Error("O preço de um produto mudou. Atualize o carrinho e tente novamente."),{status:409});}
+    if(couponCode){
+      const cr=await client.query("SELECT * FROM coupons WHERE UPPER(code)=$1 FOR UPDATE",[couponCode]);
+      if(!cr.rows.length||!cr.rows[0].active||(cr.rows[0].expires_at&&new Date(cr.rows[0].expires_at)<=new Date())||(Number(cr.rows[0].max_uses)>0&&Number(cr.rows[0].uses)>=Number(cr.rows[0].max_uses)))throw Object.assign(new Error("O cupom não está mais disponível."),{status:409});
+      coupon=cr.rows[0];
+      if(productsTotal<Number(coupon.min_order||0))throw Object.assign(new Error("O valor do carrinho não atende à compra mínima do cupom."),{status:409});
+      discount=coupon.discount_type==="percent"?productsTotal*Math.min(Number(coupon.discount_value),100)/100:Math.min(Number(coupon.discount_value),productsTotal);
+      discount=Number(discount.toFixed(2));
+    }
+    const total=Math.max(0.01,productsTotal-discount)+selectedShipping.price;
     for(const x of normalized)if((lockedStock.get(x.id)??0)<x.q)throw Object.assign(new Error("O estoque mudou. Atualize o carrinho e tente novamente."),{status:409});
     for(const x of normalized){
       const reserved=await client.query("UPDATE products SET stock=stock-$1 WHERE id=$2 AND stock >= $1 RETURNING id",[x.q,x.id]);
