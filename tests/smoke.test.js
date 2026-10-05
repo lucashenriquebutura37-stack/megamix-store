@@ -169,3 +169,12 @@ test("uso de cupom só pode ser devolvido uma vez",()=>{
   assert.ok(server.includes("!r.rows[0].coupon_released"));
   assert.ok(server.includes("coupon_released=TRUE"));
 });
+
+test("cupom é travado e revalidado dentro da transação do checkout",()=>{
+  const checkout=server.slice(server.indexOf('app.post("/api/criar-preferencia"'),server.indexOf('app.post("/api/admin/email-teste"'));
+  const begin=checkout.indexOf('client.query("BEGIN")');
+  const couponLock=checkout.indexOf('SELECT * FROM coupons WHERE UPPER(code)=$1 FOR UPDATE');
+  assert.ok(begin>=0&&couponLock>begin);
+  assert.ok(checkout.includes("max_uses"));
+  assert.ok(checkout.includes("expires_at"));
+});
