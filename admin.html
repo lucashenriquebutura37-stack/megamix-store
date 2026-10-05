@@ -97,7 +97,7 @@ async function testShipping(){
   const r=await fetch("/api/admin/frete-teste",{method:"POST",headers:{"Content-Type":"application/json","x-admin-password":pass()},body:JSON.stringify({postal_code:cep,weight_kg:$("fWeight").value,length_cm:$("fLength").value,width_cm:$("fWidth").value,height_cm:$("fHeight").value})});
   const d=await r.json();if(!r.ok)throw new Error(d.error||"Erro na cotação.");
   fs.textContent="Integração funcionando • ambiente: "+d.environment;fs.style.color="#198754";
-  box.innerHTML=d.quotes?.length?d.quotes.map(q=>'<div class="order"><b>'+(q.company?q.company+" • ":"")+q.name+'</b><div class="orderItems">R$ '+Number(q.price).toFixed(2).replace(".",",")+(q.delivery_time?" • até "+q.delivery_time+" dias úteis":"")+'</div></div>').join(""):'<div class="order">A API respondeu, mas não retornou opções para esse CEP.</div>';
+  box.innerHTML=d.quotes?.length?d.quotes.map(q=>'<div class="order"><b>'+esc(q.company?q.company+" • ":"")+esc(q.name)+'</b><div class="orderItems">R$ '+Number(q.price).toFixed(2).replace(".",",")+(q.delivery_time?" • até "+Number(q.delivery_time)+" dias úteis":"")+'</div></div>').join(""):'<div class="order">A API respondeu, mas não retornou opções para esse CEP.</div>';
  }catch(e){fs.textContent=e.message;fs.style.color="#c0392b";}
 }
 async function createTestOrder(){
@@ -161,13 +161,17 @@ async function updateShipping(id){
   status("Envio atualizado.");await loadOrders();
  }catch(e){status(e.message,false)}
 }
-function renderList(){
- $("list").innerHTML=adminProducts.length?adminProducts.map(p=>`
+function safeAdminImage(v){try{const u=new URL(String(v||""));return (u.protocol==="https:"||u.protocol==="http:")?u.href:""}catch{return ""}}\nfunction renderList(){
+ $("list").innerHTML=adminProducts.length?adminProducts.map(p=>{
+  const img=safeAdminImage(p.i);
+  return `
  <div class="item">
-  ${p.i&&/^https?:/i.test(p.i)?'<img class="thumb" src="'+p.i+'" alt="">':'<div class="thumb"></div>'}
-  <div class="meta"><b>${esc(p.n)}</b><small>${esc(p.c)} › ${esc(p.sub)} • R$ ${Number(p.p).toFixed(2).replace(".",",")} • estoque: ${p.stock||0}</small></div>
-  <div class="itemActions"><button class="secondary" onclick="editProduct('${p.id}')">Editar</button><button class="danger" onclick="removeProduct('${p.id}')">Excluir</button></div>
- </div>`).join(""):'<div class="panel">Nenhum produto cadastrado ainda.</div>';
+  ${img?'<img class="thumb" src="'+esc(img)+'" alt="">':'<div class="thumb"></div>'}
+  <div class="meta"><b>${esc(p.n)}</b><small>${esc(p.c)} › ${esc(p.sub)} • R$ ${Number(p.p).toFixed(2).replace(".",",")} • estoque: ${Number(p.stock)||0}</small></div>
+  <div class="itemActions"><button class="secondary" data-edit="${Number(p.id)}">Editar</button><button class="danger" data-remove="${Number(p.id)}">Excluir</button></div>
+ </div>`}).join(""):'<div class="panel">Nenhum produto cadastrado ainda.</div>';
+ $("list").querySelectorAll("[data-edit]").forEach(b=>b.addEventListener("click",()=>editProduct(b.dataset.edit)));
+ $("list").querySelectorAll("[data-remove]").forEach(b=>b.addEventListener("click",()=>removeProduct(b.dataset.remove)));
 }
 function editProduct(id){
  const p=adminProducts.find(x=>String(x.id)===String(id));if(!p)return;
