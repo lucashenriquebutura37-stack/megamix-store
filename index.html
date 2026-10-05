@@ -35,7 +35,7 @@
     </div>
 
     <div class="search">
-      <input id="search" type="search" aria-label="Buscar produtos" placeholder="O que você está procurando?">
+      <input id="search" type="search" list="searchSuggestions" aria-label="Buscar produtos" placeholder="O que você está procurando?"><datalist id="searchSuggestions"></datalist>
       <button onclick="render()" aria-label="Buscar"><svg class="uiIcon uiSearch" viewBox="0 0 24 24" aria-hidden="true"><path d="m15.5 14 5 5-1.5 1.5-5-5a7 7 0 1 1 1.5-1.5ZM10 15a5 5 0 1 0 0-10 5 5 0 0 0 0 10Z"/></svg></button>
     </div>
 
@@ -366,9 +366,7 @@
             Menor preço
           </option>
 
-          <option value="high">
-            Maior preço
-          </option>
+          <option value="high">Maior preço</option><option value="rating">Melhor avaliados</option><option value="new">Mais recentes</option>
 
         </select>
 
