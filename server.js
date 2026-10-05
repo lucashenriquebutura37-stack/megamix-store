@@ -840,7 +840,7 @@ app.get("/api/admin/dashboard",adminOnly,requireDatabase,async(req,res)=>{
     ]);
     res.set("Cache-Control","no-store");
     const lowStockItems=await pool.query("SELECT id,name AS n,sku,stock FROM products WHERE stock<=3 ORDER BY stock ASC,name ASC LIMIT 10");
-    res.json({...orders.rows[0],...products.rows[0],...pending.rows[0],revenue:Number(orders.rows[0].revenue||0),average_ticket:Number(orders.rows[0].average_ticket||0),revenue_30d:Number(orders.rows[0].revenue_30d||0),top_products:topProducts.rows.map(x=>({...x,gross_sales:Number(x.gross_sales||0)})),top_coupons:coupons.rows,low_stock_items:lowStockItems.rows});
+    res.json({...orders.rows[0],...products.rows[0],...pending.rows[0],revenue:Number(orders.rows[0].revenue||0),average_ticket:Number(orders.rows[0].average_ticket||0),revenue_30d:Number(orders.rows[0].revenue_30d||0),discounts_total:Number(orders.rows[0].discounts_total||0),top_products:topProducts.rows.map(x=>({...x,gross_sales:Number(x.gross_sales||0)})),top_coupons:coupons.rows,low_stock_items:lowStockItems.rows});
   }catch(e){console.error("Dashboard:",safeError(e));res.status(500).json({error:"Não foi possível carregar o resumo da loja."});}
 });
 
