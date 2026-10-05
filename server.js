@@ -10,11 +10,39 @@ app.use((req,res,next)=>{
   res.setHeader("X-Content-Type-Options","nosniff");
   res.setHeader("Referrer-Policy","strict-origin-when-cross-origin");
   res.setHeader("X-Frame-Options","DENY");
-  res.setHeader("Permissions-Policy","camera=(), microphone=(), geolocation=()");
+  res.setHeader("Permissions-Policy","camera=(), microphone=(), geolocation=(), payment=(self)");
   res.setHeader("Cross-Origin-Opener-Policy","same-origin-allow-popups");
   res.setHeader("Cross-Origin-Resource-Policy","same-origin");
+  res.setHeader("Strict-Transport-Security","max-age=31536000; includeSubDomains");
+  res.setHeader("Content-Security-Policy","default-src 'self'; base-uri 'self'; object-src 'none'; frame-ancestors 'none'; form-action 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://viacep.com.br; font-src 'self' data:; upgrade-insecure-requests");
   next();
 });
+
+const rateBuckets=new Map();
+function rateLimit({windowMs=60000,max=120,keyPrefix="global"}={}){
+  return (req,res,next)=>{
+    const now=Date.now(), key=keyPrefix+":"+(req.ip||req.socket?.remoteAddress||"unknown");
+    const current=rateBuckets.get(key);
+    if(!current||current.reset<=now){
+      rateBuckets.set(key,{count:1,reset:now+windowMs});
+      return next();
+    }
+    current.count++;
+    if(current.count>max){
+      res.setHeader("Retry-After",String(Math.max(1,Math.ceil((current.reset-now)/1000))));
+      return res.status(429).json({error:"Muitas solicitações. Tente novamente em instantes."});
+    }
+    next();
+  };
+}
+setInterval(()=>{
+  const now=Date.now();
+  for(const [key,value] of rateBuckets)if(value.reset<=now)rateBuckets.delete(key);
+},60000).unref();
+app.use("/api/",rateLimit({windowMs:60000,max:180,keyPrefix:"api"}));
+app.use("/api/admin/auth",rateLimit({windowMs:15*60*1000,max:12,keyPrefix:"admin-login"}));
+app.use("/api/frete/cotar",rateLimit({windowMs:60000,max:30,keyPrefix:"shipping"}));
+app.use("/api/criar-preferencia",rateLimit({windowMs:60000,max:15,keyPrefix:"checkout"}));
 
 app.get("/robots.txt",(req,res)=>res.type("text/plain").send("User-agent: *\nAllow: /\nDisallow: /admin.html\nDisallow: /api/\n\nSitemap: https://vorzeli.com.br/sitemap.xml\n"));
 app.get("/sitemap.xml",(req,res)=>res.type("application/xml").send('<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>https://vorzeli.com.br/</loc><changefreq>daily</changefreq><priority>1.0</priority></url><url><loc>https://vorzeli.com.br/politicas.html</loc><changefreq>monthly</changefreq><priority>0.4</priority></url></urlset>'));
@@ -532,7 +560,7 @@ app.get("/api/pedido/:publicId",requireDatabase,async(req,res)=>{
   catch(e){res.status(500).json({error:"Erro ao consultar pedido."});}
 });
 
-app.get("/api/status",async(req,res)=>{let database=false,dbLatencyMs=null;try{if(process.env.DATABASE_URL){const started=Date.now();await pool.query("SELECT 1");dbLatencyMs=Date.now()-started;database=true;}}catch{}const healthy=database&&Boolean(process.env.MP_ACCESS_TOKEN)&&Boolean(process.env.MELHOR_ENVIO_TOKEN);res.set("Cache-Control","no-store");res.status(healthy?200:503).json({status:healthy?"ok":"degraded",service:"VORZELI",database,db_latency_ms:dbLatencyMs,payments:Boolean(process.env.MP_ACCESS_TOKEN),shipping:Boolean(process.env.MELHOR_ENVIO_TOKEN),public_url:Boolean(process.env.PUBLIC_URL),webhook_signature:Boolean(process.env.MP_WEBHOOK_SECRET),uptime_seconds:Math.floor(process.uptime()),timestamp:new Date().toISOString()});});
+app.get("/api/status",async(req,res)=>{let database=false,dbLatencyMs=null;try{if(process.env.DATABASE_URL){const started=Date.now();await pool.query("SELECT 1");dbLatencyMs=Date.now()-started;database=true;}}catch{}const healthy=database&&Boolean(process.env.MP_ACCESS_TOKEN)&&Boolean(process.env.MELHOR_ENVIO_TOKEN)&&Boolean(process.env.MP_WEBHOOK_SECRET);res.set("Cache-Control","no-store");res.status(healthy?200:503).json({status:healthy?"ok":"degraded",service:"VORZELI",database,db_latency_ms:dbLatencyMs,payments:Boolean(process.env.MP_ACCESS_TOKEN),shipping:Boolean(process.env.MELHOR_ENVIO_TOKEN),public_url:Boolean(process.env.PUBLIC_URL),webhook_signature:Boolean(process.env.MP_WEBHOOK_SECRET),uptime_seconds:Math.floor(process.uptime()),timestamp:new Date().toISOString()});});
 
 const PORT=process.env.PORT||3000;
 initDatabase().then(()=>{releaseExpiredReservations();setInterval(releaseExpiredReservations,60000).unref();app.listen(PORT,()=>console.log(`Servidor iniciado na porta ${PORT}`));}).catch(e=>{console.error("Falha ao inicializar banco:",e);process.exit(1);});
