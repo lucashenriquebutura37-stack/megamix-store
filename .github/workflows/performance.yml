@@ -1,15 +1,17 @@
 name: Desempenho VORZELI
 on:
   workflow_dispatch:
-  push:
-    branches: [main]
-    paths:
-      - '.github/workflows/performance.yml'
-      - 'index.html'
-      - '*.css'
-      - 'script.js'
-      - 'ui-actions.js'
-      - 'server.js'
+  # Gatilhos automaticos pausados durante a manutencao planejada.
+  # Restaurar apos a reativacao da loja (revisao em 2026-11-10):
+  #   push:
+  #     branches: [main]
+  #     paths:
+  #       - '.github/workflows/performance.yml'
+  #       - 'index.html'
+  #       - '*.css'
+  #       - 'script.js'
+  #       - 'ui-actions.js'
+  #       - 'server.js'
 permissions:
   contents: read
 concurrency:
