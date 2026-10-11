@@ -1,7 +1,10 @@
 name: Disponibilidade VORZELI
 on:
-  schedule:
-    - cron: '7,22,37,52 * * * *'
+  # Monitoramento automatico pausado durante a manutencao planejada.
+  # Loja colocada em manutencao no Render em 2026-10-10.
+  # Ao reativar a loja (revisao prevista para 2026-11-10), restaurar:
+  # schedule:
+  #   - cron: '7,22,37,52 * * * *'
   workflow_dispatch:
 permissions:
   contents: read
